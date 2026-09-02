@@ -70,9 +70,7 @@ export default function ScenariosView() {
     const t = new Date().toLocaleTimeString();
     setEntries((prev) => [...prev, { t, text, warn }]);
     if (data?.commitmentId) currentTxnIdRef.current = data.commitmentId;
-    if (text.includes("handing off to Razorpay") || text.includes("settling the transaction")) {
-      setTxnState("executing");
-    }
+    if (data?.phase === "executing") setTxnState("executing");
   }
 
   function selectScenario(key) {
@@ -190,7 +188,7 @@ export default function ScenariosView() {
                           <MutationCompare verified={result.compare.verified} observed={result.compare.observed} />
                         )}
                         <ChecksPanel decision={result.decision} />
-                        <ExecutionHandoff execution={result.execution} />
+                        <ExecutionHandoff execution={result.execution} executionError={result.executionError} />
                       </motion.div>
                     )}
                   </AnimatePresence>

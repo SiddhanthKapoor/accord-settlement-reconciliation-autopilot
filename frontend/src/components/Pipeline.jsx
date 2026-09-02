@@ -49,9 +49,16 @@ export function deriveNodes({ phase, executing, result }) {
     if (outcome === "ALLOW") {
       nodes[3] = { status: "done", label: "✓" };
       nodes[4] = { status: "done", label: "ALLOW" };
-      nodes[5] = result.execution
-        ? { status: "done", label: result.execution.simulated ? "SIMULATED" : "EXECUTED" }
-        : { status: "idle", label: "WAITING" };
+      // Integrity ALLOW and payment execution are separate facts — an
+      // execution failure here never rewrites the (still-true) ALLOW
+      // above, and is never rendered as if the payment went through.
+      if (result.executionError) {
+        nodes[5] = { status: "blocked", label: "✕ EXECUTION FAILED" };
+      } else if (result.execution) {
+        nodes[5] = { status: "done", label: result.execution.simulated ? "SIMULATED" : "EXECUTED" };
+      } else {
+        nodes[5] = { status: "idle", label: "WAITING" };
+      }
     } else if (outcome === "BLOCK") {
       const failing = result.decision.checks.find((c) => c.status === "FAIL");
       const threatLabels = { "T-31": "REPLAY DETECTED", "T-32": "DRIFT DETECTED", "T-33": "BUDGET UNAVAILABLE" };

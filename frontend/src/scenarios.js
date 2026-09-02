@@ -39,10 +39,15 @@ async function setup({ maxAmount, merchantId, productId, quantity = 1, tolerance
   return { intent, evidence, commit };
 }
 
+// Returns clientRequestId alongside the decision — /execute requires the
+// EXACT id used here for the SAME commitment (that's the identity link
+// between "what Interlock approved" and "what gets executed," not an
+// accident of the API). A caller that wants to execute this result MUST
+// reuse result.clientRequestId — never generate a fresh one.
 async function verify(intentId, commitmentId, overrides, log) {
+  const clientRequestId = overrides.client_request_id || newRequestId();
   log("payment request reaches Interlock — running integrity checks…");
   const result = await verifyPayment(intentId, commitmentId, {
-    client_request_id: newRequestId(),
     merchant_id: "merchant_electronics_01",
     product_id: "mouse_001",
     product_name: "Wireless Mouse",
@@ -50,13 +55,32 @@ async function verify(intentId, commitmentId, overrides, log) {
     quantity: 1,
     price_minor: 149900,
     ...overrides,
+    client_request_id: clientRequestId,
   });
   log(`decision: ${result.decision.outcome}`);
-  return result;
+  return { ...result, clientRequestId };
 }
 
 function moneyStr(minor) {
   return `₹${(minor / 100).toLocaleString("en-IN", { minimumFractionDigits: 0 })}`;
+}
+
+// Integrity ALLOW and payment execution are two separate facts. This
+// wraps the execution attempt so a downstream failure (bad credentials,
+// a real Razorpay error, a network fault) is reported as an execution
+// failure alongside the still-true ALLOW decision — never as a reason to
+// throw away or misrepresent the verification result, and never silently
+// retried with a different identity.
+async function executeAllowed(intentId, commitmentId, clientRequestId, log) {
+  log("creating Razorpay Payment Link…", false, { phase: "executing" });
+  try {
+    const execution = await executePayment(intentId, commitmentId, { client_request_id: clientRequestId });
+    log(execution.simulated ? "execution simulated (Razorpay not configured)" : "Razorpay Payment Link created");
+    return { execution, executionError: null };
+  } catch (err) {
+    log(`payment execution failed: ${err.message}`, true);
+    return { execution: null, executionError: err.message };
+  }
 }
 
 // ------------------------------------------------------------------ hero
@@ -78,12 +102,13 @@ export const HERO_SCENARIOS = {
       );
       const result = await verify(intent.intent_id, commit.commitment.commitment_id, {}, log);
       let execution = null;
+      let executionError = null;
       if (result.decision.outcome === "ALLOW") {
-        log("integrity verified — handing off to Razorpay test mode…");
-        execution = await executePayment(intent.intent_id, commit.commitment.commitment_id, { client_request_id: newRequestId() });
-        log(execution.simulated ? "execution simulated (Razorpay not configured)" : "payment link created");
+        ({ execution, executionError } = await executeAllowed(
+          intent.intent_id, commit.commitment.commitment_id, result.clientRequestId, log
+        ));
       }
-      return { ...result, execution };
+      return { ...result, execution, executionError };
     },
   },
   transaction_mutation: {
@@ -222,10 +247,17 @@ export const SECONDARY_SCENARIOS = {
       );
       const first = await verify(intent.intent_id, commit.commitment.commitment_id, {}, log);
       if (first.decision.outcome !== "ALLOW") return first;
-      log("settling the transaction (execute)…");
-      const execution = await executePayment(intent.intent_id, commit.commitment.commitment_id, { client_request_id: newRequestId() });
-      log(execution.simulated ? "execution simulated — commitment is now consumed" : "payment settled — commitment is now consumed");
+      const { executionError } = await executeAllowed(
+        intent.intent_id, commit.commitment.commitment_id, first.clientRequestId, log
+      );
+      if (executionError) {
+        log("cannot demonstrate replay — the initial execution itself failed", true);
+        return { ...first, executionError };
+      }
       log("!! the same commitment is presented again !!", true);
+      // A fresh client_request_id on purpose: this represents a genuinely
+      // new presentation attempt. What must catch it is the replay ledger
+      // keyed on the commitment itself, not request-id reuse.
       const second = await verify(intent.intent_id, commit.commitment.commitment_id, {}, log);
       return second;
     },
