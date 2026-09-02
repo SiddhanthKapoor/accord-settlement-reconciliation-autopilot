@@ -12,17 +12,17 @@ const PIPELINE = [
 
 const RISKS = [
   {
-    icon: "R", cls: "risk-icon-replay", title: "Replay",
+    color: "var(--fail)", title: "Replay",
     body: "A commitment that already backed a completed payment is presented again — with a new session, a new token, or a re-signed artifact.",
     threat: "T-31",
   },
   {
-    icon: "M", cls: "risk-icon-mutation", title: "State Mutation",
+    color: "var(--warn)", title: "State Mutation",
     body: "The transaction that reaches the payment layer no longer matches what was verified — a different quantity, price, product, or merchant.",
     threat: "T-32",
   },
   {
-    icon: "S", cls: "risk-icon-race", title: "Shared Budget Race",
+    color: "var(--accent)", title: "Shared Budget Race",
     body: "Multiple agent sessions attempt to spend against the same delegated budget at the same instant. Only one may legitimately win.",
     threat: "T-33",
   },
@@ -67,8 +67,7 @@ export default function Overview({ onNavigateScenarios }) {
       <div className="card-title" style={{ marginTop: 8 }}>What it protects against</div>
       <div className="risk-grid">
         {RISKS.map((r) => (
-          <div className="card risk-card" key={r.title}>
-            <div className={"risk-icon " + r.cls}>{r.icon}</div>
+          <div className="risk-card" style={{ "--risk-color": r.color }} key={r.title}>
             <div className="risk-title">{r.title}</div>
             <div className="risk-body">{r.body}</div>
             <span className="risk-threat">AP2 {r.threat}</span>
