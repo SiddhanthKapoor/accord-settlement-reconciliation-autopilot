@@ -1,5 +1,3 @@
-import { humanizeDecision } from "../decisionCopy.js";
-
 function StatusBadge({ status }) {
   const cls = { PASS: "badge badge-pass", WARN: "badge badge-warn", FAIL: "badge badge-fail" }[status] || "badge";
   return <span className={cls}>{status}</span>;
@@ -8,19 +6,10 @@ function StatusBadge({ status }) {
 export default function ChecksPanel({ decision }) {
   if (!decision) return null;
 
-  const { statusLine, headline, tone } = humanizeDecision(decision);
-  const outcomeCls = `decision-banner decision-${tone === "allow" ? "allow" : tone === "block" ? "block" : "warn"}`;
   const semanticCheck = decision.checks.find((c) => c.name === "product_identity" && c.confidence != null);
 
   return (
     <div>
-      <div className={outcomeCls} role="status">
-        <div>
-          <div className="decision-status-line">{statusLine}</div>
-          <div className="decision-title">{headline}</div>
-        </div>
-      </div>
-
       {semanticCheck && (
         <div className="card" style={{ marginBottom: 14 }}>
           <div className="card-title">Semantic comparison</div>

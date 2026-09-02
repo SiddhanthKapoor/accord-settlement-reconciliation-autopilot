@@ -88,17 +88,15 @@ button { font-family: inherit; }
 .brand-mark { display: flex; align-items: center; gap: 9px; }
 .brand-glyph { width: 22px; height: 22px; color: var(--navy); flex-shrink: 0; }
 .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink); letter-spacing: -0.01em; }
-.eco-pill {
-  font-size: 11px; font-weight: 500; color: var(--muted); background: var(--surface-sunk);
-  border: 1px solid var(--border-subtle); padding: 4px 11px; border-radius: var(--radius-sm);
-}
 .tabs { display: flex; gap: 2px; }
 .tab {
-  padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+  position: relative; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
   color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit;
 }
-.tab:hover { color: var(--ink); background: var(--surface-sunk); }
-.tab-active { color: var(--ink); background: var(--surface-sunk); font-weight: 600; }
+.tab:hover { color: var(--ink); }
+.tab-active { color: var(--ink); font-weight: 600; }
+.tab-indicator { position: absolute; inset: 0; background: var(--surface-sunk); border-radius: var(--radius-sm); z-index: 0; }
+.tab-label { position: relative; z-index: 1; }
 
 .topnav-right { display: flex; align-items: center; gap: 8px; }
 .status-chip {
@@ -202,6 +200,28 @@ button { font-family: inherit; }
 
 /* ---------------------------------------------------------------- scenarios layout */
 
+.stage { min-height: 80px; }
+
+.preview { border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; background: var(--surface); }
+.preview-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.preview-grid { display: grid; grid-template-columns: 140px 1fr; row-gap: 10px; column-gap: 16px; margin: 0; }
+.preview-grid dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 600; padding-top: 1px; }
+.preview-grid dd { margin: 0; font-size: 13.5px; color: var(--text); line-height: 1.5; }
+.run-btn {
+  margin-top: 20px; padding: 10px 22px; border-radius: var(--radius-pill); border: none;
+  background: var(--ink); color: white; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.run-btn:hover { background: var(--navy); }
+.run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.live-checklist { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; background: var(--surface); }
+.live-check { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 12.5px; font-family: var(--mono); }
+.live-check-symbol { width: 14px; text-align: center; color: var(--faint); font-weight: 700; }
+.live-check-pass .live-check-symbol { color: var(--pass); }
+.live-check-warn .live-check-symbol { color: var(--warn); }
+.live-check-fail .live-check-symbol { color: var(--fail); }
+.live-check-name { color: var(--muted); text-transform: lowercase; }
+
 .scenario-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
 
 .hero-scenario-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
@@ -210,6 +230,8 @@ button { font-family: inherit; }
 }
 .hero-scenario-card:hover { background: var(--surface-sunk); }
 .hero-scenario-card.active { background: var(--accent-soft); box-shadow: inset 0 2px 0 var(--accent); }
+.hero-scenario-card:disabled, .secondary-item:disabled { opacity: 0.55; cursor: not-allowed; }
+.hero-scenario-card:disabled:hover { background: var(--surface); }
 .hero-scenario-num { font-family: var(--mono); font-size: 10.5px; color: var(--faint); font-weight: 500; }
 .hero-scenario-title { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; color: var(--ink); margin: 6px 0 5px; }
 .hero-scenario-desc { font-size: 12px; color: var(--muted); line-height: 1.45; }

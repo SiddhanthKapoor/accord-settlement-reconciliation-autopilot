@@ -1,3 +1,5 @@
+import { AnimatePresence, motion } from "motion/react";
+
 // One component, two modes:
 //  - idle (no `live` prop): the calm explainer strip on Overview.
 //  - live (`live` = array of 6 {status, label}, from deriveNodes below):
@@ -74,13 +76,26 @@ export default function Pipeline({ live }) {
         const label = node?.label;
         return (
           <div key={def.title} style={{ display: "flex", alignItems: "center" }}>
-            <div className={`pipe-node pipe-node-${status}` + (def.em && !live ? " pipe-node-em" : "")}>
+            <motion.div
+              layout
+              className={`pipe-node pipe-node-${status}` + (def.em && !live ? " pipe-node-em" : "")}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+            >
               {def.em && !live && <span className="pipe-ready-dot" aria-hidden="true" />}
               <div className="pipe-node-title">{def.title}</div>
-              <div className={"pipe-node-sub" + (status !== "idle" ? " pipe-node-sub-live" : "")}>
-                {label || def.idle}
-              </div>
-            </div>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={label || def.idle}
+                  className={"pipe-node-sub" + (status !== "idle" ? " pipe-node-sub-live" : "")}
+                  initial={{ opacity: 0, y: -3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 3 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {label || def.idle}
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
             {i < NODE_DEFS.length - 1 && (
               <div className={"pipe-arrow" + (status === "done" ? " pipe-arrow-done" : "")}>→</div>
             )}

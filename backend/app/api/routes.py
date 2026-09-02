@@ -445,7 +445,11 @@ async def stream_audit(request: Request):
             for row in new_rows:
                 last_seq = row["seq"]
                 yield f"data: {json.dumps(row, default=str)}\n\n"
-            await asyncio.sleep(0.3)
+            # 100ms: fast enough that ScenariosView's live per-check
+            # rendering (see CHECK_EXECUTED handling client-side) reads as
+            # a real-time feed rather than a batched refresh, while a
+            # verify() request runs concurrently in its own worker thread.
+            await asyncio.sleep(0.1)
 
     return StreamingResponse(event_gen(), media_type="text/event-stream")
 

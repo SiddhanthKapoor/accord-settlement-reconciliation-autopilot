@@ -1,3 +1,5 @@
+import { motion } from "motion/react";
+
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "scenarios", label: "Scenarios" },
@@ -16,7 +18,6 @@ export default function Nav({ active, onChange, stats }) {
           </svg>
           <span className="brand-name">Interlock</span>
         </div>
-        <span className="eco-pill">Built for the Razorpay AI Buildathon · Agentic Payments</span>
       </div>
       <nav className="tabs" aria-label="Sections">
         {TABS.map((t) => (
@@ -27,7 +28,10 @@ export default function Nav({ active, onChange, stats }) {
             aria-current={active === t.key ? "page" : undefined}
             onClick={() => onChange(t.key)}
           >
-            {t.label}
+            {active === t.key && (
+              <motion.span className="tab-indicator" layoutId="tab-indicator" transition={{ duration: 0.25, ease: "easeOut" }} />
+            )}
+            <span className="tab-label">{t.label}</span>
           </button>
         ))}
       </nav>

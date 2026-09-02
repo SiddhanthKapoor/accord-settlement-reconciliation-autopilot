@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { streamAudit, verifyChain } from "../api.js";
 
@@ -13,6 +14,13 @@ export default function AuditTrail() {
       setEvents((prev) => [...prev.slice(-999), event]);
     });
     return stop;
+  }, []);
+
+  // The chain's status is a fact about the system right now, not
+  // something that should require a click to learn — verify once on
+  // load; the button re-runs it on demand afterwards.
+  useEffect(() => {
+    verifyChain().then(setChainStatus).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -73,7 +81,10 @@ export default function AuditTrail() {
             <tbody>
               {events.map((e) => (
                 <Fragment key={e.seq}>
-                  <tr
+                  <motion.tr
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25 }}
                     className="audit-row-toggle"
                     tabIndex={0}
                     role="button"
@@ -91,7 +102,7 @@ export default function AuditTrail() {
                     <td className="small">{e.event_type}</td>
                     <td className="small">{e.new_state || "—"}</td>
                     <td className="tiny muted">{expanded === e.seq ? "▲" : "▼"}</td>
-                  </tr>
+                  </motion.tr>
                   {expanded === e.seq && (
                     <tr className="audit-expand">
                       <td colSpan={5}>

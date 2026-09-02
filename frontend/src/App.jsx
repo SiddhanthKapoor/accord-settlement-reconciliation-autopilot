@@ -1,3 +1,4 @@
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { useEffect, useState } from "react";
 import { getStats } from "./api.js";
 import ArchitectureView from "./components/ArchitectureView.jsx";
@@ -17,13 +18,29 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
+  const pages = {
+    overview: <Overview onNavigateScenarios={() => setView("scenarios")} />,
+    scenarios: <ScenariosView />,
+    audit: <AuditTrail />,
+    architecture: <ArchitectureView />,
+  };
+
   return (
-    <div className="app">
-      <Nav active={view} onChange={setView} stats={stats} />
-      {view === "overview" && <Overview onNavigateScenarios={() => setView("scenarios")} />}
-      {view === "scenarios" && <ScenariosView />}
-      {view === "audit" && <AuditTrail />}
-      {view === "architecture" && <ArchitectureView />}
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div className="app">
+        <Nav active={view} onChange={setView} stats={stats} />
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={view}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            {pages[view]}
+          </motion.main>
+        </AnimatePresence>
+      </div>
+    </MotionConfig>
   );
 }

@@ -23,7 +23,7 @@ export default function ExecutionHandoff({ execution }) {
           <div className="handoff-step">
             <div className="handoff-step-icon">i</div>
             <span className="muted small">
-              Add RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET to backend/.env for a real test-mode payment link — everything up to execution is already real.
+              Configure Razorpay test-mode credentials to generate a real payment link — everything up to execution is already real.
             </span>
           </div>
         )}

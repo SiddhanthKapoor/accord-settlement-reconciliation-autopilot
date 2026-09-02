@@ -1,3 +1,5 @@
+import { motion } from "motion/react";
+
 export default function RaceVisualization({ agents, winners, total, done }) {
   return (
     <div>
@@ -13,8 +15,11 @@ export default function RaceVisualization({ agents, winners, total, done }) {
 
       <div className="race-agents-grid">
         {agents.map((status, i) => (
-          <div
+          <motion.div
             key={i}
+            layout
+            animate={status === "won" || status === "lost" ? { scale: [1, 1.06, 1] } : {}}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className={
               "race-agent " +
               (status === "waiting" ? "race-agent-waiting" : status === "won" ? "race-agent-won" : status === "lost" ? "race-agent-lost" : "")
@@ -24,12 +29,12 @@ export default function RaceVisualization({ agents, winners, total, done }) {
             <div className="race-agent-status">
               {status === "waiting" ? "…" : status === "won" ? "ACQUIRED" : status === "lost" ? "REJECTED" : ""}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       {done && (
-        <>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
           <div className="card race-summary">
             <div className="race-summary-item">
               <div className="race-summary-label">Concurrent attempts</div>
@@ -51,7 +56,7 @@ export default function RaceVisualization({ agents, winners, total, done }) {
             20 real concurrent OS threads racing store.reserve_budget() → expected winners: 1, actual winners: 1 → PASS{"\n"}
             this run: {total} concurrent HTTP requests → actual winners: {winners} {winners === 1 ? "→ PASS" : "→ UNEXPECTED"}
           </div>
-        </>
+        </motion.div>
       )}
     </div>
   );

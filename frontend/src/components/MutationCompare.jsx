@@ -1,10 +1,11 @@
+import { motion } from "motion/react";
 import { moneyStr } from "../scenarios.js";
 
 export default function MutationCompare({ verified, observed }) {
   const qtyDiff = verified.qty !== observed.qty;
   const priceDiff = verified.price !== observed.price;
   return (
-    <div className="compare-grid">
+    <motion.div className="compare-grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
       <div className="compare-col">
         <div className="compare-col-label">Verified state</div>
         <div className="compare-line">
@@ -36,6 +37,6 @@ export default function MutationCompare({ verified, observed }) {
           <span className="compare-line-value">{priceDiff && "⚠ "}{moneyStr(observed.price)}</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
