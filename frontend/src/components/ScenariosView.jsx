@@ -41,7 +41,7 @@ export default function ScenariosView() {
   useEffect(() => {
     const stop = streamAudit((event) => {
       if (event.transaction_id !== currentTxnIdRef.current) return;
-      if (event.event_type === "CHECK_EXECUTED") {
+      if (event.event_type === "CHECK_EXECUTED" && event.payload?.name && event.payload?.status) {
         setLiveChecks((prev) => [...prev, event.payload]);
       }
     });

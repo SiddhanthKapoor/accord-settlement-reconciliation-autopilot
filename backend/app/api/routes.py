@@ -444,7 +444,14 @@ async def stream_audit(request: Request):
             new_rows = [r for r in rows if r["seq"] > last_seq]
             for row in new_rows:
                 last_seq = row["seq"]
-                yield f"data: {json.dumps(row, default=str)}\n\n"
+                # The DB column is payload_json (a JSON-encoded string, so
+                # it round-trips through SQLite cleanly). Consumers of
+                # this stream expect a real object at `payload`, not a
+                # string they must know to re-parse — decode it here once,
+                # at the one place that serializes rows onto the wire.
+                event = dict(row)
+                event["payload"] = json.loads(event.pop("payload_json"))
+                yield f"data: {json.dumps(event, default=str)}\n\n"
             # 100ms: fast enough that ScenariosView's live per-check
             # rendering (see CHECK_EXECUTED handling client-side) reads as
             # a real-time feed rather than a batched refresh, while a

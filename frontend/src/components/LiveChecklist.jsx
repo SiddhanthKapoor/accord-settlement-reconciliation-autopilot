@@ -9,11 +9,14 @@ import { AnimatePresence, motion } from "motion/react";
 const STATUS_SYMBOL = { PASS: "✓", WARN: "!", FAIL: "✕" };
 
 export default function LiveChecklist({ checks, awaiting }) {
-  if (checks.length === 0 && !awaiting) return null;
+  // Defensive: never let one malformed event (a shape mismatch, a stray
+  // keep-alive) blank the whole page — skip it, don't crash on it.
+  const safeChecks = checks.filter((c) => c?.name && c?.status);
+  if (safeChecks.length === 0 && !awaiting) return null;
   return (
     <div className="live-checklist">
       <AnimatePresence initial={false}>
-        {checks.map((c) => (
+        {safeChecks.map((c) => (
           <motion.div
             key={c.name}
             className={`live-check live-check-${c.status.toLowerCase()}`}
