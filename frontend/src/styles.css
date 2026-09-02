@@ -346,7 +346,7 @@ button { font-family: inherit; }
 
 @media (max-width: 980px) {
   .scenario-layout { grid-template-columns: 1fr; }
-  .risk-grid, .hero-scenario-grid, .stats-grid { grid-template-columns: 1fr; }
+  .risk-grid, .hero-scenario-grid, .session-grid, .race-agents-grid { grid-template-columns: 1fr; }
   .compare-grid { grid-template-columns: 1fr; }
   .compare-vs { transform: rotate(90deg); }
 }
