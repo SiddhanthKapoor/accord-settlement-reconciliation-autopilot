@@ -28,7 +28,12 @@ from datetime import datetime, timezone
 
 from app.domain.models import CheckStatus, Commitment, Constraints, IntegrityCheck, PaymentRequest
 from app.engine import text_normalize
-from app.engine.semantic import ProductAttrs, get_semantic_verifier
+from app.engine.semantic import (
+    HeuristicSemanticVerifier,
+    ProductAttrs,
+    SemanticVerdictResult,
+    get_semantic_verifier,
+)
 from app.integrations import catalog_client
 from app.ledger import store
 
@@ -305,19 +310,28 @@ def _product_identity_check(commitment: Commitment, payment_request: PaymentRequ
         )
 
     verifier = get_semantic_verifier()
-    result = verifier.compare(
-        declared=ProductAttrs(name=commitment.product_name, category=commitment.category),
-        observed=ProductAttrs(name=payment_request.product_name, category=payment_request.category),
-        user_constraint_text=None,
-    )
+    declared_attrs = ProductAttrs(name=commitment.product_name, category=commitment.category)
+    observed_attrs = ProductAttrs(name=payment_request.product_name, category=payment_request.category)
+    try:
+        result = verifier.compare(declared=declared_attrs, observed=observed_attrs, user_constraint_text=None)
+    except Exception as exc:  # noqa: BLE001 — a provider outage must degrade, not crash the integrity check
+        result = HeuristicSemanticVerifier().compare(
+            declared=declared_attrs, observed=observed_attrs, user_constraint_text=None
+        )
+        result = SemanticVerdictResult(
+            verdict=result.verdict,
+            confidence=result.confidence,
+            rationale=f"primary provider errored ({exc}); heuristic fallback used for this decision only — {result.rationale}",
+            backend="heuristic-fallback-after-error",
+        )
     status_map = {
         "EQUIVALENT": CheckStatus.PASS,
         "AMBIGUOUS": CheckStatus.WARN,
-        "NOT_EQUIVALENT": CheckStatus.FAIL,
+        "MATERIAL_CHANGE": CheckStatus.FAIL,
     }
     status = status_map[result.verdict]
     detail = f"[{result.backend}] {result.verdict}: {result.rationale}"
-    if result.backend == "heuristic-fallback" and result.verdict == "EQUIVALENT":
+    if result.backend.startswith("heuristic-fallback") and result.verdict == "EQUIVALENT":
         # The lexical fallback has no real semantic understanding. It is
         # trusted to say "definitely different" (FAIL) but never trusted
         # to confidently say "definitely the same" for a case that already

@@ -75,8 +75,9 @@ backend/            Interlock core (FastAPI, port 8000)
   scenarios/         Reproducible scenario suite + semantic eval harness
   tests/             Unit tests, incl. real-concurrency proofs for T-31/T-33
 
-frontend/            React + Vite. Three-panel live view: agent activity,
-                     lifecycle + integrity checks, hash-chained audit feed.
+frontend/            React + Vite. Overview / Scenarios / Audit Trail /
+                     Architecture — a product shell, not a raw dashboard,
+                     driving the real backend end to end.
 ```
 
 ### The two comparison axes (and why they're kept separate)
@@ -115,11 +116,18 @@ that survive deterministic normalization still looking different. It:
   `{name, category}` records (declared vs. independently-fetched-observed).
 - Never executes a money action — it returns a verdict + bounded confidence;
   `decision.py` decides what that becomes, conservatively.
-- Runs on Claude (`ANTHROPIC_API_KEY`) if configured, or a deterministic
-  token/containment-based heuristic fallback otherwise — so the system is
-  fully runnable offline. The fallback is never trusted to auto-confirm
-  equivalence outright (only the real LLM backend can produce a PASS from an
-  ambiguous case); see `checks.py` for exactly where that's enforced.
+- Runs on Gemini (`GEMINI_API_KEY`, via Google's official `google-genai` SDK
+  with a Pydantic `response_schema` — the model's output is structurally
+  validated by the SDK, not regex-parsed hopefully-JSON) if configured;
+  falls back to Claude (`ANTHROPIC_API_KEY`) if that's set instead; falls
+  back further to a deterministic token/containment-based heuristic if
+  neither is configured — so the system is fully runnable offline. The
+  heuristic fallback is never trusted to auto-confirm equivalence outright
+  (only a real LLM backend can produce a PASS from a case ambiguous enough
+  to reach this module); see `checks.py` for exactly where that's enforced.
+  A transient provider error (e.g. a rate limit) degrades to the heuristic
+  for that one decision — clearly labeled `heuristic-fallback-after-error`
+  in the check detail — rather than crashing the integrity check.
 - Is evaluated honestly on a held-out labeled set —
   `backend/scenarios/semantic_eval.py` — reporting the metric that actually
   matters for a payments system: the rate of a truly *different* product
@@ -143,7 +151,9 @@ that survive deterministic normalization still looking different. It:
   a real merchant (Zomato/Swiggy-class catalog access isn't available in
   this setting) — stated plainly rather than faked. The Razorpay Payment
   Link creation on ALLOW is the one unambiguously real external
-  integration.
+  integration; without test-mode credentials, execution is clearly labeled
+  `simulated` in both the API response and the UI, never presented as a
+  real payment.
 
 ## Running it
 
@@ -170,9 +180,14 @@ Optional environment variables (`backend/.env`, see `.env.example`):
 
 - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — free test-mode keys, no KYC
   required (Razorpay dashboard → Settings → API Keys, test mode). Without
-  these, `/execute` returns a clear 501 rather than faking a payment.
-- `ANTHROPIC_API_KEY` — without it, the semantic layer runs on the
-  deterministic heuristic fallback described above.
+  these, `/execute` still completes the transaction (the commitment is
+  genuinely consumed, so replay detection still works) but returns
+  `{"status": "simulated"}` instead of a real Razorpay response.
+- `GEMINI_API_KEY` (+ optional `GEMINI_MODEL`, default
+  `gemini-3.5-flash-lite`) — primary semantic-classifier provider.
+  `ANTHROPIC_API_KEY` is supported as an alternate if this isn't set.
+  Without either, the semantic layer runs on the deterministic heuristic
+  fallback described above.
 
 ### Reproducing the evaluation
 
@@ -183,36 +198,47 @@ python backend/scenarios/semantic_eval.py     # held-out semantic classifier eva
 python -m pytest backend/tests/ -v            # unit + real-concurrency proofs
 ```
 
-Latest local run: **9/9 scenarios** behaved as expected, **9/9 unit tests**
-pass, including two tests that hammer the budget-reservation and
-commitment-consumption primitives with 20 real concurrent OS threads each
-(not simulated) and assert exactly one winner. The semantic eval on the
-heuristic fallback (no API key configured) measured a **0% dangerous
-false-ALLOW rate** (no truly-different product was ever confidently called
-equivalent) against an 8.3% safe false-block rate and a 40% conservative
-punt-to-reconfirmation rate on a 20-pair held-out set — see
-`backend/scenarios/results/` and the script output for the full breakdown;
-re-run to regenerate.
+Latest local run: **10/10 scenarios** behaved as expected (including a full
+ALLOW → real Razorpay test-mode Payment Link → replay-rejected cycle),
+**9/9 unit tests** pass, including two tests that hammer the
+budget-reservation and commitment-consumption primitives with 20 real
+concurrent OS threads each (not simulated) and assert exactly one winner.
+
+The semantic eval was run against both configured backends on the same
+20-pair held-out set — the honest comparison, not a single cherry-picked
+number:
+
+| Backend | Dangerous false-ALLOW rate | Safe false-BLOCK rate | Punted to reconfirmation |
+|---|---|---|---|
+| Heuristic fallback (no API key) | 0.0% (0/8) | 8.3% (1/12) | 40.0% |
+| **Gemini** (`gemini-3.5-flash-lite`, real API) | **0.0% (0/8)** | **0.0% (0/12)** | **0.0%** |
+
+Gemini resolved every pair correctly on this set, including the genuinely
+ambiguous ones (a rebrand-wording chips pair, a color-variant mouse, a
+size-shrink pair it correctly flagged as a material change). See
+`backend/scenarios/results/` and script output for the full per-pair
+breakdown; re-run to regenerate against your own key/model.
 
 ## Demo scenarios
 
-The frontend's left panel drives these live against the real backend:
+The frontend's Scenarios tab drives these live against the real backend —
+three hero scenarios plus five more, no JSON hand-editing required:
 
-1. **Happy path** — legitimate purchase, ALLOW.
-2. **Quantity drift** — committed qty=1, payment request claims qty=3 → BLOCK.
-3. **Price drift (merchant-side)** — catalog price changes after commit,
-   before payment → BLOCK (or ALLOW if within declared tolerance — see the
-   graduated tolerance/hard-ceiling policy in `checks.py`).
-4. **Merchant substitution** — payment targets a different merchant → BLOCK.
-5. **Product substitution** — silent swap for an unrelated, pricier bundle →
-   BLOCK, caught deterministically (no model needed).
-6. **Ambiguous substitution** — genuinely fuzzy product-name change → escalates
-   to the semantic classifier, decision depends on its (evaluated) verdict.
-7. **Shared-budget race (T-33)** — 8 concurrent commit attempts against one
-   single-use budget → exactly 1 wins, live.
+**Hero:**
+1. **Valid Transaction** — legitimate purchase, ALLOW, handed to Razorpay.
+2. **Transaction Mutation** — committed qty=1 → payment request claims
+   qty=3 → BLOCK, shown as a before/after comparison.
+3. **Shared Budget Race** — 8 concurrent commit attempts against one
+   single-use budget, real concurrency, exactly 1 wins, live.
+
+**More scenarios:** merchant substitution, product substitution (deterministic
+bundle-upsell detection), semantic ambiguity (escalates to Gemini), merchant-side
+price drift (graduated tolerance/hard-ceiling policy), and replay attempt
+(settle a transaction, then present the same commitment again — rejected
+regardless of whether execution was real or simulated).
 
 Every run's decisions and every check's evidence are written to the
-hash-chained audit ledger, visible live in the right-hand panel, with a
+hash-chained audit ledger, inspectable in the Audit Trail tab with a
 one-click chain-integrity self-test.
 
 ## Sources
@@ -222,4 +248,5 @@ one-click chain-integrity self-test.
 - Google Universal Commerce Protocol — https://ucp.dev/, https://developers.googleblog.com/under-the-hood-universal-commerce-protocol-ucp/
 - Stripe/OpenAI Agentic Commerce Protocol — https://docs.stripe.com/agentic-commerce/acp
 - Razorpay MCP Server (real integration surface) — https://github.com/razorpay/razorpay-mcp-server
+- Google Gen AI SDK (structured output) — https://googleapis.github.io/python-genai/
 - Full research trail and elimination log — [`docs/DECISION_REPORT.md`](docs/DECISION_REPORT.md)

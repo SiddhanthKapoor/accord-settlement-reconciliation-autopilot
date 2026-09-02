@@ -329,19 +329,33 @@ def execute(intent_id: str, commitment_id: str, body: ExecuteRequest):
     try:
         response = razorpay_client.execute_payment_link(commitment, commitment_id)
     except razorpay_client.RazorpayNotConfigured as exc:
-        # Transient/environment failure, not a security event: roll back
-        # the consumption reservation so a legitimate retry (once keys are
-        # configured) is not permanently blocked by our own replay guard.
-        store.unconsume_commitment(commitment_id)
+        # Missing credentials are an environment fact, not a reason to
+        # pretend this commitment is still spendable: it has genuinely
+        # been consumed (the atomic guard above already fired), so a
+        # second attempt against it is a real replay and must still be
+        # rejected. We record a clearly-labeled SIMULATED execution
+        # instead of a fabricated Razorpay response — the system
+        # demonstrates the full lifecycle including replay-after-
+        # settlement without requiring external credentials, but never
+        # claims a payment happened when it didn't.
+        store.save_execution(
+            commitment_id, order_id=None, payment_link_id=None, payment_link_url=None,
+            status="simulated", raw_response={"simulated": True, "reason": str(exc)},
+        )
+        store.update_commitment_state(commitment_id, "EXECUTED")
         audit.append_event(
             transaction_id=commitment_id,
-            event_type="EXECUTION_SKIPPED_NOT_CONFIGURED",
+            event_type="PAYMENT_EXECUTION_SIMULATED",
             prior_state="ALLOWED",
-            new_state="ALLOWED",
-            payload={"reason": str(exc)},
+            new_state="EXECUTED",
+            payload={"simulated": True, "reason": str(exc)},
         )
-        raise HTTPException(501, str(exc)) from exc
+        return {"status": "simulated", "simulated": True, "reason": str(exc)}
     except Exception as exc:  # noqa: BLE001 — surface real Razorpay errors verbatim, do not swallow
+        # An actual API failure (bad credentials, network error, Razorpay
+        # outage) is a transient/environment failure, not a security
+        # event — roll back the consumption so a legitimate retry isn't
+        # permanently blocked by our own replay guard.
         store.unconsume_commitment(commitment_id)
         audit.append_event(
             transaction_id=commitment_id,
@@ -369,7 +383,36 @@ def execute(intent_id: str, commitment_id: str, body: ExecuteRequest):
         new_state="EXECUTED",
         payload={"payment_link_url": response.get("short_url"), "payment_link_id": response.get("id")},
     )
-    return {"status": "executed", "razorpay": response}
+    return {"status": "executed", "simulated": False, "razorpay": response}
+
+
+# ---------------------------------------------------------------------------
+# Live session stats — Overview screen. Real counts from the ledger only;
+# this is demo/session data (see README), never fabricated figures.
+# ---------------------------------------------------------------------------
+
+@router.get("/stats")
+def get_stats():
+    import os
+
+    counts = store.get_state_counts()
+    chain = audit.verify_chain()
+    return {
+        "counts": {
+            "total": sum(counts.values()),
+            "allowed": counts.get("ALLOWED", 0) + counts.get("EXECUTED", 0),
+            "blocked": counts.get("BLOCKED", 0),
+            "requires_reconfirmation": counts.get("REQUIRES_RECONFIRMATION", 0),
+            "executed": counts.get("EXECUTED", 0),
+        },
+        "chain": {"intact": chain["intact"], "total_events": chain["total_events"]},
+        "semantic_provider": (
+            "gemini" if os.environ.get("GEMINI_API_KEY")
+            else "anthropic" if os.environ.get("ANTHROPIC_API_KEY")
+            else "heuristic-fallback"
+        ),
+        "razorpay_configured": bool(os.environ.get("RAZORPAY_KEY_ID") and os.environ.get("RAZORPAY_KEY_SECRET")),
+    }
 
 
 # ---------------------------------------------------------------------------

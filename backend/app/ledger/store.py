@@ -170,6 +170,15 @@ def update_commitment_state(commitment_id: str, state: str) -> None:
     conn.execute("UPDATE commitments SET state = ? WHERE commitment_id = ?", (state, commitment_id))
 
 
+def get_state_counts() -> dict:
+    """Real counts from the ledger, grouped by commitment state — the
+    Overview screen's numbers come from here, never from a hardcoded
+    or fabricated figure."""
+    conn = get_conn()
+    rows = conn.execute("SELECT state, COUNT(*) as n FROM commitments GROUP BY state").fetchall()
+    return {row["state"]: row["n"] for row in rows}
+
+
 # ---------------------------------------------------------------------------
 # Replay ledger (T-31)
 # ---------------------------------------------------------------------------

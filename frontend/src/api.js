@@ -40,6 +40,8 @@ export const executePayment = (intentId, commitmentId, body) =>
 
 export const getAudit = (transactionId) => req(`${API}/transactions/${transactionId}/audit`);
 
+export const getStats = () => req(`${API}/stats`);
+
 export const verifyChain = () => req(`${API}/audit/verify`);
 
 export const adminReset = () => req(`${API}/admin/reset`, { method: "POST" });

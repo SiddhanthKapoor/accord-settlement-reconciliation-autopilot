@@ -20,6 +20,7 @@ completeness across many transactions, not just one.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 BASE = "http://127.0.0.1:8000"
 CATALOG = "http://127.0.0.1:8100"
@@ -93,6 +97,43 @@ def _verify(intent_id: str, commitment_id: str, req_id: str, **overrides) -> dic
     }
     base_payload.update(overrides)
     return _post(f"/intents/{intent_id}/commitments/{commitment_id}/verify", base_payload)
+
+
+def _execute(intent_id: str, commitment_id: str, client_request_id: str) -> dict:
+    return _post(
+        f"/intents/{intent_id}/commitments/{commitment_id}/execute",
+        {"client_request_id": client_request_id},
+    )
+
+
+def scenario_replay_attempt() -> ScenarioResult:
+    """Full lifecycle: ALLOW -> execute (real Razorpay if configured,
+    otherwise a clearly-labeled simulation — either way the commitment is
+    genuinely consumed) -> a second verify against the SAME commitment,
+    which must now be rejected as a replay (T-31), independent of whether
+    the artifact presented is byte-identical."""
+    intent_id, commitment_id, commit = _setup_intent_evidence_commitment(
+        max_amount_minor=200_000, merchant_id="merchant_electronics_01", product_id="mouse_001",
+    )
+    first = _verify(intent_id, commitment_id, "req-replay-1")
+    if first["decision"]["outcome"] != "ALLOW":
+        return ScenarioResult(
+            key="replay_attempt", description="Setup failed to reach ALLOW before replay could be tested.",
+            expected_outcome="BLOCK", actual_outcome=first["decision"]["outcome"], driving_check=None,
+            passed=False, notes="unexpected: happy-path setup did not ALLOW",
+        )
+    exec_result = _execute(intent_id, commitment_id, "req-replay-1")
+    second = _verify(intent_id, commitment_id, "req-replay-2")
+    decision = second["decision"]
+    driving = next((c["name"] for c in decision["checks"] if c["status"] == "FAIL"), None)
+    return ScenarioResult(
+        key="replay_attempt",
+        description="Same commitment presented again after settlement — must be rejected regardless of execution mode.",
+        expected_outcome="BLOCK", actual_outcome=decision["outcome"], driving_check=driving,
+        passed=decision["outcome"] == "BLOCK" and driving == "replay_check",
+        notes=f"execution was {'simulated' if exec_result.get('simulated') else 'real (Razorpay test mode)'}",
+        raw_decision=decision,
+    )
 
 
 def scenario_happy_path() -> ScenarioResult:
@@ -222,9 +263,7 @@ def scenario_product_equivalence_fuzzy() -> ScenarioResult:
     ANTHROPIC_API_KEY set, the real classifier is expected to resolve
     this correctly to ALLOW. This scenario checks whichever behavior is
     correct for the backend actually running."""
-    import os
-
-    llm_configured = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    llm_configured = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
 
     intent_id, commitment_id, commit = _setup_intent_evidence_commitment(
         max_amount_minor=100_000, merchant_id="merchant_grocery_02", product_id="chips_001",
@@ -244,7 +283,7 @@ def scenario_product_equivalence_fuzzy() -> ScenarioResult:
         description="'Salted Potato Chips 150g' vs 'Classic Salted Chips 150 grams' — ambiguous, needs judgment.",
         expected_outcome=expected, actual_outcome=decision["outcome"], driving_check=product_check["name"],
         passed=decision["outcome"] == expected,
-        notes=f"backend={'anthropic' if llm_configured else 'heuristic-fallback'}; {product_check['detail']}",
+        notes=f"llm_configured={llm_configured}; {product_check['detail']}",
         raw_decision=decision,
     )
 
@@ -293,6 +332,7 @@ def scenario_shared_budget_race() -> ScenarioResult:
 
 SCENARIOS = [
     scenario_happy_path,
+    scenario_replay_attempt,
     scenario_quantity_drift,
     scenario_price_drift_merchant_side,
     scenario_price_drift_within_tolerance,
