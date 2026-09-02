@@ -5,7 +5,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -336,7 +336,7 @@ def execute(intent_id: str, commitment_id: str, body: ExecuteRequest):
         # rejected. We record a clearly-labeled SIMULATED execution
         # instead of a fabricated Razorpay response — the system
         # demonstrates the full lifecycle including replay-after-
-        # settlement without requiring external credentials, but never
+        # execution without requiring external credentials, but never
         # claims a payment happened when it didn't.
         store.save_execution(
             commitment_id, order_id=None, payment_link_id=None, payment_link_url=None,
@@ -430,10 +430,16 @@ def verify_audit_chain():
 
 
 @router.get("/audit/stream")
-async def stream_audit():
+async def stream_audit(request: Request):
     async def event_gen():
         last_seq = 0
         while True:
+            # Without this check, a client that never sends a clean close
+            # (e.g. a backgrounded browser tab) keeps this generator
+            # looping forever, which blocks uvicorn's graceful shutdown
+            # (and therefore --reload) waiting for the connection to end.
+            if await request.is_disconnected():
+                break
             rows = audit.get_full_log()
             new_rows = [r for r in rows if r["seq"] > last_seq]
             for row in new_rows:

@@ -29,11 +29,11 @@ export default function MutationCompare({ verified, observed }) {
         </div>
         <div className={"compare-line" + (qtyDiff ? " compare-diff" : "")}>
           <span className="compare-line-label">Quantity</span>
-          <span className="compare-line-value">{observed.qty}</span>
+          <span className="compare-line-value">{qtyDiff && "⚠ "}{observed.qty}</span>
         </div>
         <div className={"compare-line" + (priceDiff ? " compare-diff" : "")}>
           <span className="compare-line-label">Amount</span>
-          <span className="compare-line-value">{moneyStr(observed.price)}</span>
+          <span className="compare-line-value">{priceDiff && "⚠ "}{moneyStr(observed.price)}</span>
         </div>
       </div>
     </div>

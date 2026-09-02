@@ -2,7 +2,7 @@
 
 **The mandate was signed. The transaction was still a lie.**
 
-Interlock is a settlement-time integrity verifier for agentic payments. It sits
+Interlock is a payment-execution-boundary integrity verifier for agentic payments. It sits
 between an AI agent (or any AP2-style mandate-carrying flow) and the actual
 Razorpay payment call, and independently re-checks — from structured evidence
 only, never an agent's private reasoning — three specific things that Google's
@@ -140,7 +140,7 @@ that survive deterministic normalization still looking different. It:
   "true user intent" beyond what's captured in structured, declared
   constraints and evidence.
 - Does not detect or prevent prompt injection itself — only its *effects* on
-  a transaction's content, at the settlement boundary.
+  a transaction's content, at the payment execution boundary.
 - Does not replace AP2, Razorpay, or NPCI, and does not reimplement mandate
   signing, cross-protocol commerce standards, or generic agent
   authorization — see the Decision Report for what's explicitly out of

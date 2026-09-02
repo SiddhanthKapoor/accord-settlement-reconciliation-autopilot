@@ -1,21 +1,12 @@
-import { useState } from "react";
-import { adminReset, catalogReset } from "../api.js";
+import { useEffect, useState } from "react";
+import { adminReset, catalogReset, getStats } from "../api.js";
 import { HERO_SCENARIOS, SECONDARY_SCENARIOS, runSharedBudgetRace } from "../scenarios.js";
 import ActivityLog from "./ActivityLog.jsx";
 import ChecksPanel from "./ChecksPanel.jsx";
 import ExecutionHandoff from "./ExecutionHandoff.jsx";
-import MiniPipeline from "./MiniPipeline.jsx";
 import MutationCompare from "./MutationCompare.jsx";
+import Pipeline, { deriveNodes } from "./Pipeline.jsx";
 import RaceVisualization from "./RaceVisualization.jsx";
-
-function stageFromLog(text) {
-  if (text.includes("declaring intent")) return 0;
-  if (text.includes("discovers product") || text.includes("commits to cart")) return 1;
-  if (text.includes("reaches Interlock")) return 2;
-  if (text.includes("decision:")) return 4;
-  if (text.includes("handing off to Razorpay") || text.includes("execution simulated") || text.includes("payment link created") || text.includes("settling the transaction")) return 5;
-  return null;
-}
 
 export default function ScenariosView() {
   const [entries, setEntries] = useState([]);
@@ -26,15 +17,23 @@ export default function ScenariosView() {
   const [raceDone, setRaceDone] = useState(false);
   const [raceWinners, setRaceWinners] = useState(0);
   const [resetting, setResetting] = useState(false);
-  const [stage, setStage] = useState(null);
+  const [phase, setPhase] = useState("idle"); // idle -> running -> decided
+  const [executing, setExecuting] = useState(false);
+  const [auditCount, setAuditCount] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () => getStats().then((s) => alive && setAuditCount(s.chain.total_events)).catch(() => {});
+    load();
+    const id = setInterval(load, 2000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
 
   function log(text, warn = false) {
     const t = new Date().toLocaleTimeString();
     setEntries((prev) => [...prev, { t, text, warn }]);
-    const s = stageFromLog(text);
-    if (s !== null) setStage(s);
-    // integrity checks run right after the "reaches Interlock" line
-    if (text.includes("running integrity checks")) setStage(3);
+    if (text.includes("reaches Interlock")) setPhase("running");
+    if (text.includes("handing off to Razorpay") || text.includes("settling the transaction")) setExecuting(true);
   }
 
   async function run(key, def) {
@@ -44,11 +43,12 @@ export default function ScenariosView() {
     setRaceAgents([]);
     setRaceDone(false);
     setEntries([]);
-    setStage(null);
+    setPhase("idle");
+    setExecuting(false);
     try {
       if (def.kind === "race") {
         setRaceAgents(Array(8).fill("idle"));
-        const { winners, n } = await runSharedBudgetRace(
+        const { winners } = await runSharedBudgetRace(
           (i, status) => setRaceAgents((prev) => { const next = [...prev]; next[i] = status; return next; }),
           log
         );
@@ -57,9 +57,12 @@ export default function ScenariosView() {
       } else {
         const r = await def.run(log);
         setResult(r);
+        setPhase("decided");
+        setExecuting(false);
       }
     } catch (err) {
       log(`ERROR: ${err.message}`, true);
+      setPhase("idle");
     } finally {
       setRunning(false);
     }
@@ -75,6 +78,7 @@ export default function ScenariosView() {
       setSelected(null);
       setRaceAgents([]);
       setRaceDone(false);
+      setPhase("idle");
     } finally {
       setResetting(false);
     }
@@ -83,6 +87,7 @@ export default function ScenariosView() {
   const activeHero = selected && HERO_SCENARIOS[selected] ? selected : null;
   const activeSecondary = selected && SECONDARY_SCENARIOS[selected] ? selected : null;
   const activeDef = activeHero ? HERO_SCENARIOS[selected] : activeSecondary ? SECONDARY_SCENARIOS[selected] : null;
+  const pipelineNodes = activeDef?.kind !== "race" ? deriveNodes({ phase, executing, result }) : null;
 
   return (
     <div className="page">
@@ -124,9 +129,14 @@ export default function ScenariosView() {
               </button>
             )}
           </div>
-          <div className="card">
+          <div className="card" style={{ marginBottom: 14 }}>
             <ActivityLog entries={entries} />
           </div>
+          {auditCount !== null && (
+            <div className="card" style={{ padding: "12px 16px" }}>
+              <span className="tiny muted">Audit ledger: {auditCount} events recorded this session</span>
+            </div>
+          )}
         </div>
 
         <div>
@@ -138,7 +148,11 @@ export default function ScenariosView() {
             <RaceVisualization agents={raceAgents} winners={raceWinners} total={raceAgents.length} done={raceDone} />
           )}
 
-          {selected && activeDef?.kind !== "race" && stage !== null && <MiniPipeline stage={stage} />}
+          {selected && pipelineNodes && (
+            <div className={"pipeline-wrap pipeline-wrap-live"} style={{ marginBottom: 16 }}>
+              <Pipeline live={pipelineNodes} />
+            </div>
+          )}
 
           {selected && result?.compare && (
             <>

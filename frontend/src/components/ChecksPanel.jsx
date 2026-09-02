@@ -1,3 +1,5 @@
+import { humanizeDecision } from "../decisionCopy.js";
+
 function StatusBadge({ status }) {
   const cls = { PASS: "badge badge-pass", WARN: "badge badge-warn", FAIL: "badge badge-fail" }[status] || "badge";
   return <span className={cls}>{status}</span>;
@@ -6,22 +8,16 @@ function StatusBadge({ status }) {
 export default function ChecksPanel({ decision }) {
   if (!decision) return null;
 
-  const outcomeCls =
-    decision.outcome === "ALLOW" ? "decision-banner decision-allow" :
-    decision.outcome === "BLOCK" ? "decision-banner decision-block" :
-    "decision-banner decision-warn";
-  const outcomeLabel =
-    decision.outcome === "ALLOW" ? "ALLOWED" :
-    decision.outcome === "BLOCK" ? "BLOCKED" : "RECONFIRMATION REQUIRED";
-
+  const { statusLine, headline, tone } = humanizeDecision(decision);
+  const outcomeCls = `decision-banner decision-${tone === "allow" ? "allow" : tone === "block" ? "block" : "warn"}`;
   const semanticCheck = decision.checks.find((c) => c.name === "product_identity" && c.confidence != null);
 
   return (
     <div>
-      <div className={outcomeCls}>
+      <div className={outcomeCls} role="status">
         <div>
-          <div className="decision-title">{outcomeLabel}</div>
-          <div className="decision-reason">{decision.reason}</div>
+          <div className="decision-status-line">{statusLine}</div>
+          <div className="decision-title">{headline}</div>
         </div>
       </div>
 
@@ -48,28 +44,31 @@ export default function ChecksPanel({ decision }) {
         </div>
       )}
 
-      <div className="card">
-        <div className="card-title">Integrity checks</div>
-        <table className="checks-table">
-          <thead>
-            <tr>
-              <th>Check</th><th>Status</th><th>Threat</th><th>Expected</th><th>Observed</th><th>Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {decision.checks.map((c, i) => (
-              <tr key={i} className={c.status === "FAIL" ? "row-fail" : c.status === "WARN" ? "row-warn" : ""}>
-                <td className="mono">{c.name}</td>
-                <td><StatusBadge status={c.status} /></td>
-                <td>{c.threat_ref ? <span className="threat-badge">{c.threat_ref}</span> : "—"}</td>
-                <td className="mono tiny">{c.expected ?? "—"}</td>
-                <td className="mono tiny">{c.observed ?? "—"}</td>
-                <td className="small">{c.detail}</td>
+      <details className="decision-evidence">
+        <summary>Technical evidence ({decision.checks.length} checks) →</summary>
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="decision-reason" style={{ marginBottom: 12 }}>{decision.reason}</div>
+          <table className="checks-table">
+            <thead>
+              <tr>
+                <th>Check</th><th>Status</th><th>Threat</th><th>Expected</th><th>Observed</th><th>Detail</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {decision.checks.map((c, i) => (
+                <tr key={i} className={c.status === "FAIL" ? "row-fail" : c.status === "WARN" ? "row-warn" : ""}>
+                  <td className="mono">{c.name}</td>
+                  <td><StatusBadge status={c.status} /></td>
+                  <td>{c.threat_ref ? <span className="threat-badge">{c.threat_ref}</span> : "—"}</td>
+                  <td className="mono tiny">{c.expected ?? "—"}</td>
+                  <td className="mono tiny">{c.observed ?? "—"}</td>
+                  <td className="small">{c.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </div>
   );
 }

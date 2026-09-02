@@ -128,7 +128,7 @@ def scenario_replay_attempt() -> ScenarioResult:
     driving = next((c["name"] for c in decision["checks"] if c["status"] == "FAIL"), None)
     return ScenarioResult(
         key="replay_attempt",
-        description="Same commitment presented again after settlement — must be rejected regardless of execution mode.",
+        description="Same commitment presented again after execution — must be rejected regardless of execution mode.",
         expected_outcome="BLOCK", actual_outcome=decision["outcome"], driving_check=driving,
         passed=decision["outcome"] == "BLOCK" and driving == "replay_check",
         notes=f"execution was {'simulated' if exec_result.get('simulated') else 'real (Razorpay test mode)'}",

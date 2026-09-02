@@ -73,7 +73,19 @@ export default function AuditTrail() {
             <tbody>
               {events.map((e) => (
                 <Fragment key={e.seq}>
-                  <tr className="audit-row-toggle" onClick={() => setExpanded(expanded === e.seq ? null : e.seq)}>
+                  <tr
+                    className="audit-row-toggle"
+                    tabIndex={0}
+                    role="button"
+                    aria-expanded={expanded === e.seq}
+                    onClick={() => setExpanded(expanded === e.seq ? null : e.seq)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        setExpanded(expanded === e.seq ? null : e.seq);
+                      }
+                    }}
+                  >
                     <td className="mono tiny">{e.seq}</td>
                     <td className="mono tiny">{e.transaction_id}</td>
                     <td className="small">{e.event_type}</td>

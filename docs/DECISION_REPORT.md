@@ -98,7 +98,7 @@ impact via constraints — not verifying content truth.
 
 ## E. What this product should be (and is)
 
-A settlement-time enforcement point — Interlock — that independently
+A payment-execution-boundary enforcement point — Interlock — that independently
 re-checks exactly the three AP2-named-and-unresolved things (replay,
 shared-budget concurrency, content/constraint drift against live ground
 truth) before a payment executes, using only structured evidence a real

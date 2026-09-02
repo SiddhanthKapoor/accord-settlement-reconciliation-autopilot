@@ -7,7 +7,7 @@ from app.ledger.db import init_db
 
 app = FastAPI(
     title="Interlock",
-    description="Settlement-time integrity verification for agentic payments. "
+    description="Payment-execution-boundary integrity verification for agentic payments. "
     "See /docs for the API and the repository README for the design rationale.",
     version="0.1.0",
 )
