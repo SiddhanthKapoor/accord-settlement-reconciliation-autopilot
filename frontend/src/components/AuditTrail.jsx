@@ -1,5 +1,5 @@
-import { motion } from "motion/react";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { streamAudit, verifyChain } from "../api.js";
 
 export default function AuditTrail() {
@@ -16,9 +16,6 @@ export default function AuditTrail() {
     return stop;
   }, []);
 
-  // The chain's status is a fact about the system right now, not
-  // something that should require a click to learn — verify once on
-  // load; the button re-runs it on demand afterwards.
   useEffect(() => {
     verifyChain().then(setChainStatus).catch(() => {});
   }, []);
@@ -36,7 +33,7 @@ export default function AuditTrail() {
     setTimeout(() => {
       setChainStatus(status);
       setVerifying(false);
-    }, Math.max(0, 500 - elapsed)); // let the "verifying" state be visible even when instant
+    }, Math.max(0, 400 - elapsed));
   }
 
   return (
@@ -44,8 +41,8 @@ export default function AuditTrail() {
       <div className="page-header">
         <div className="page-title">Audit Trail</div>
         <div className="page-subtitle">
-          Every integrity decision is written by Interlock itself into a hash-chained,
-          receiver-attested ledger — the agent's own logs are never the source of truth.
+          Every reconciliation decision is written by the engine itself into a hash-chained,
+          receiver-attested ledger — never inferred from the UI, never editable after the fact.
         </div>
       </div>
 
@@ -73,10 +70,10 @@ export default function AuditTrail() {
 
       <div className="card">
         <div className="card-title">Live event feed ({events.length})</div>
-        <div className="log-scroll" style={{ maxHeight: 560 }} ref={scrollRef}>
+        <div className="log-scroll" ref={scrollRef}>
           <table className="audit-table">
             <thead>
-              <tr><th>#</th><th>Transaction</th><th>Event</th><th>State</th><th></th></tr>
+              <tr><th>#</th><th>Record / Batch</th><th>Event</th><th>State</th><th></th></tr>
             </thead>
             <tbody>
               {events.map((e) => (
@@ -115,7 +112,7 @@ export default function AuditTrail() {
                 </Fragment>
               ))}
               {events.length === 0 && (
-                <tr><td colSpan={5} className="muted small" style={{ padding: "20px 8px" }}>No events yet — run a scenario.</td></tr>
+                <tr><td colSpan={5} className="muted small" style={{ padding: "20px 8px" }}>No events yet — run a batch from the Console tab.</td></tr>
               )}
             </tbody>
           </table>

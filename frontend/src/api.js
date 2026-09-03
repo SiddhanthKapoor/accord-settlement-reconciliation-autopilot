@@ -1,5 +1,4 @@
 const API = "/api";
-const CATALOG = "/catalog";
 
 async function req(url, options = {}) {
   const res = await fetch(url, {
@@ -16,44 +15,26 @@ async function req(url, options = {}) {
   return body;
 }
 
-export const createIntent = (body) => req(`${API}/intents`, { method: "POST", body: JSON.stringify(body) });
+export const runBatch = (dataset, limit) =>
+  req(`${API}/batch/run`, { method: "POST", body: JSON.stringify({ dataset, limit }) });
 
-export const getIntent = (intentId) => req(`${API}/intents/${intentId}`);
+export const getBatch = (batchId) => req(`${API}/batch/${batchId}`);
 
-export const recordEvidence = (intentId, body) =>
-  req(`${API}/intents/${intentId}/evidence`, { method: "POST", body: JSON.stringify(body) });
+export const getLatestBatch = () => req(`${API}/batch/latest`);
 
-export const createCommitment = (intentId, body) =>
-  req(`${API}/intents/${intentId}/commitments`, { method: "POST", body: JSON.stringify(body) });
+export const listBatchRecords = (batchId, { outcome, limit = 200, offset = 0 } = {}) => {
+  const params = new URLSearchParams({ limit, offset });
+  if (outcome) params.set("outcome", outcome);
+  return req(`${API}/batch/${batchId}/records?${params}`);
+};
 
-export const verifyPayment = (intentId, commitmentId, body) =>
-  req(`${API}/intents/${intentId}/commitments/${commitmentId}/verify`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+export const getRecord = (recordId) => req(`${API}/records/${recordId}`);
 
-export const executePayment = (intentId, commitmentId, body) =>
-  req(`${API}/intents/${intentId}/commitments/${commitmentId}/execute`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-
-export const getAudit = (transactionId) => req(`${API}/transactions/${transactionId}/audit`);
-
-export const getStats = () => req(`${API}/stats`);
+export const getLatestEvaluation = (dataset = "holdout") => req(`${API}/evaluation/latest?dataset=${dataset}`);
 
 export const verifyChain = () => req(`${API}/audit/verify`);
 
 export const adminReset = () => req(`${API}/admin/reset`, { method: "POST" });
-
-export const catalogReset = () => fetch(`${CATALOG}/admin/reset`, { method: "POST" });
-
-export const catalogPatch = (merchantId, productId, fields) =>
-  fetch(`${CATALOG}/admin/merchants/${merchantId}/products/${productId}`, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(fields),
-  });
 
 export function streamAudit(onEvent) {
   const es = new EventSource(`${API}/audit/stream`);
@@ -65,10 +46,4 @@ export function streamAudit(onEvent) {
     }
   };
   return () => es.close();
-}
-
-let counter = 0;
-export function newRequestId(prefix = "req") {
-  counter += 1;
-  return `${prefix}-${Date.now()}-${counter}`;
 }

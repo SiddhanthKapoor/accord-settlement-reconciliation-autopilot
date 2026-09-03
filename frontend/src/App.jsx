@@ -1,34 +1,29 @@
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { useEffect, useState } from "react";
-import { getStats } from "./api.js";
-import ArchitectureView from "./components/ArchitectureView.jsx";
+import { getLatestEvaluation } from "./api.js";
 import AuditTrail from "./components/AuditTrail.jsx";
+import Console from "./components/Console.jsx";
 import Nav from "./components/Nav.jsx";
-import Overview from "./components/Overview.jsx";
-import ScenariosView from "./components/ScenariosView.jsx";
 
 export default function App() {
-  const [view, setView] = useState("overview");
-  const [stats, setStats] = useState(null);
+  const [view, setView] = useState("console");
+  const [aiBackend, setAiBackend] = useState(null);
 
   useEffect(() => {
-    const load = () => getStats().then(setStats).catch(() => {});
-    load();
-    const id = setInterval(load, 5000);
-    return () => clearInterval(id);
+    getLatestEvaluation("holdout")
+      .then((r) => setAiBackend(r.semantic_backend))
+      .catch(() => {});
   }, []);
 
   const pages = {
-    overview: <Overview onNavigateScenarios={() => setView("scenarios")} />,
-    scenarios: <ScenariosView />,
+    console: <Console />,
     audit: <AuditTrail />,
-    architecture: <ArchitectureView />,
   };
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="app">
-        <Nav active={view} onChange={setView} stats={stats} />
+        <Nav active={view} onChange={setView} aiBackend={aiBackend} />
         <AnimatePresence mode="wait">
           <motion.main
             key={view}
