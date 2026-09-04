@@ -19,18 +19,22 @@ Everything else is RECONCILED.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from datetime import datetime, timedelta
 
 from app.domain.models import (
+    CandidateAssessment,
     CheckResult,
     CheckStatus,
+    MatchClassification,
     MerchantRecord,
     PolicyConfig,
     ReconciliationOutcome,
     ReconciliationResult,
     RazorpaySettlementRecord,
 )
-from app.engine import matching, normalize
+from app.engine import explain, matching, normalize
 from app.engine.semantic import SemanticVerifier
 
 
@@ -49,6 +53,8 @@ class _Resolution:
     ai_calls: int = 0
     short_circuit: ReconciliationOutcome | None = None
     short_circuit_reason: str | None = None
+    classification: MatchClassification = MatchClassification.NO_CANDIDATES
+    assessments: list[CandidateAssessment] = field(default_factory=list)
 
 
 def _resolve_candidate(
@@ -62,6 +68,7 @@ def _resolve_candidate(
         return _Resolution(
             candidates[0],
             [_check("reference_match", True, "1 candidate", "1 candidate", "Exact normalized-reference match.")],
+            classification=MatchClassification.EXACT_REFERENCE,
         )
 
     if len(candidates) > 1:
@@ -73,6 +80,7 @@ def _resolve_candidate(
                     "reference_match", True, "1 of N disambiguated by amount", disambiguated.payment_id,
                     f"{len(candidates)} settlement records share this reference; exactly one matched on amount.",
                 )],
+                classification=MatchClassification.DISAMBIGUATED_BY_AMOUNT,
             )
         return _Resolution(
             None,
@@ -84,6 +92,7 @@ def _resolve_candidate(
             )],
             short_circuit=ReconciliationOutcome.HUMAN_REVIEW,
             short_circuit_reason="Duplicate reference requires manual disambiguation.",
+            classification=MatchClassification.AMBIGUOUS_MULTIPLE,
         )
 
     # No exact candidates at all.
@@ -94,6 +103,7 @@ def _resolve_candidate(
                     "No settlement record shares this reference, and non-exact matching is disabled by policy.")],
             short_circuit=ReconciliationOutcome.EXCEPTION,
             short_circuit_reason="No corresponding Razorpay settlement record found for this merchant record.",
+            classification=MatchClassification.NO_CANDIDATES,
         )
 
     # Try fuzzy/semantic resolution.
@@ -105,7 +115,8 @@ def _resolve_candidate(
             outcome.detail, warn=not confident_enough, confidence=outcome.ai_confidence,
         )
         return _Resolution(outcome.candidate, [check], outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend,
-                           ai_calls=outcome.ai_calls)
+                           ai_calls=outcome.ai_calls, classification=outcome.classification,
+                           assessments=outcome.assessments)
 
     if outcome.method == "semantic" and outcome.verdict == "AMBIGUOUS":
         return _Resolution(
@@ -114,6 +125,7 @@ def _resolve_candidate(
             outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend, ai_calls=outcome.ai_calls,
             short_circuit=ReconciliationOutcome.HUMAN_REVIEW,
             short_circuit_reason="Reference could not be matched deterministically, and the semantic classifier could not confidently rule it in or out.",
+            classification=outcome.classification, assessments=outcome.assessments,
         )
 
     if outcome.method == "semantic_error":
@@ -127,15 +139,20 @@ def _resolve_candidate(
             outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend, ai_calls=outcome.ai_calls,
             short_circuit=ReconciliationOutcome.HUMAN_REVIEW,
             short_circuit_reason=outcome.detail,
+            classification=outcome.classification, assessments=outcome.assessments,
         )
 
-    # method == "none", or semantic said DIFFERENT — genuinely absent.
+    # No candidate survived. Whether that means "nothing exists", "only
+    # coincidences exist", or "everything credible was ruled out" is
+    # carried by outcome.classification rather than flattened into one
+    # reason string — they are three different operational situations.
     return _Resolution(
         None,
         [_check("settlement_presence", False, "1 settlement record", "0 settlement records", outcome.detail)],
         outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend, ai_calls=outcome.ai_calls,
         short_circuit=ReconciliationOutcome.EXCEPTION,
-        short_circuit_reason="No corresponding Razorpay settlement record found for this merchant record.",
+        short_circuit_reason=outcome.detail,
+        classification=outcome.classification, assessments=outcome.assessments,
     )
 
 
@@ -192,6 +209,21 @@ def _run_financial_checks(merchant: MerchantRecord, candidate: RazorpaySettlemen
     return checks
 
 
+def _is_pending(merchant: MerchantRecord, policy: PolicyConfig, as_of: datetime | None) -> bool:
+    """Has enough time passed for a settlement to exist at all?
+
+    A payment captured this morning has no settlement because none is due,
+    which is a different finding from one that is missing and must not be
+    reported as though it were. Without an `as_of` observation point this
+    cannot be answered, so it is not guessed at: the check is skipped and
+    behaviour is unchanged.
+    """
+    if as_of is None:
+        return False
+    due_from = merchant.order_date + timedelta(days=policy.settlement_expected_days)
+    return as_of < due_from
+
+
 def reconcile(
     merchant: MerchantRecord,
     candidates: list[RazorpaySettlementRecord],
@@ -199,6 +231,7 @@ def reconcile(
     policy: PolicyConfig,
     semantic_verifier: SemanticVerifier,
     record_id: str,
+    as_of: datetime | None = None,
 ) -> ReconciliationResult:
     started = time.perf_counter()
 
@@ -206,10 +239,38 @@ def reconcile(
     checks = list(resolution.checks)
 
     if resolution.short_circuit is not None:
+        classification = resolution.classification
+        outcome = resolution.short_circuit
+        reason = resolution.short_circuit_reason or ""
+
+        # A settlement that is not due yet is not missing. Reclassify
+        # before the exception is typed, so the operator is told to wait
+        # rather than to chase the provider.
+        if (
+            outcome is ReconciliationOutcome.EXCEPTION
+            and classification in (MatchClassification.NO_CANDIDATES,
+                                   MatchClassification.NO_ADMISSIBLE_CANDIDATE,
+                                   MatchClassification.ALL_CANDIDATES_REJECTED)
+            and _is_pending(merchant, policy, as_of)
+        ):
+            classification = MatchClassification.PENDING_SETTLEMENT_WINDOW
+            due = merchant.order_date + timedelta(days=policy.settlement_expected_days)
+            reason = (f"No settlement yet, but none is due until {due.date().isoformat()} "
+                      f"(T+{policy.settlement_expected_days}).")
+            checks = [
+                _check("settlement_presence", True, f"settlement due {due.date().isoformat()}",
+                       "not yet due", reason)
+            ]
+
+        exception_type, severity = explain.classify_exception(classification, checks, matched=False)
         latency_ms = (time.perf_counter() - started) * 1000
         return ReconciliationResult(
-            record_id=record_id, outcome=resolution.short_circuit, reason=resolution.short_circuit_reason or "",
+            record_id=record_id, outcome=outcome, reason=reason,
             checks=checks, matched_payment_id=None, candidate_count=len(candidates),
+            classification=classification, exception_type=exception_type, severity=severity,
+            explanation=explain.build_explanation(merchant, classification, checks, False, resolution.assessments),
+            recommended_action=explain.recommended_action(classification, exception_type, False),
+            considered_candidates=resolution.assessments,
             ai_invoked=resolution.ai_invoked, ai_calls=resolution.ai_calls, ai_confidence=resolution.ai_confidence,
             ai_backend=resolution.ai_backend, policy_threshold=policy.ai_confidence_threshold, latency_ms=latency_ms,
         )
@@ -230,10 +291,22 @@ def reconcile(
         outcome = ReconciliationOutcome.RECONCILED
         reason = "All checks passed."
 
+    exception_type, severity = explain.classify_exception(resolution.classification, checks, matched=True)
+    assessments = resolution.assessments or [
+        matching.to_assessment(
+            resolution.candidate,
+            matching.score_candidate(merchant, resolution.candidate, index, policy),
+        )
+    ]
+
     latency_ms = (time.perf_counter() - started) * 1000
     return ReconciliationResult(
         record_id=record_id, outcome=outcome, reason=reason, checks=checks,
         matched_payment_id=resolution.candidate.payment_id, candidate_count=len(candidates),
+        classification=resolution.classification, exception_type=exception_type, severity=severity,
+        explanation=explain.build_explanation(merchant, resolution.classification, checks, True, assessments),
+        recommended_action=explain.recommended_action(resolution.classification, exception_type, True),
+        considered_candidates=assessments,
         ai_invoked=resolution.ai_invoked, ai_calls=resolution.ai_calls, ai_confidence=resolution.ai_confidence,
         ai_backend=resolution.ai_backend, policy_threshold=policy.ai_confidence_threshold, latency_ms=latency_ms,
     )

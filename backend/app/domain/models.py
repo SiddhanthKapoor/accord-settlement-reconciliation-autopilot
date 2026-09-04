@@ -34,6 +34,57 @@ class CheckStatus(str, Enum):
     FAIL = "FAIL"
 
 
+class MatchClassification(str, Enum):
+    """How the settlement side was resolved — or why it wasn't.
+
+    The three outcomes say what to do; this says what was found. Keeping
+    them separate matters because "no settlement exists", "a settlement
+    might exist but nothing here is credible", and "several are credible"
+    are three different operational situations that all previously
+    collapsed into the same EXCEPTION reason string.
+    """
+
+    EXACT_REFERENCE = "EXACT_REFERENCE"
+    DISAMBIGUATED_BY_AMOUNT = "DISAMBIGUATED_BY_AMOUNT"
+    CORROBORATED = "CORROBORATED"
+    SEMANTIC_CONFIRMED = "SEMANTIC_CONFIRMED"
+
+    NO_CANDIDATES = "NO_CANDIDATES"
+    NO_ADMISSIBLE_CANDIDATE = "NO_ADMISSIBLE_CANDIDATE"
+    ALL_CANDIDATES_REJECTED = "ALL_CANDIDATES_REJECTED"
+    AMBIGUOUS_MULTIPLE = "AMBIGUOUS_MULTIPLE"
+    SEMANTIC_UNRESOLVED = "SEMANTIC_UNRESOLVED"
+    PENDING_SETTLEMENT_WINDOW = "PENDING_SETTLEMENT_WINDOW"
+    PROVIDER_ERROR = "PROVIDER_ERROR"
+
+
+class ExceptionType(str, Enum):
+    """What a finance operator is actually looking at."""
+
+    MISSING_SETTLEMENT = "MISSING_SETTLEMENT"
+    PENDING_SETTLEMENT = "PENDING_SETTLEMENT"
+    AMBIGUOUS_MATCH = "AMBIGUOUS_MATCH"
+    DUPLICATE_REFERENCE = "DUPLICATE_REFERENCE"
+    DUPLICATE_CLAIM = "DUPLICATE_CLAIM"
+    AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
+    CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
+    FEE_TAX_INCONSISTENT = "FEE_TAX_INCONSISTENT"
+    SETTLEMENT_DELAYED = "SETTLEMENT_DELAYED"
+    REFUND_MISMATCH = "REFUND_MISMATCH"
+    LOW_CONFIDENCE_MATCH = "LOW_CONFIDENCE_MATCH"
+    PROVIDER_ERROR = "PROVIDER_ERROR"
+    PROCESSING_ERROR = "PROCESSING_ERROR"
+
+
+class Severity(str, Enum):
+    """Operational priority. Money known to be wrong outranks money that
+    merely cannot be confirmed yet."""
+
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
 # ---------------------------------------------------------------------------
 # The two source records
 # ---------------------------------------------------------------------------
@@ -124,11 +175,40 @@ class CheckResult(BaseModel):
     confidence: Optional[float] = Field(default=None, description="Set only for the AI-assisted reference check.")
 
 
+class CandidateAssessment(BaseModel):
+    """Everything weighed for one candidate, kept whether it won or lost.
+
+    A rejected candidate is the most useful thing an exception can carry:
+    "no settlement found" is an assertion, while "we found this record at
+    the same amount and rejected it because the references contradict" is
+    something an operator can check.
+    """
+
+    payment_id: str
+    order_reference: str
+    gross_amount_minor: int
+    settlement_date: Optional[datetime] = None
+    supporting_signals: list[str] = Field(default_factory=list)
+    contradicting_signals: list[str] = Field(default_factory=list)
+    evidence_score: float
+    admissible: bool
+    admissibility_reason: str
+    semantic_verdict: Optional[str] = None
+    semantic_confidence: Optional[float] = None
+
+
 class ReconciliationResult(BaseModel):
     record_id: str
     outcome: ReconciliationOutcome
     reason: str
     checks: list[CheckResult]
+    classification: MatchClassification = MatchClassification.NO_CANDIDATES
+    exception_type: Optional[ExceptionType] = None
+    severity: Optional[Severity] = None
+    explanation: str = Field(default="", description="Plain-English account of the decision, built from "
+                             "recorded signals — never written by the model.")
+    recommended_action: str = ""
+    considered_candidates: list[CandidateAssessment] = Field(default_factory=list)
     matched_payment_id: Optional[str] = None
     candidate_count: int
     ai_invoked: bool = False
@@ -193,6 +273,42 @@ class PolicyConfig(BaseModel):
         description="Hard ceiling on model calls for a single record, so an unresolvable record cannot fan "
         "out into unbounded API cost or latency.",
     )
+    # ---- candidate admissibility -------------------------------------
+    # Retrieval and evidence are different questions. The indexes are
+    # tuned for recall and will happily return a settlement that shares
+    # nothing with the merchant record but an amount — in a population of
+    # thousands, an exact amount collision is ordinary. Treating that as a
+    # candidate is what turned "no settlement exists" into "I am not sure",
+    # which is the regression Evaluation V2 measured.
+    require_identity_evidence: bool = Field(
+        default=True,
+        description="A candidate must carry identity evidence beyond amount and date — a shared reference "
+        "core, or description wording that genuinely corroborates — before it is considered at all. "
+        "Amount agreement is a reason to look, not evidence of identity.",
+    )
+    admissible_text_similarity: float = Field(
+        default=0.20,
+        description="IDF-weighted description similarity that makes a candidate worth considering when no "
+        "shared reference core exists. Deliberately a low bar rather than a strong one: on development data "
+        "coincidental boilerplate reached 0.63 against a genuine match's 0.78, so wording separates poorly "
+        "and is not what rejects coincidences — the contradiction check below is. Setting this high instead "
+        "would starve the semantic tier of exactly the cases it exists to judge.",
+    )
+    treat_reference_contradiction_as_negative: bool = Field(
+        default=True,
+        description="When BOTH sides carry a recognisable identifier core and the two sets are disjoint, "
+        "treat that as evidence of difference rather than absence of evidence, and refuse the candidate. "
+        "This assumes the settlement's order_reference is derived from the merchant's reference, which is "
+        "what Razorpay's data model specifies. A provider whose reference is an opaque internal id unrelated "
+        "to the merchant's would need this off; the system then falls back to requiring other corroboration.",
+    )
+    settlement_expected_days: int = Field(
+        default=2,
+        description="Normal settlement lag (T+2). A record captured more recently than this has no settlement "
+        "because none is due yet, which is not the same finding as one that is missing, and must not be "
+        "reported as though it were.",
+    )
+
     enable_fuzzy_matching: bool = Field(
         default=True,
         description="Ablation/production switch: when off, only exact normalized-reference matching is used.",

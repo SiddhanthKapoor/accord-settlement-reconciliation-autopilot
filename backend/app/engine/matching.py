@@ -30,10 +30,12 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
-from app.domain.models import MerchantRecord, PolicyConfig, RazorpaySettlementRecord
+from app.domain.models import (
+    CandidateAssessment, MatchClassification, MerchantRecord, PolicyConfig, RazorpaySettlementRecord,
+)
 from app.engine import normalize
 from app.engine.semantic import CandidateComparison, RecordSide, SemanticVerifier
 
@@ -64,15 +66,45 @@ class CandidateSignals:
     amount_delta_minor: int
     amount_ratio: float
     shared_reference_core: bool
+    reference_contradiction: bool
     days_apart: int
+    within_search_window: bool
     text_similarity: float
     score: float
+    admissible: bool = True
+    admissibility_reason: str = ""
 
     def corroborating_count(self) -> int:
         """Independent signals that agree this is the same payment.
         Deliberately excludes text similarity: description wording is the
         weakest and most easily coincidental of the four."""
         return sum((self.amount_exact, self.shared_reference_core, self.days_apart <= 3))
+
+    def supporting(self) -> list[str]:
+        out = []
+        if self.amount_exact:
+            out.append("amount matches exactly")
+        elif abs(self.amount_ratio - 1.0) < 0.02:
+            out.append("amount within 2%")
+        if self.shared_reference_core:
+            out.append("shared reference identifier")
+        if self.days_apart <= 3:
+            out.append(f"dated {self.days_apart}d apart")
+        if self.text_similarity >= 0.5:
+            out.append(f"description similarity {self.text_similarity:.2f}")
+        return out
+
+    def contradicting(self) -> list[str]:
+        out = []
+        if self.reference_contradiction:
+            out.append("references identify different transactions")
+        if not self.amount_exact:
+            out.append(f"amount differs by {abs(self.amount_delta_minor)} minor units")
+        if not self.within_search_window:
+            out.append(f"dated {self.days_apart}d apart, outside the search window")
+        if self.text_similarity < 0.2:
+            out.append(f"descriptions unrelated (similarity {self.text_similarity:.2f})")
+        return out
 
 
 class ReferenceIndex:
@@ -171,6 +203,29 @@ class FuzzyMatchOutcome:
     verdict: str | None  # SAME / DIFFERENT / AMBIGUOUS / None
     detail: str
     ai_calls: int = 0
+    classification: MatchClassification = MatchClassification.NO_CANDIDATES
+    assessments: list[CandidateAssessment] = field(default_factory=list)
+
+
+def to_assessment(
+    candidate: RazorpaySettlementRecord,
+    signals: CandidateSignals,
+    verdict: str | None = None,
+    confidence: float | None = None,
+) -> CandidateAssessment:
+    return CandidateAssessment(
+        payment_id=candidate.payment_id,
+        order_reference=candidate.order_reference,
+        gross_amount_minor=candidate.gross_amount_minor,
+        settlement_date=candidate.settlement_date,
+        supporting_signals=signals.supporting(),
+        contradicting_signals=signals.contradicting(),
+        evidence_score=round(signals.score, 4),
+        admissible=signals.admissible,
+        admissibility_reason=signals.admissibility_reason,
+        semantic_verdict=verdict,
+        semantic_confidence=confidence,
+    )
 
 
 def _amount_plausible(merchant_amount: int, candidate_amount: int) -> bool:
@@ -204,7 +259,19 @@ def score_candidate(
     candidate_cores = normalize.reference_cores(candidate.order_reference, candidate.description)
     shared_core = bool(merchant_cores & candidate_cores)
 
+    # Negative evidence, which is different from missing evidence. If both
+    # sides carry a recognisable identifier and the two disagree, that is
+    # a statement that these are different transactions — not merely a
+    # failure to prove they are the same. Asserted only from the reference
+    # fields; a number occurring in free text is not an identifier claim.
+    merchant_ref_cores = normalize.reference_cores(merchant.reference_id)
+    candidate_ref_cores = normalize.reference_cores(candidate.order_reference)
+    reference_contradiction = bool(
+        merchant_ref_cores and candidate_ref_cores and not (merchant_ref_cores & candidate_ref_cores)
+    )
+
     days_apart = normalize.days_between(merchant.order_date, candidate.order_date)
+    within_window = days_apart <= policy.candidate_search_window_days
     text = index.text_similarity(merchant.description, candidate.description)
 
     # Near-miss amounts still carry information (a 0.2% difference is a
@@ -227,15 +294,78 @@ def score_candidate(
         + 0.20 * text
     )
 
+    admissible, reason = _assess_admissibility(
+        policy, amount_exact, shared_core, reference_contradiction, within_window, text,
+        has_any_reference_identifier=bool(merchant_ref_cores or candidate_ref_cores),
+    )
+
     return CandidateSignals(
         amount_exact=amount_exact,
         amount_delta_minor=amount_delta,
         amount_ratio=ratio,
         shared_reference_core=shared_core,
+        reference_contradiction=reference_contradiction,
         days_apart=days_apart,
+        within_search_window=within_window,
         text_similarity=text,
         score=score,
+        admissible=admissible,
+        admissibility_reason=reason,
     )
+
+
+def _assess_admissibility(
+    policy: PolicyConfig,
+    amount_exact: bool,
+    shared_core: bool,
+    reference_contradiction: bool,
+    within_window: bool,
+    text: float,
+    has_any_reference_identifier: bool,
+) -> tuple[bool, str]:
+    """Is this a candidate at all, or a coincidence the index happened to
+    return?
+
+    The indexes are tuned for recall and will return a settlement sharing
+    nothing with the merchant record but an amount. In a population of
+    thousands, an exact amount collision is ordinary — measured on the
+    development scenarios, every coincidental top-ranked candidate had
+    zero shared reference identifiers while every genuine one had a
+    shared identifier. Amount is a reason to look; it is not evidence of
+    identity, and treating it as evidence is what turned "no settlement
+    exists" into "I am not sure".
+    """
+    if not policy.require_identity_evidence:
+        return True, "identity-evidence requirement disabled by policy"
+
+    # Negative evidence outranks everything below it. Two records that
+    # each name a transaction, naming different ones, are different
+    # transactions — no amount agreement redeems that.
+    if reference_contradiction and policy.treat_reference_contradiction_as_negative:
+        return False, "references identify different transactions"
+
+    if not within_window:
+        return False, "outside the plausible settlement window"
+
+    if shared_core:
+        return True, "shared reference identifier"
+
+    if text >= policy.admissible_text_similarity:
+        return True, f"description wording corroborates ({text:.2f})"
+
+    # Neither side carries an identifier at all, so nothing contradicts
+    # and nothing corroborates. This is genuine uncertainty rather than a
+    # coincidence to dismiss, and it is exactly what the semantic tier is
+    # for — the model may read something in the descriptions that the
+    # signals cannot. Admitting it costs a call; refusing it would quietly
+    # remove the one case the model exists to handle.
+    if amount_exact and not has_any_reference_identifier:
+        return True, "amount and date agree and neither side carries an identifier to contradict them"
+
+    if amount_exact:
+        return False, "amount agreement is the only signal, which is not evidence of identity"
+
+    return False, "no corroborating identity evidence"
 
 
 def build_shortlist(
@@ -283,8 +413,27 @@ def resolve_fuzzy_or_semantic(
     shortlist = build_shortlist(merchant, index, policy)
     if not shortlist:
         return FuzzyMatchOutcome(None, "none", False, None, None, None,
-                                 "No Razorpay record found within the search window.")
+                                 "No settlement record was retrieved within the search window.",
+                                 classification=MatchClassification.NO_CANDIDATES)
 
+    # Retrieval is recall-oriented and returns coincidences. Admissibility
+    # is the separate question of whether a retrieved record is evidence
+    # of anything. Keeping the rejected ones is deliberate: an exception
+    # that can name what it looked at and why it refused is checkable,
+    # while a bare "no settlement found" is only an assertion.
+    admissible = [(c, s) for c, s in shortlist if s.admissible]
+    if not admissible:
+        rejected = [to_assessment(c, s) for c, s in shortlist]
+        top = shortlist[0][1]
+        return FuzzyMatchOutcome(
+            None, "none", False, None, None, None,
+            f"{len(shortlist)} record(s) were retrieved but none carried enough independent evidence to be "
+            f"treated as a candidate — closest was rejected because {top.admissibility_reason}.",
+            classification=MatchClassification.NO_ADMISSIBLE_CANDIDATE,
+            assessments=rejected,
+        )
+
+    shortlist = admissible
     best, best_signals = shortlist[0]
 
     # Tier 2: deterministic resolution on corroborating evidence. Two
@@ -304,12 +453,16 @@ def resolve_fuzzy_or_semantic(
                 f"{'shared reference core, ' if best_signals.shared_reference_core else ''}"
                 f"{best_signals.days_apart}d apart, evidence score {best_signals.score:.2f} "
                 f"(runner-up {runner_up:.2f}) — no model call needed.",
+                classification=MatchClassification.CORROBORATED,
+                assessments=[to_assessment(c, sig) for c, sig in shortlist],
             )
 
     if not policy.enable_semantic_matching:
         return FuzzyMatchOutcome(None, "none", False, None, None, None,
                                  "Deterministic matching could not resolve a candidate and the semantic "
-                                 "verifier is disabled by policy.")
+                                 "verifier is disabled by policy.",
+                                 classification=MatchClassification.ALL_CANDIDATES_REJECTED,
+                                 assessments=[to_assessment(c, sig) for c, sig in shortlist])
 
     # Tier 3: genuinely ambiguous. Walk the shortlist in evidence order
     # and ask the model about each pair until one is confirmed. Bounded
@@ -320,13 +473,9 @@ def resolve_fuzzy_or_semantic(
     last_confidence: float | None = None
     last_backend: str | None = None
     last_detail = ""
+    assessments: list[CandidateAssessment] = []
 
     for candidate, signals in shortlist[: policy.max_semantic_calls_per_record]:
-        if signals.text_similarity < policy.fuzzy_reference_jaccard_floor and not signals.amount_exact \
-                and not signals.shared_reference_core:
-            # Nothing about this pair justifies spending a model call.
-            continue
-
         comparison = _build_comparison(merchant, candidate, signals)
         try:
             result = call_with_timeout(
@@ -339,27 +488,38 @@ def resolve_fuzzy_or_semantic(
                 f"AI provider error during ambiguous match resolution ({type(exc).__name__}: {exc}) — "
                 "routed to human review as a safe fallback, not auto-reconciled.",
                 ai_calls=ai_calls + 1,
+                classification=MatchClassification.PROVIDER_ERROR,
+                assessments=assessments + [to_assessment(candidate, signals)],
             )
 
         ai_calls += 1
         last_verdict, last_confidence, last_backend = result.verdict, result.confidence, result.backend
         last_detail = f"[{result.backend}] {result.verdict} (confidence {result.confidence:.2f}): {result.rationale}"
+        assessments.append(to_assessment(candidate, signals, result.verdict, result.confidence))
 
         if result.verdict == "SAME":
             return FuzzyMatchOutcome(candidate, "semantic", True, result.confidence, result.backend,
-                                     result.verdict, last_detail, ai_calls=ai_calls)
+                                     result.verdict, last_detail, ai_calls=ai_calls,
+                                     classification=MatchClassification.SEMANTIC_CONFIRMED,
+                                     assessments=assessments)
         if result.verdict == "AMBIGUOUS":
             # Stop here rather than shopping the shortlist for a yes.
             return FuzzyMatchOutcome(None, "semantic", True, result.confidence, result.backend,
-                                     result.verdict, last_detail, ai_calls=ai_calls)
+                                     result.verdict, last_detail, ai_calls=ai_calls,
+                                     classification=MatchClassification.SEMANTIC_UNRESOLVED,
+                                     assessments=assessments)
 
     if ai_calls == 0:
         return FuzzyMatchOutcome(None, "none", False, None, None, None,
-                                 "No candidate with plausible corroborating evidence found.")
+                                 "No candidate with plausible corroborating evidence found.",
+                                 classification=MatchClassification.NO_ADMISSIBLE_CANDIDATE,
+                                 assessments=[to_assessment(c, sig) for c, sig in shortlist])
 
     return FuzzyMatchOutcome(None, "semantic", True, last_confidence, last_backend, last_verdict or "DIFFERENT",
                              last_detail or "All shortlisted candidates were rejected by the semantic verifier.",
-                             ai_calls=ai_calls)
+                             ai_calls=ai_calls,
+                             classification=MatchClassification.ALL_CANDIDATES_REJECTED,
+                             assessments=assessments)
 
 
 def _build_comparison(
