@@ -1,0 +1,101 @@
+{
+  "dataset_version": "dcf754f76ce3ee6e4d811ec2cdf1a1988a075f411cd894f11a3bcb0b7329e433",
+  "dataset_split": "holdout",
+  "seed": 20260903,
+  "record_count": 999,
+  "semantic_backend": "HeuristicSemanticVerifier",
+  "policy": {
+    "amount_tolerance_minor": 2,
+    "max_settlement_delay_days": 21,
+    "ai_confidence_threshold": 0.85,
+    "fuzzy_reference_jaccard_strong": 0.6,
+    "fuzzy_reference_jaccard_floor": 0.2,
+    "candidate_search_window_days": 21
+  },
+  "metrics": {
+    "record_count": 999,
+    "reconciliation_accuracy": 0.991991991991992,
+    "exception_precision": 0.953757225433526,
+    "exception_recall": 1.0,
+    "false_auto_reconciliation_rate": 0.0,
+    "false_auto_reconciliation_rate_definition": "share of records PREDICTED RECONCILED whose ground truth was NOT RECONCILED",
+    "false_exception_rate": 0.009828009828009828,
+    "false_exception_rate_definition": "share of TRULY RECONCILED records that were predicted EXCEPTION",
+    "pct_auto_reconciled": 0.8068068068068068,
+    "pct_human_review": 0.02002002002002002,
+    "pct_exception": 0.17317317317317318,
+    "ai_invocation_rate": 0.07107107107107107,
+    "p50_latency_ms": 0.009167008101940155,
+    "p95_latency_ms": 3.1112920376472153,
+    "outcome_counts": {
+      "RECONCILED": 806,
+      "EXCEPTION": 173,
+      "HUMAN_REVIEW": 20
+    },
+    "outcome_by_ground_truth_case": {
+      "clean_match": {
+        "RECONCILED": 550,
+        "EXCEPTION": 0,
+        "HUMAN_REVIEW": 0
+      },
+      "ambiguous_text_reference_semantic_decoy": {
+        "RECONCILED": 0,
+        "EXCEPTION": 5,
+        "HUMAN_REVIEW": 0
+      },
+      "ambiguous_text_reference_semantic_true_match": {
+        "RECONCILED": 0,
+        "EXCEPTION": 8,
+        "HUMAN_REVIEW": 0
+      },
+      "refund_mismatch": {
+        "RECONCILED": 0,
+        "EXCEPTION": 20,
+        "HUMAN_REVIEW": 0
+      },
+      "delayed_settlement_normal": {
+        "RECONCILED": 80,
+        "EXCEPTION": 0,
+        "HUMAN_REVIEW": 0
+      },
+      "fee_tax_rounding": {
+        "RECONCILED": 100,
+        "EXCEPTION": 0,
+        "HUMAN_REVIEW": 0
+      },
+      "missing_settlement": {
+        "RECONCILED": 0,
+        "EXCEPTION": 60,
+        "HUMAN_REVIEW": 0
+      },
+      "amount_mismatch": {
+        "RECONCILED": 0,
+        "EXCEPTION": 50,
+        "HUMAN_REVIEW": 0
+      },
+      "delayed_settlement_excessive": {
+        "RECONCILED": 0,
+        "EXCEPTION": 30,
+        "HUMAN_REVIEW": 0
+      },
+      "partial_refund": {
+        "RECONCILED": 70,
+        "EXCEPTION": 0,
+        "HUMAN_REVIEW": 0
+      },
+      "duplicate_reference": {
+        "RECONCILED": 0,
+        "EXCEPTION": 0,
+        "HUMAN_REVIEW": 20
+      },
+      "ambiguous_text_reference_fuzzy_strong": {
+        "RECONCILED": 6,
+        "EXCEPTION": 0,
+        "HUMAN_REVIEW": 0
+      }
+    },
+    "throughput_records_per_sec": 3742.9743069532224,
+    "wall_clock_seconds": 0.2669000420719385
+  },
+  "timestamp": "2026-09-03T15:19:21.908131+00:00"
+}

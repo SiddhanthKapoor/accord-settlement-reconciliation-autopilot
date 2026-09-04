@@ -1,0 +1,75 @@
+{
+  "evaluation_id": "V1",
+  "status": "FROZEN \u2014 do not modify any file in this directory",
+  "frozen_at": "2026-09-04T10:43:27.111094+00:00",
+  "code_commit": "86318d649f90c40d2d69bf68f9617a053e9be36f",
+  "code_commit_note": "The exact implementation that produced these numbers. `git checkout <commit>` reproduces the engine as evaluated.",
+  "dataset": {
+    "version": "dcf754f76ce3ee6e4d811ec2cdf1a1988a075f411cd894f11a3bcb0b7329e433",
+    "seed": 20260903,
+    "generator": "backend/data/generate_dataset.py at the commit above",
+    "total_generated": 5000,
+    "holdout_records": 999,
+    "razorpay_pool_records": 4800,
+    "category_counts": {
+      "clean_match": 2750,
+      "fee_tax_rounding": 500,
+      "missing_settlement": 300,
+      "refund_mismatch": 100,
+      "amount_mismatch": 250,
+      "partial_refund": 350,
+      "ambiguous_text_reference_semantic_true_match": 41,
+      "delayed_settlement_normal": 400,
+      "ambiguous_text_reference_fuzzy_strong": 32,
+      "delayed_settlement_excessive": 150,
+      "duplicate_reference": 100,
+      "ambiguous_text_reference_semantic_decoy": 27
+    }
+  },
+  "semantic_config": {
+    "primary_backend": "GeminiSemanticVerifier",
+    "model": "gemini-3.5-flash-lite",
+    "temperature": 0.0,
+    "fallback_backend": "HeuristicSemanticVerifier"
+  },
+  "policy": {
+    "amount_tolerance_minor": 2,
+    "max_settlement_delay_days": 21,
+    "ai_confidence_threshold": 0.85,
+    "fuzzy_reference_jaccard_strong": 0.6,
+    "fuzzy_reference_jaccard_floor": 0.2,
+    "candidate_search_window_days": 21
+  },
+  "headline_metrics": {
+    "gemini": {
+      "reconciliation_accuracy": 0.9769769769769769,
+      "exception_precision": 0.9554140127388535,
+      "exception_recall": 0.9090909090909091,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.0085995085995086,
+      "pct_auto_reconciled": 0.8068068068068068,
+      "pct_human_review": 0.036036036036036036,
+      "pct_exception": 0.15715715715715717,
+      "ai_invocation_rate": 0.07107107107107107
+    },
+    "heuristic": {
+      "reconciliation_accuracy": 0.991991991991992,
+      "exception_precision": 0.953757225433526,
+      "exception_recall": 1.0,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.009828009828009828,
+      "pct_auto_reconciled": 0.8068068068068068,
+      "pct_human_review": 0.02002002002002002,
+      "pct_exception": 0.17317317317317318,
+      "ai_invocation_rate": 0.07107107107107107
+    }
+  },
+  "checksums_sha256": {
+    "dataset_manifest.json": "a3a3e5b29b1bf7b40ab46249ec227a8f13c3e8f423f15f95c594af5f084f4d95",
+    "holdout.jsonl.gz": "dc1fb186abf213e873c79ab31c21c795db06e18ba354c19306eade7fa81c24d1",
+    "razorpay_pool.jsonl.gz": "ba07768c03d4d97f6ee175f7970636687ef83f96ad11e7f36347cec11c0e91bb",
+    "report_gemini.json": "5b7172f52c05af9a25f177cca4c098bee412733d682aa7820030c0fed55bd0cf",
+    "report_heuristic.json": "9e77d40c06e9b35bdfffa1077690eedf4ca98172b9ef1d811c28179d68c48380"
+  },
+  "reproducibility_note": "The heuristic-backend run is fully deterministic and reproduces exactly from the frozen dataset at the pinned commit. The Gemini-backend run calls a hosted, non-deterministic model; its per-record verdicts are not guaranteed byte-reproducible even at temperature 0, so the frozen report is the record of what that run produced, not a target to re-hit."
+}
