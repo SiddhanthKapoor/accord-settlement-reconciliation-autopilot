@@ -292,12 +292,20 @@ def reconcile(
         reason = "All checks passed."
 
     exception_type, severity = explain.classify_exception(resolution.classification, checks, matched=True)
-    assessments = resolution.assessments or [
-        matching.to_assessment(
-            resolution.candidate,
-            matching.score_candidate(merchant, resolution.candidate, index, policy),
-        )
-    ]
+    # Candidate evidence is worth computing when there is something to
+    # explain. A record whose reference matched exactly and whose checks
+    # all passed has no competing candidates and no refusal to justify, so
+    # scoring it a second time only to build a table nobody reads costs a
+    # full IDF similarity pass and a stored assessment on the ~80% of
+    # records that reconcile cleanly.
+    assessments = resolution.assessments
+    if not assessments and outcome is not ReconciliationOutcome.RECONCILED:
+        assessments = [
+            matching.to_assessment(
+                resolution.candidate,
+                matching.score_candidate(merchant, resolution.candidate, index, policy),
+            )
+        ]
 
     latency_ms = (time.perf_counter() - started) * 1000
     return ReconciliationResult(

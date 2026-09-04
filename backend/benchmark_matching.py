@@ -39,7 +39,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
-from app.domain.models import MerchantRecord, PolicyConfig, RazorpaySettlementRecord  # noqa: E402
+from app.domain.models import (  # noqa: E402
+    MatchClassification, MerchantRecord, PolicyConfig, RazorpaySettlementRecord,
+)
 from app.engine import matching  # noqa: E402
 from app.engine import policy as policy_engine  # noqa: E402
 from app.engine.semantic import GeminiSemanticVerifier, HeuristicSemanticVerifier  # noqa: E402
@@ -84,7 +86,7 @@ def run_config(examples: list[dict], key: str) -> dict:
     verifier = make_verifier(verifier_kind)
 
     correct = wrong_match = missed = false_match = correct_reject = 0
-    ai_records = ai_calls = 0
+    ai_records = ai_calls = provider_errors = 0
     latencies: list[float] = []
     per_variation: dict[str, dict[str, int]] = {}
 
@@ -103,6 +105,11 @@ def run_config(examples: list[dict], key: str) -> dict:
         if result.ai_invoked:
             ai_records += 1
         ai_calls += result.ai_calls
+        # A timed-out or failed model call degrades to HUMAN_REVIEW, which
+        # scores as a miss. Counted separately so a throttled run is not
+        # silently reported as the model being wrong.
+        if result.classification is MatchClassification.PROVIDER_ERROR:
+            provider_errors += 1
 
         bucket = per_variation.setdefault(ex["variation"], {"n": 0, "correct": 0})
         bucket["n"] += 1
@@ -144,6 +151,8 @@ def run_config(examples: list[dict], key: str) -> dict:
         "missed_rate": pct(missed, n_true),
         "ai_invocation_rate": pct(ai_records, n),
         "ai_calls_total": ai_calls,
+        "provider_errors": provider_errors,
+        "provider_error_rate_of_ai_records": (provider_errors / ai_records) if ai_records else 0.0,
         "ai_calls_per_1000_records": (ai_calls / n * 1000) if n else 0.0,
         "wall_clock_seconds": wall,
         "throughput_per_sec": n / wall if wall else 0.0,
@@ -178,6 +187,14 @@ def print_report(results: list[dict]) -> None:
     for r in results:
         print(f"  {r['config']}  p50 {r['p50_latency_ms']:>8.2f} ms   p95 {r['p95_latency_ms']:>9.2f} ms   "
               f"{r['throughput_per_sec']:>8.1f} rec/s   {r['ai_calls_total']:>4} model calls")
+
+    degraded = [r for r in results if r.get("provider_errors")]
+    if degraded:
+        print("\nProvider failures (timed-out or errored model calls degrade to HUMAN_REVIEW and score as")
+        print("misses; a throttled run understates the model rather than measuring it)")
+        for r in degraded:
+            print(f"  {r['config']}  {r['provider_errors']} of {int(r['ai_invocation_rate'] * r['examples'])} "
+                  f"AI-invoked examples ({r['provider_error_rate_of_ai_records']:.0%})")
 
 
 def main() -> int:
