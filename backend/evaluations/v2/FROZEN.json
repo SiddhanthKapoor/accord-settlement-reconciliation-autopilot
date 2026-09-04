@@ -1,0 +1,93 @@
+{
+  "evaluation_id": "V2",
+  "status": "FROZEN \u2014 do not modify any file in this directory",
+  "frozen_at": "2026-09-04T11:54:54.120412+00:00",
+  "code_commit": "78ff64757e469011cf6f33e8a95495b587dd2396",
+  "code_commit_note": "The hardened implementation. Nothing changed after this run.",
+  "dataset": {
+    "version": "d2a8a7bb00f0add424fd30b0bfe8a78dfbc23bab2fa091f4599ba42904e88108",
+    "seed": 20260904,
+    "generator": "backend/data/generate_dataset.py \u2014 SAME generator as V1, different seed, so a V1/V2 difference is attributable to the engine rather than to an easier test.",
+    "holdout_records": 1001,
+    "razorpay_pool_records": 4800,
+    "category_counts": {
+      "clean_match": 2750,
+      "duplicate_reference": 100,
+      "missing_settlement": 300,
+      "amount_mismatch": 250,
+      "fee_tax_rounding": 500,
+      "delayed_settlement_normal": 400,
+      "ambiguous_text_reference_semantic_decoy": 43,
+      "partial_refund": 350,
+      "refund_mismatch": 100,
+      "ambiguous_text_reference_fuzzy_strong": 34,
+      "delayed_settlement_excessive": 150,
+      "ambiguous_text_reference_semantic_true_match": 23
+    }
+  },
+  "semantic_config": {
+    "primary_backend": "GeminiSemanticVerifier",
+    "model": "gemini-3.5-flash-lite",
+    "temperature": 0.0
+  },
+  "policy": {
+    "amount_tolerance_minor": 2,
+    "max_settlement_delay_days": 21,
+    "ai_confidence_threshold": 0.85,
+    "fuzzy_reference_jaccard_floor": 0.2,
+    "candidate_search_window_days": 21,
+    "max_window_scan_candidates": 400,
+    "candidate_shortlist_size": 5,
+    "deterministic_match_score": 0.7,
+    "deterministic_min_text_similarity": 0.25,
+    "deterministic_match_margin": 0.1,
+    "max_semantic_calls_per_record": 3,
+    "enable_fuzzy_matching": true,
+    "enable_semantic_matching": true
+  },
+  "headline_metrics": {
+    "reconciliation_accuracy": 0.948051948051948,
+    "exception_precision": 1.0,
+    "exception_recall": 0.7159763313609467,
+    "false_auto_reconciliation_rate": 0.0,
+    "false_exception_rate": 0.0,
+    "pct_auto_reconciled": 0.8071928071928072,
+    "pct_human_review": 0.07192807192807193,
+    "pct_exception": 0.12087912087912088,
+    "ai_invocation_rate": 0.05194805194805195
+  },
+  "comparison_to_v1": {
+    "note": "V1 and V2 are different records. compare_engines.py additionally scores both engines on identical V2 data with the deterministic backend, and shows the same direction.",
+    "v1": {
+      "reconciliation_accuracy": 0.9769769769769769,
+      "exception_precision": 0.9554140127388535,
+      "exception_recall": 0.9090909090909091,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.0085995085995086,
+      "pct_auto_reconciled": 0.8068068068068068,
+      "pct_human_review": 0.036036036036036036,
+      "pct_exception": 0.15715715715715717,
+      "ai_invocation_rate": 0.07107107107107107
+    },
+    "v2": {
+      "reconciliation_accuracy": 0.948051948051948,
+      "exception_precision": 1.0,
+      "exception_recall": 0.7159763313609467,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.0,
+      "pct_auto_reconciled": 0.8071928071928072,
+      "pct_human_review": 0.07192807192807193,
+      "pct_exception": 0.12087912087912088,
+      "ai_invocation_rate": 0.05194805194805195
+    },
+    "summary": "Accuracy and exception recall fell; exception precision and false-exception rate improved; false auto-reconciliation stayed at 0.0%. The system became more cautious, converting confident-but-sometimes-wrong EXCEPTIONs into HUMAN_REVIEW. Driven almost entirely by missing_settlement moving from 47/13 EXCEPTION/HUMAN_REVIEW to 21/39."
+  },
+  "checksums_sha256": {
+    "dataset_manifest.json": "610a943b8f09ed835b2d99af11a6de7e3a03a4b926504d7755d89cc7746715bd",
+    "engine_comparison.json": "36ec3ab393770d83a5301dc0b229115836cc72154c2c449c271a5d00c36f986f",
+    "holdout.jsonl.gz": "11f48b22f56b304ed40086f2402a4a58abbea78332608990680f4cdd5dcba163",
+    "razorpay_pool.jsonl.gz": "4ae661c4bf20c9bcd7527e381e7dbbbcfb2173bf15c964b825170e568729b03f",
+    "report_gemini.json": "510973cd97d929ed4f34b304ce3cda9f9524f9432c1b9f7258aeabd315870e64",
+    "report_heuristic_new_engine.json": "7612a2f7dc498a96be48bc7b442a64465db1b122d118474815acf5522c361261"
+  }
+}

@@ -102,19 +102,22 @@ await page.screenshot({ path: `${OUT}/ui-1-empty.png` });
 
 // 2. Batch selection + execution
 await page.selectOption('.batch-controls select:first-of-type', 'dev');
-await page.selectOption('.batch-controls select:nth-of-type(2)', '100');
+// A batch large enough to have an observable middle. The deterministic
+// backend processes ~100 records faster than this script can poll, so a
+// small batch would make the progress assertion vacuous rather than passing.
+await page.selectOption('.batch-controls select:nth-of-type(2)', '1000');
 check('batch controls selectable', true);
 
 await page.click('button:has-text("Run batch")');
 
 // 3. Live progress must come from the backend, mid-run
 let sawPartial = false, partialText = '';
-for (let i = 0; i < 100; i++) {
+for (let i = 0; i < 400; i++) {
   const label = await page.textContent('.progress-label').catch(() => '');
   const m = label.match(/(\d+)\s*\/\s*(\d+) processed/);
   if (m && +m[1] > 0 && +m[1] < +m[2]) { sawPartial = true; partialText = label.trim(); break; }
   if (label.includes('complete')) break;
-  await page.waitForTimeout(40);
+  await page.waitForTimeout(15);
 }
 check('live progress observed mid-batch (real SSE, not a jump to 100%)', sawPartial, partialText);
 await page.screenshot({ path: `${OUT}/ui-2-progress.png` });

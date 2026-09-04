@@ -176,7 +176,33 @@ benchmark above exists and why its numbers, not V2's, are the honest
 measure of the semantic layer.
 
 The V2 holdout was not inspected before the run, and no engine, policy,
-or dataset code changed after it.
+or dataset code changed after it. Its dataset, report, and checksums are
+archived in `backend/evaluations/v2/` on the same terms as V1.
+
+### Result
+
+| Metric | V1 | V2 |
+|---|---:|---:|
+| Reconciliation accuracy | 97.7% | 94.8% |
+| Exception precision | 95.5% | 100.0% |
+| Exception recall | 90.9% | 71.6% |
+| False auto-reconciliation rate | 0.0% | 0.0% |
+| False exception rate | 0.9% | 0.0% |
+| Routed to human review | 3.6% | 7.2% |
+| AI invocation rate | 7.1% | 5.2% |
+
+V2 is worse on the headline figure. The hardening made the system more
+cautious rather than more accurate: it stopped producing
+confident-but-sometimes-wrong EXCEPTIONs and now defers those to a human,
+which costs 19 points of exception recall and doubles the review queue
+while taking exception precision to 100% and false exceptions to zero.
+Safety is unchanged.
+
+Nearly all of the movement is one category. `missing_settlement` went
+from 47 EXCEPTION / 13 HUMAN_REVIEW to 21 / 39, because the exact-amount
+index now surfaces a coincidental candidate that the model, correctly
+following its instruction to prefer AMBIGUOUS over a confident wrong
+answer, declines to rule out.
 
 ### Same data, different code
 

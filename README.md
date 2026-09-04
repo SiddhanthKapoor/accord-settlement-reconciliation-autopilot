@@ -96,10 +96,6 @@ a synonym, and only amount and date link the two. Nothing in this system
 currently gets those, and they are counted as failures rather than
 excluded.
 
-The metric that settles it is not accuracy on its own. It is recall and
-correct rejection together, because a component can buy one by wrecking
-the other — and the heuristic fallback does exactly that.
-
 ## Results
 
 Two held-out evaluations, each run once, neither used for tuning.
@@ -115,7 +111,56 @@ new seed. Same generator on purpose: an improved generator would have
 made the two incomparable, since any movement could be the engine
 improving or the test getting easier.
 
-<!-- V2_TABLE -->
+Both runs used the Gemini backend. V1: 999 records, seed 20260903.
+V2: 1,001 records, seed 20260904.
+
+| Metric | V1 | V2 | |
+|---|---:|---:|---|
+| Reconciliation accuracy | 97.7% | 94.8% | **−2.9** |
+| Exception precision | 95.5% | 100.0% | +4.5 |
+| Exception recall | 90.9% | 71.6% | **−19.3** |
+| **False auto-reconciliation rate** | **0.0%** | **0.0%** | unchanged |
+| False exception rate | 0.9% | 0.0% | −0.9 |
+| Auto-reconciled | 80.7% | 80.7% | unchanged |
+| Routed to human review | 3.6% | 7.2% | +3.6 |
+| Flagged as exception | 15.7% | 12.1% | −3.6 |
+| AI invocation rate | 7.1% | 5.2% | −1.9 |
+| Model calls per 1,000 records | — | 52 | — |
+
+**The hardened system scores worse on the headline number.** That is the
+result, reported as it came out.
+
+What actually changed is the system's disposition. It no longer produces
+confident-but-sometimes-wrong EXCEPTIONs; it asks a human instead.
+Exception precision reaches 100% and the false exception rate goes to
+zero — V2 never wrongly flags a good record — while exception recall
+falls 19 points because genuinely missing settlements now land in
+HUMAN_REVIEW rather than EXCEPTION. Human review roughly doubles, from
+3.6% to 7.2%. The safety number that matters most, false
+auto-reconciliation, stays at 0.0% in both.
+
+The mechanism is specific and traceable. The exact-amount index surfaces
+a candidate for records that previously found none, so a missing
+settlement whose amount coincidentally matches an unrelated record in a
+4,800-record pool now gets escalated. The model is then asked about a
+pair where the amount agrees exactly and nothing else does, and — as
+instructed — prefers AMBIGUOUS to a confident wrong answer. `missing_settlement`
+goes from 47 EXCEPTION / 13 HUMAN_REVIEW in V1 to 21 / 39 in V2, which
+accounts for nearly the entire drop.
+
+One thing did improve where V1 was weakest: `semantic_true_match` went
+from 0 correct (7 wrongly flagged EXCEPTION) to 1 correct with the rest
+in HUMAN_REVIEW. Wrong answers became deferred answers.
+
+Because V1 and V2 are different records, `compare_engines.py` re-runs
+both engines over *identical* V2 data on the deterministic backend. It
+shows the same direction — accuracy −3.0, exception recall −18.3, safety
+unchanged — so this is a property of the code change, not of the dataset.
+
+The fix is visible: don't spend an escalation when an exact amount is the
+only corroboration. It has deliberately not been made, because it was
+suggested by a held-out result. See
+[docs/ENGINEERING_FAILURES_AND_FIXES.md](docs/ENGINEERING_FAILURES_AND_FIXES.md) §15.
 
 ## What's real and what's generated
 
