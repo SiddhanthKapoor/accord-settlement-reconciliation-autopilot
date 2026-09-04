@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 
 const TABS = [
   { key: "console", label: "Console" },
+  { key: "review", label: "Review Queue" },
   { key: "audit", label: "Audit Trail" },
 ];
 

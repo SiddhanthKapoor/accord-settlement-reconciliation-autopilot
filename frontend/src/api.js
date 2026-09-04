@@ -40,6 +40,19 @@ export const getDataSources = () => req(`${API}/data-sources`);
 
 export const getAuditLog = (limit = 200) => req(`${API}/audit/log?limit=${limit}`);
 
+export const getReviewQueue = ({ batchId, state = "OPEN", limit = 50 } = {}) => {
+  const params = new URLSearchParams({ state, limit });
+  if (batchId) params.set("batch_id", batchId);
+  return req(`${API}/review/queue?${params}`);
+};
+
+export const submitReviewAction = (recordId, { batchId, action, note }) =>
+  req(`${API}/review/${encodeURIComponent(recordId)}/action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ batch_id: batchId, action, note }),
+  });
+
 export const verifyChain = () => req(`${API}/audit/verify`);
 
 export const adminReset = () => req(`${API}/admin/reset`, { method: "POST" });

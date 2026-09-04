@@ -31,7 +31,7 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
       transition={{ duration: 0.22, ease: "easeOut" }}
     >
       <button className="detail-close" onClick={onClose} aria-label="Close">✕</button>
-      <div className="detail-title">{recordId}</div>
+      <h2 className="detail-title">{recordId}</h2>
       {record?.ground_truth_case && <div className="tiny muted">synthetic case: {record.ground_truth_case}</div>}
 
       {error && <p className="small" style={{ color: "var(--fail)" }}>{error}</p>}
@@ -41,13 +41,63 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
         <>
           <div className={`decision-banner decision-${tone}`} style={{ marginTop: 16 }}>
             <div>
-              <div className="decision-status-line">{record.outcome.replace("_", " ")}</div>
-              <div className="decision-reason">{record.reason}</div>
+              <div className="decision-status-line">
+                {record.outcome.replace("_", " ")}
+                {record.exception_type && (
+                  <span className="decision-type"> · {record.exception_type.replace(/_/g, " ").toLowerCase()}</span>
+                )}
+                {record.severity && (
+                  <span className={`severity severity-${record.severity.toLowerCase()}`} style={{ marginLeft: 8 }}>
+                    <span aria-hidden="true" className="severity-dot" />
+                    {record.severity.toLowerCase()} priority
+                  </span>
+                )}
+              </div>
+              {/* Level 1: what happened, in the operator's language. */}
+              <div className="decision-reason">{record.explanation || record.reason}</div>
+              {record.recommended_action && (
+                <div className="decision-next"><span className="label-inline">Next</span> {record.recommended_action}</div>
+              )}
             </div>
           </div>
 
+          {/* Level 2: the candidates weighed, and what argued for and
+              against each. This is the part that makes a refusal
+              checkable instead of merely stated. */}
+          {record.considered_candidates?.length > 0 && (
+            <div className="detail-section">
+              <h3 className="card-title">Candidates considered</h3>
+              <div className="table-scroll">
+                <table className="checks-table">
+                  <caption className="sr-only">Settlement records considered for {recordId}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Payment</th>
+                      <th scope="col">Amount</th>
+                      <th scope="col">Admitted</th>
+                      <th scope="col">Evidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {record.considered_candidates.map((c) => (
+                      <tr key={c.payment_id} className={c.payment_id === record.matched_payment_id ? "row-pass" : ""}>
+                        <td className="mono tiny">{c.payment_id}</td>
+                        <td className="mono tiny">{money(c.gross_amount_minor)}</td>
+                        <td className="tiny">{c.admissible ? "yes" : "no"}<span className="muted"> — {c.admissibility_reason}</span></td>
+                        <td className="tiny">
+                          {c.supporting_signals.length > 0 && <div>+ {c.supporting_signals.join("; ")}</div>}
+                          {c.contradicting_signals.length > 0 && <div className="muted">− {c.contradicting_signals.join("; ")}</div>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div className="detail-section">
-            <div className="card-title">Merchant vs. Razorpay</div>
+            <h3 className="card-title">Merchant vs. Razorpay</h3>
             <div className="compare-grid">
               <div className="compare-col">
                 <div className="compare-col-label">Merchant record</div>
@@ -76,7 +126,7 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
 
           {record.ai_invoked ? (
             <div className="detail-section">
-              <div className="card-title">Semantic classifier</div>
+              <h3 className="card-title">Semantic classifier</h3>
               <div className="ai-panel">
                 <div><strong>{record.ai_backend}</strong></div>
                 <div className="small" style={{ marginTop: 4 }}>
@@ -89,7 +139,7 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
             </div>
           ) : (
             <div className="detail-section">
-              <div className="card-title">Semantic classifier</div>
+              <h3 className="card-title">Semantic classifier</h3>
               <p className="small muted">
                 Not invoked — resolved deterministically. The policy threshold of{" "}
                 {record.policy_threshold} applies only to model-resolved matches.
@@ -97,10 +147,26 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
             </div>
           )}
 
+          <details className="detail-section disclosure">
+            <summary className="card-title disclosure-summary">Technical detail</summary>
+            <dl className="kv-list">
+              <dt>Match classification</dt><dd className="mono tiny">{record.classification}</dd>
+              <dt>Policy threshold</dt><dd className="mono tiny">{record.policy_threshold}</dd>
+              <dt>Semantic classifier</dt>
+              <dd className="mono tiny">
+                {record.ai_invoked
+                  ? `${record.ai_backend} · confidence ${record.ai_confidence?.toFixed(2) ?? "n/a"} · ${record.ai_calls} call(s)`
+                  : "not invoked — resolved deterministically"}
+              </dd>
+              <dt>Processing time</dt><dd className="mono tiny">{record.latency_ms.toFixed(2)} ms</dd>
+            </dl>
+          </details>
+
           <div className="detail-section">
-            <div className="card-title">Deterministic checks</div>
+            <h3 className="card-title">Deterministic checks</h3>
             <table className="checks-table">
-              <thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead>
+              <caption className="sr-only">Deterministic checks run for {recordId}</caption>
+              <thead><tr><th scope="col">Check</th><th scope="col">Status</th><th scope="col">Detail</th></tr></thead>
               <tbody>
                 {record.checks.map((c, i) => (
                   <tr key={i} className={c.status === "FAIL" ? "row-fail" : c.status === "WARN" ? "row-warn" : ""}>
@@ -114,7 +180,7 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
           </div>
 
           <div className="detail-section">
-            <div className="card-title">Audit history</div>
+            <h3 className="card-title">Audit history</h3>
             {record.audit_trail.map((e) => (
               <div key={e.seq} className="small" style={{ padding: "6px 0", borderBottom: "1px solid var(--border-subtle)" }}>
                 <span className="mono tiny muted">#{e.seq}</span> {e.event_type} <span className="tiny muted">{new Date(e.timestamp).toLocaleTimeString()}</span>
@@ -122,7 +188,7 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
             ))}
           </div>
 
-          <div className="tiny muted" style={{ marginTop: 16 }}>processed in {record.latency_ms.toFixed(2)}ms</div>
+
         </>
       )}
     </motion.div>
