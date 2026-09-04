@@ -63,104 +63,123 @@ so that **amount alone cannot solve it** — half the true matches sit
 beside a distractor with an identical amount, and half the non-matches
 have a candidate whose amount matches exactly.
 
-| Configuration | Accuracy | True-match recall | Correct rejection | Wrong match | Model calls / 1k |
+| Configuration | Accuracy | Recall | Correct rejection | Wrong match | Calls / 1k |
 |---|---:|---:|---:|---:|---:|
 | **A** exact reference only | 60.8% | 21.7% | 100.0% | 0.0% | 0 |
 | **B** + deterministic corroborated | 77.9% | 55.8% | 100.0% | 0.0% | 0 |
-| **C** + heuristic semantic | 64.6% | **89.2%** | **40.0%** | 0.0% | 642 |
-| **D** + Gemini semantic | **87.5%** | 75.0% | **100.0%** | 0.0% | 654 |
+| **C** + heuristic semantic | 84.6% | **89.2%** | 80.0% | 0.0% | 267 |
+| **D** + Gemini semantic | *not cleanly measurable — see below* | | | 0.0% | 267 |
 
-Read C and D together, because C is the trap. The heuristic gets the
-highest recall in the table and it does it by saying SAME too easily:
-correct rejection collapses to 40%, and it fails every hard rejection
-outright — `sequential_orders` (adjacent order numbers, same customer,
-same product, minutes apart, same amount) 0%, `reference_core_collision`
-0%, `near_duplicate_different` 0%. On those three, Gemini scores 100%.
+C is the instructive one. The heuristic takes the highest recall in the
+table by saying SAME too readily, and pays for it in rejection. Before
+the admissibility work it scored 64.6% accuracy at 40% correct rejection,
+failing every hard rejection outright; admissibility now catches those
+coincidences before the heuristic sees them, which lifted it to 84.6% at
+80%. It still fails `reference_core_collision` completely — shared digits
+plus a matching amount is exactly the trap a fixed rule walks into.
 
-So the model buys +19.2 points of recall over deterministic-only while
-holding correct rejection at 100% and wrong matches at zero. That is the
-part a fixed rule set could not do here.
+**The Gemini configuration could not be measured cleanly.** The final run
+reported 78.8% accuracy, which looks like the model losing to the
+heuristic. It is not a measurement of the model:
 
-It is not free, and it is not uniformly better. Latency goes from
-sub-millisecond to a p50 of ~1s (p95 sits at the 10s timeout ceiling,
-meaning some calls do time out and correctly degrade to HUMAN_REVIEW),
-and it costs ~654 calls per 1,000 records at this benchmark's difficulty
-— which is far denser in ambiguity than the real distribution, where
-model invocation runs around 5%. Converting calls to a currency figure
-needs the account's pricing tier, so the call count is reported and the
-cost is not invented.
+```
+Provider failures: 62 of 64 AI-invoked examples (97%)
+p95 latency:       10,010 ms  (exactly the configured semantic timeout)
+```
 
-The clearest failure is `product_alias`, 0% for every configuration
-including Gemini: references share nothing, the product is recorded under
-a synonym, and only amount and date link the two. Nothing in this system
-currently gets those, and they are counted as failures rather than
-excluded.
+The API was throttling essentially every call, and a timed-out call
+degrades to HUMAN_REVIEW, which scores as a miss. The benchmark now
+counts provider failures separately so a degraded run is visibly
+degraded rather than being read as evidence. The last clean measurement,
+taken before quota exhaustion and before the admissibility change, was
+**87.5% accuracy / 75.0% recall / 100% correct rejection** — stated as a
+pre-change number, because that is what it is.
+
+That failed run did measure something worth having. Under a 97% outage of
+the one external dependency, the system produced **zero wrong matches**
+and held **100% correct rejection**, with recall degrading to roughly the
+deterministic baseline. The claim that the model can be removed without
+the product becoming unsafe is measured here, not asserted.
+
+`product_alias` is 0% in every configuration, and was investigated rather
+than chased: that variation asserts two records are the same payment
+while their references name *different* transactions. Matching them would
+mean matching on amount and date alone — the exact behaviour that caused
+the V2 regression. The system refuses, and shows the operator the
+rejected record with "amount matches exactly, dated 0d apart" attached.
 
 ## Results
 
-Two held-out evaluations, each run once, neither used for tuning.
+Three held-out evaluations, each run once, none used for tuning. Same
+generator throughout — only the seed differs — so the generations stay
+comparable.
 
-**V1** is the original system, frozen at commit `86318d6`. Because the
-generator itself changed during hardening, a seed no longer reproduces
-it, so the dataset bytes, both reports, and a SHA256 for each are
-archived in `backend/evaluations/v1/` and checked by
-`verify_evaluation_v1.py --rerun`, which re-runs it at its pinned commit.
+| Metric | V1 | V2 | V3 |
+|---|---:|---:|---:|
+| Reconciliation accuracy | 97.7% | 94.8% | **100.0%** |
+| Exception precision | 95.5% | 100.0% | 100.0% |
+| Exception recall | 90.9% | 71.6% | **100.0%** |
+| **False auto-reconciliation rate** | **0.0%** | **0.0%** | **0.0%** |
+| False exception rate | 0.9% | 0.0% | 0.0% |
+| Routed to human review | 3.6% | 7.2% | 2.0% |
+| AI invocation rate | 7.1% | 5.2% | **0.0%** |
 
-**V2** is the hardened system on a dataset generated afterwards with a
-new seed. Same generator on purpose: an improved generator would have
-made the two incomparable, since any movement could be the engine
-improving or the test getting easier.
+### Read the 100% as a finding about the dataset
 
-Both runs used the Gemini backend. V1: 999 records, seed 20260903.
-V2: 1,001 records, seed 20260904.
+A perfect score should raise suspicion. This one has a specific cause:
+**the model was never called.** Deterministic tiers resolved every
+record.
 
-| Metric | V1 | V2 | |
-|---|---:|---:|---|
-| Reconciliation accuracy | 97.7% | 94.8% | **−2.9** |
-| Exception precision | 95.5% | 100.0% | +4.5 |
-| Exception recall | 90.9% | 71.6% | **−19.3** |
-| **False auto-reconciliation rate** | **0.0%** | **0.0%** | unchanged |
-| False exception rate | 0.9% | 0.0% | −0.9 |
-| Auto-reconciled | 80.7% | 80.7% | unchanged |
-| Routed to human review | 3.6% | 7.2% | +3.6 |
-| Flagged as exception | 15.7% | 12.1% | −3.6 |
-| AI invocation rate | 7.1% | 5.2% | −1.9 |
-| Model calls per 1,000 records | — | 52 | — |
+This generator embeds the order number in both the reference and the
+description, so once identity evidence is used properly the identifier
+core recovers every ambiguous case without semantics. The synthetic
+dataset is saturated — it no longer discriminates between a good system
+and a better one, and a V4 on the same generator would be uninformative.
+The caveat is recorded inside `evaluations/v3/FROZEN.json` so it travels
+with the number.
 
-**The hardened system scores worse on the headline number.** That is the
-result, reported as it came out.
+The honest measure of the semantic layer is the ambiguous-matching
+benchmark, where references share nothing and wording differs.
+Deterministic matching scores 77.9% there.
 
-What actually changed is the system's disposition. It no longer produces
-confident-but-sometimes-wrong EXCEPTIONs; it asks a human instead.
-Exception precision reaches 100% and the false exception rate goes to
-zero — V2 never wrongly flags a good record — while exception recall
-falls 19 points because genuinely missing settlements now land in
-HUMAN_REVIEW rather than EXCEPTION. Human review roughly doubles, from
-3.6% to 7.2%. The safety number that matters most, false
-auto-reconciliation, stays at 0.0% in both.
+### Controlled comparison — same data, three engines
 
-The mechanism is specific and traceable. The exact-amount index surfaces
-a candidate for records that previously found none, so a missing
-settlement whose amount coincidentally matches an unrelated record in a
-4,800-record pool now gets escalated. The model is then asked about a
-pair where the amount agrees exactly and nothing else does, and — as
-instructed — prefers AMBIGUOUS to a confident wrong answer. `missing_settlement`
-goes from 47 EXCEPTION / 13 HUMAN_REVIEW in V1 to 21 / 39 in V2, which
-accounts for nearly the entire drop.
+V1, V2 and V3 were measured on different records, so those numbers are
+not directly comparable. `compare_engines.py --generations` removes the
+confound by checking each pinned commit into a worktree and scoring all
+three on the **same** V3 dataset:
 
-One thing did improve where V1 was weakest: `semantic_true_match` went
-from 0 correct (7 wrongly flagged EXCEPTION) to 1 correct with the rest
-in HUMAN_REVIEW. Wrong answers became deferred answers.
+| Metric | V1 engine | V2 engine | current |
+|---|---:|---:|---:|
+| Reconciliation accuracy | 98.9% | 96.7% | **100.0%** |
+| Exception recall | 98.2% | 80.1% | **100.0%** |
+| False auto-reconciliation rate | 0.0% | 0.0% | 0.0% |
+| Routed to human review | 2.4% | 5.3% | 2.0% |
 
-Because V1 and V2 are different records, `compare_engines.py` re-runs
-both engines over *identical* V2 data on the deterministic backend. It
-shows the same direction — accuracy −3.0, exception recall −18.3, safety
-unchanged — so this is a property of the code change, not of the dataset.
+The V2 regression is fully recovered and V1 is beaten on every metric.
+This is the stronger claim, because it isolates the code.
 
-The fix is visible: don't spend an escalation when an exact amount is the
-only corroboration. It has deliberately not been made, because it was
-suggested by a held-out result. See
-[docs/ENGINEERING_FAILURES_AND_FIXES.md](docs/ENGINEERING_FAILURES_AND_FIXES.md) §15.
+### What broke and what fixed it
+
+V2's regression was not conservatism, it was a category error: an exact
+amount collision was being treated as evidence of identity. In a
+population of thousands, two unrelated payments sharing an amount is
+ordinary, so a genuinely missing settlement surfaced a coincidence,
+escalated it, and landed in review instead of being reported missing.
+
+Retrieval and admissibility are now separate questions, and the
+discriminator is negative evidence — when both sides name a transaction
+and name different ones, that is a statement that they differ. Measured
+on 312 development scenarios built for this failure class:
+
+| | before | after |
+|---|---:|---:|
+| Overall | 85.3% | 100% |
+| `absent` (no counterpart exists) | 62% | 100% |
+| Wrong-record selections | 24 | 0 |
+| Model calls per 1,000 | 417 | 0 |
+
+Full account in [docs/ENGINEERING_FAILURES_AND_FIXES.md](docs/ENGINEERING_FAILURES_AND_FIXES.md).
 
 ## What's real and what's generated
 
@@ -213,15 +232,15 @@ measures exactly what it costs you.
 
 ```bash
 cd backend
-python -m pytest tests/ -q                                   # 86 tests
-python verify_evaluation_v1.py --rerun                       # V1 still reproduces
+python -m pytest tests/ -q                                   # 128 tests
+python verify_evaluation_v1.py --rerun                       # V1, V2, V3 all reproduce
 python evaluate.py --dataset holdout                         # held-out evaluation
 python benchmark_matching.py                                 # tier ablation
 python stress_test.py --sizes 1000 5000 10000 50000          # throughput, not accuracy
 
 cd ../frontend
 npm run build
-node e2e/verify-ui.mjs                                       # 22 browser checks
+node e2e/verify-ui.mjs                                       # 44 browser + a11y checks
 ```
 
 The browser check drives a real Chromium against the running stack. It
@@ -292,7 +311,7 @@ backend/
   benchmark_matching.py     tier ablation
   stress_test.py            throughput evaluation
   verify_evaluation_v1.py   V1 integrity + re-run at pinned commit
-  tests/                    86 tests
+  tests/                    128 tests
 frontend/
   src/components/           console, record inspector, audit trail
   e2e/verify-ui.mjs         real-browser verification
