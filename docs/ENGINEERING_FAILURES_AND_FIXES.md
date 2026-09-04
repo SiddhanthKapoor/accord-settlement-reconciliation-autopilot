@@ -388,6 +388,58 @@ verified by the browser run and by curl against a live server.
 
 ---
 
+## 15. The hardened engine is more dependent on the semantic backend, and that costs recall when the backend is weak
+
+**What it is.** Not a bug, but a real and initially unwelcome result,
+found by running both engines over the same dataset with
+`compare_engines.py`. Old commit and current working tree, identical V2
+records, deterministic heuristic backend on both sides:
+
+| | old | new | change |
+|---|---:|---:|---:|
+| Reconciliation accuracy | 99.1% | 96.1% | **−3.0%** |
+| Exception precision | 97.6% | 100.0% | +2.4% |
+| Exception recall | 97.6% | 79.3% | **−18.3%** |
+| False auto-reconciliation rate | 0.0% | 0.0% | 0.0% |
+| False exception rate | 0.5% | 0.0% | −0.5% |
+| Routed to human review | 2.5% | 5.9% | +3.4% |
+
+**Why.** Two changes push more records into the semantic tier. The
+exact-amount index surfaces a candidate for records that previously found
+none, and `deterministic_min_text_similarity` refuses to resolve
+identifier-plus-amount agreement that the wording does not corroborate.
+Both are deliberate. The consequence is that a genuinely missing
+settlement whose amount coincidentally matches an unrelated record in the
+pool now gets escalated rather than dismissed — and with a backend that
+cannot make that judgement, it lands in HUMAN_REVIEW instead of
+EXCEPTION. `missing_settlement` moves from 58 EXCEPTION to 34, and the
+decoy and true-match categories shift from EXCEPTION to HUMAN_REVIEW.
+
+**How to read it.** Safety is unchanged: false auto-reconciliation stays
+at 0.0% and exception precision actually improves to 100% — the new
+engine never wrongly flags an exception. What it loses is decisiveness.
+It converts confident-but-sometimes-wrong EXCEPTIONs into "ask a human",
+which is more manual work and a worse accuracy score.
+
+The architecture now assumes a semantic backend capable of the judgement
+it defers. The ablation supports that assumption — Gemini scores 100%
+correct rejection on exactly these cases while the heuristic scores 40% —
+but the dependency is real and is the honest cost of the redesign. A
+deployment without a model key should expect this profile, which is why
+`enable_semantic_matching` exists as an explicit switch rather than a
+silent fallback.
+
+**Deliberately not fixed.** The obvious tightening — do not spend an
+escalation on a candidate whose *only* corroboration is an exact amount —
+would likely recover most of that recall. It has not been made, because
+this comparison was measured on the V2 dataset, and changing the
+implementation in response to a held-out result is precisely the thing
+the evaluation protocol forbids. It is recorded here as the first change
+to make in the next cycle, to be developed on dev data and measured on a
+V3 set.
+
+---
+
 ## Open, not fixed
 
 **One settlement can still be claimed by several merchant records.**

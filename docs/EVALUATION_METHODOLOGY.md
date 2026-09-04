@@ -178,6 +178,41 @@ measure of the semantic layer.
 The V2 holdout was not inspected before the run, and no engine, policy,
 or dataset code changed after it.
 
+### Same data, different code
+
+Comparing V1's published numbers against V2's is weaker than it looks:
+they were measured on different records. `compare_engines.py` removes
+that confound by checking the pre-hardening commit out into a throwaway
+worktree, handing it the *V2* dataset, and scoring both engines on
+identical input with the deterministic backend on both sides.
+
+```bash
+python compare_engines.py --dataset-dir data/datasets_v2
+```
+
+This is the strongest available statement about what the code change did,
+and it is not a flattering one — see
+`ENGINEERING_FAILURES_AND_FIXES.md` §15.
+
+### What "run once" actually meant here
+
+The V2 holdout was measured three times, and the distinction that matters
+is *what the results were allowed to influence*:
+
+1. old engine, heuristic backend (`compare_engines.py`)
+2. new engine, heuristic backend (`compare_engines.py`)
+3. new engine, Gemini backend — the headline V2 result
+
+All three are measurements of already-fixed code. None of them fed back
+into the implementation. That is the actual rule; "run the evaluation
+exactly once" is a proxy for it, and the proxy is worth stating precisely
+rather than pretending a single invocation happened.
+
+The clearest test of whether the rule held: §15 identifies a specific
+change that would likely recover most of the lost exception recall, and
+it has deliberately not been made, because it was suggested by a held-out
+result.
+
 ---
 
 ## Metric definitions
