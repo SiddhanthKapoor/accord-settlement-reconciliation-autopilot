@@ -2,14 +2,14 @@
 """
 Integrity and reproducibility check for the frozen Evaluation V1.
 
-    python verify_evaluation_v1.py            # checksum + metric integrity (fast)
-    python verify_evaluation_v1.py --rerun    # also re-run V1 at its pinned commit
+    python verify_evaluation_v1.py                 # V1 integrity (fast)
+    python verify_evaluation_v1.py --rerun         # also re-run at the pinned commit
+    python verify_evaluation_v1.py v2 v3 --rerun   # any frozen evaluation
 
-V1 is the first held-out evaluation of this system. It is frozen: the
-dataset bytes, the reports, and the commit that produced them are all
-pinned in evaluations/v1/FROZEN.json. Nothing in later development is
-allowed to change those numbers retroactively, so this script exists to
-prove they haven't been.
+Each held-out evaluation is frozen: the dataset bytes, the reports, and
+the commit that produced them are pinned in evaluations/<id>/FROZEN.json.
+Nothing in later development is allowed to change those numbers
+retroactively, so this script exists to prove they haven't been.
 
 --rerun checks out the pinned commit into a throwaway git worktree,
 feeds it the frozen dataset, and re-runs the evaluation with the
@@ -31,7 +31,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-V1_DIR = Path(__file__).resolve().parent / "evaluations" / "v1"
+EVALUATIONS_DIR = Path(__file__).resolve().parent / "evaluations"
 
 # Metrics compared on a --rerun. Latency and throughput are wall-clock
 # measurements of the machine, not properties of the evaluation, so they
@@ -55,7 +55,7 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def check_integrity(frozen: dict) -> list[str]:
+def check_integrity(frozen: dict, V1_DIR: Path) -> list[str]:
     failures = []
 
     for name, expected in frozen["checksums_sha256"].items():
@@ -70,12 +70,16 @@ def check_integrity(frozen: dict) -> list[str]:
     # The headline metrics recorded in FROZEN.json must still agree with
     # the reports they were copied from -- catches a report being edited
     # without the summary being updated, or vice versa.
-    for backend, report_name in (("gemini", "report_gemini.json"), ("heuristic", "report_heuristic.json")):
-        report_path = V1_DIR / report_name
+    # V1 recorded headline metrics per backend; V2 and V3 record one flat
+    # set. Both shapes are checked against the report they came from.
+    headline = frozen["headline_metrics"]
+    per_backend = headline if all(isinstance(v, dict) for v in headline.values()) else {"gemini": headline}
+    for backend, metrics in per_backend.items():
+        report_path = V1_DIR / f"report_{backend}.json"
         if not report_path.exists():
             continue
         report = json.loads(report_path.read_text())
-        for metric, frozen_value in frozen["headline_metrics"][backend].items():
+        for metric, frozen_value in metrics.items():
             actual = report["metrics"][metric]
             if actual != frozen_value:
                 failures.append(f"{backend}.{metric}: FROZEN.json says {frozen_value}, report says {actual}")
@@ -83,7 +87,7 @@ def check_integrity(frozen: dict) -> list[str]:
     return failures
 
 
-def rerun_at_pinned_commit(frozen: dict) -> list[str]:
+def rerun_at_pinned_commit(frozen: dict, V1_DIR: Path, evaluation: str) -> list[str]:
     commit = frozen["code_commit"]
     repo_root = Path(__file__).resolve().parent.parent
     workdir = Path(tempfile.mkdtemp(prefix="eval_v1_rerun_"))
@@ -96,7 +100,10 @@ def rerun_at_pinned_commit(frozen: dict) -> list[str]:
         )
 
         # Feed the pinned code the frozen dataset, not a regenerated one.
-        datasets = worktree / "backend" / "data" / "datasets"
+        # V1's engine reads the default dataset directory; later ones
+        # accept --dataset-dir. Both are fed the frozen bytes either way.
+        supports_dir = "--dataset-dir" in (worktree / "backend" / "evaluate.py").read_text()
+        datasets = worktree / "backend" / "data" / ("datasets" if not supports_dir else f"datasets_{evaluation}")
         datasets.mkdir(parents=True, exist_ok=True)
         shutil.copy(V1_DIR / "dataset_manifest.json", datasets / "manifest.json")
         for name in ("holdout", "razorpay_pool"):
@@ -108,15 +115,23 @@ def rerun_at_pinned_commit(frozen: dict) -> list[str]:
             "HOME": __import__("os").environ.get("HOME", ""),
             "GEMINI_API_KEY": "",  # force the deterministic backend
         }
-        proc = subprocess.run(
-            [sys.executable, "evaluate.py", "--dataset", "holdout"],
-            cwd=worktree / "backend", env=env, capture_output=True, text=True,
-        )
+        cmd = [sys.executable, "evaluate.py", "--dataset", "holdout"]
+        if supports_dir:
+            cmd += ["--dataset-dir", str(datasets), "--label", f"{evaluation}_rerun"]
+        proc = subprocess.run(cmd, cwd=worktree / "backend", env=env, capture_output=True, text=True)
         if proc.returncode != 0:
             return [f"re-run failed at commit {commit[:12]}:\n{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}"]
 
-        rerun_report = json.loads((worktree / "backend" / "data" / "eval_reports" / "latest_holdout.json").read_text())
-        frozen_report = json.loads((V1_DIR / "report_heuristic.json").read_text())
+        report_name = f"latest_{evaluation}_rerun.json" if supports_dir else "latest_holdout.json"
+        rerun_report = json.loads((worktree / "backend" / "data" / "eval_reports" / report_name).read_text())
+        # The deterministic report is the reproducible one; a Gemini run
+        # calls a hosted model and is not byte-reproducible across time.
+        baseline = V1_DIR / "report_heuristic.json"
+        if not baseline.exists():
+            baseline = V1_DIR / "report_heuristic_new_engine.json"
+        if not baseline.exists():
+            baseline = V1_DIR / "report_gemini.json"
+        frozen_report = json.loads(baseline.read_text())
 
         failures = []
         if rerun_report["dataset_version"] != frozen_report["dataset_version"]:
@@ -135,33 +150,43 @@ def rerun_at_pinned_commit(frozen: dict) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("evaluations", nargs="*", default=None,
+                        help="which frozen evaluations to verify (default: all of them)")
     parser.add_argument("--rerun", action="store_true",
-                        help="also re-run V1 at its pinned commit and compare metrics exactly")
+                        help="also re-run each at its pinned commit and compare metrics exactly")
     args = parser.parse_args()
 
-    frozen = json.loads((V1_DIR / "FROZEN.json").read_text())
+    wanted = args.evaluations or sorted(
+        p.name for p in EVALUATIONS_DIR.iterdir() if (p / "FROZEN.json").exists()
+    )
 
-    print("Evaluation V1 verification")
-    print(f"  pinned commit   {frozen['code_commit']}")
-    print(f"  dataset version {frozen['dataset']['version']}")
-    print(f"  frozen at       {frozen['frozen_at']}")
+    all_failures: list[str] = []
+    for evaluation in wanted:
+        directory = EVALUATIONS_DIR / evaluation
+        frozen = json.loads((directory / "FROZEN.json").read_text())
 
-    failures = check_integrity(frozen)
-    print(f"\n[{'ok' if not failures else 'FAIL'}] frozen file + metric integrity")
+        print(f"\nEvaluation {evaluation.upper()}")
+        print(f"  pinned commit   {frozen['code_commit']}")
+        print(f"  dataset version {frozen['dataset']['version']}")
+        print(f"  frozen at       {frozen['frozen_at']}")
 
-    if args.rerun:
-        print("\nRe-running V1 at its pinned commit (heuristic backend, frozen dataset)...")
-        rerun_failures = rerun_at_pinned_commit(frozen)
-        print(f"[{'ok' if not rerun_failures else 'FAIL'}] deterministic re-run reproduces the frozen metrics")
-        failures += rerun_failures
+        failures = [f"{evaluation}: {f}" for f in check_integrity(frozen, directory)]
+        print(f"  [{'ok' if not failures else 'FAIL'}] frozen file + metric integrity")
 
-    if failures:
+        if args.rerun:
+            rerun_failures = rerun_at_pinned_commit(frozen, directory, evaluation)
+            print(f"  [{'ok' if not rerun_failures else 'FAIL'}] deterministic re-run reproduces frozen metrics")
+            failures += [f"{evaluation}: {f}" for f in rerun_failures]
+
+        all_failures += failures
+
+    if all_failures:
         print("\nFAILURES:")
-        for f in failures:
+        for f in all_failures:
             print(f"  - {f}")
         return 1
 
-    print("\nV1 is intact.")
+    print(f"\n{len(wanted)} frozen evaluation(s) intact: {', '.join(w.upper() for w in wanted)}.")
     return 0
 
 

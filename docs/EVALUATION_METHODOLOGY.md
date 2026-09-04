@@ -153,6 +153,57 @@ existing because a hackathon expects one. The metric that settles it is
 not accuracy: it is recall **and** correct-rejection together, since a
 component can buy one by destroying the other, and one of them does.
 
+### Results after the admissibility change
+
+| Configuration | Accuracy | Recall | Correct rejection | Wrong match | Calls/1k |
+|---|---:|---:|---:|---:|---:|
+| **A** exact reference only | 60.8% | 21.7% | 100.0% | 0.0% | 0 |
+| **B** + deterministic corroborated | 77.9% | 55.8% | 100.0% | 0.0% | 0 |
+| **C** + heuristic semantic | 84.6% | 89.2% | 80.0% | 0.0% | 267 |
+| **D** + Gemini semantic | *see below* | | | 0.0% | 267 |
+
+Admissibility improved the heuristic configuration substantially — C went
+from 64.6% to 84.6% accuracy and from 40% to 80% correct rejection —
+because coincidences are now rejected before the heuristic can wrongly
+call them the same. Model calls per 1,000 fell from 642 to 267.
+
+### The Gemini configuration could not be measured cleanly
+
+The final D run reported 78.8% accuracy and 57.5% recall, which looks
+like the model underperforming the heuristic. It is not a measurement of
+the model:
+
+```
+Provider failures: 62 of 64 AI-invoked examples (97%)
+p95 latency: 10,010 ms   (exactly the configured semantic timeout)
+```
+
+The API was rate-limiting essentially every call. A timed-out call
+degrades to HUMAN_REVIEW, which scores as a miss, so the run measures
+Google's throttle rather than Gemini's judgement. `benchmark_matching.py`
+now counts provider failures separately and prints them, precisely so a
+degraded run is visibly degraded instead of being read as evidence.
+
+**The last clean Gemini measurement**, taken before quota exhaustion and
+before the admissibility change, was 87.5% accuracy / 75.0% recall /
+100% correct rejection — beating the heuristic's rejection collapse.
+That is the number this project can honestly stand behind for the model,
+and it is a pre-change measurement, stated as such.
+
+### What the failed run did measure: behaviour under provider outage
+
+Unplanned, and more useful than the accuracy figure would have been. With
+97% of model calls failing, the system produced:
+
+- **0.0% wrong matches**
+- **100% correct rejection**
+- recall degraded to 57.5%, roughly the deterministic-only baseline (55.8%)
+
+A near-total outage of the one external dependency cost recall and cost
+nothing in safety. The design intent — that the model can be removed
+without the product becoming unsafe — is measured here rather than
+asserted.
+
 ---
 
 ## Evaluation V2 — run once
