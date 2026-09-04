@@ -190,7 +190,12 @@ export default function Console() {
 
       <AnimatePresence>
         {selectedRecordId && (
-          <RecordDetail key={selectedRecordId} recordId={selectedRecordId} onClose={() => setSelectedRecordId(null)} />
+          <RecordDetail
+            key={selectedRecordId}
+            recordId={selectedRecordId}
+            batchId={batch?.batch_id}
+            onClose={() => setSelectedRecordId(null)}
+          />
         )}
       </AnimatePresence>
     </div>

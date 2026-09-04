@@ -74,9 +74,20 @@ def save_record(
     )
 
 
-def get_record(record_id: str) -> Optional[dict]:
+def get_record(record_id: str, batch_id: Optional[str] = None) -> Optional[dict]:
+    """One record's decision. A record_id can appear in several batches
+    (re-processing the same orders is normal), so `batch_id` selects a
+    specific run; without it the most recent decision wins, which is what
+    a UI opening a record by id means."""
     conn = get_conn()
-    row = conn.execute("SELECT * FROM records WHERE record_id=?", (record_id,)).fetchone()
+    if batch_id:
+        row = conn.execute(
+            "SELECT * FROM records WHERE record_id=? AND batch_id=?", (record_id, batch_id)
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT * FROM records WHERE record_id=? ORDER BY processed_at DESC LIMIT 1", (record_id,)
+        ).fetchone()
     return dict(row) if row else None
 
 

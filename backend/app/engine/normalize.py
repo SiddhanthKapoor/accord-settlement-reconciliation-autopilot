@@ -7,11 +7,19 @@ matching engine (matching.py) decides what to do when it doesn't.
 
 from __future__ import annotations
 
+import math
 import re
+from collections import Counter
 from datetime import datetime
 
 _REF_STRIP = re.compile(r"[^A-Z0-9]")
 _TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
+_DIGIT_RUN = re.compile(r"\d{4,}")
+
+# Digit runs shorter than this are too collision-prone to treat as an
+# identifier core (a 3-digit run collides constantly across a real
+# settlement population).
+MIN_REFERENCE_CORE_DIGITS = 4
 
 
 def normalize_reference(ref: str | None) -> str:
@@ -49,3 +57,64 @@ def amounts_match(a: int, b: int, tolerance_minor: int) -> bool:
 
 def days_between(d1: datetime, d2: datetime) -> int:
     return abs((d2 - d1).days)
+
+
+def reference_cores(*values: str | None) -> set[str]:
+    """Digit runs long enough to plausibly be an identifier, pulled from
+    a reference and/or a description.
+
+    'ORD.200427.CHK' and 'RZP/200427/SETL' share the core '200427'. Real
+    merchants and gateways routinely wrap the same underlying order
+    number in different prefixes and separators, so this is a genuine
+    signal — but only a corroborating one. A shared core is never enough
+    on its own to declare a match here (see matching.py): an invoice
+    counter on one side can legitimately collide with an order number on
+    the other, which is exactly what the benchmark's
+    `reference_core_collision` case is built to punish.
+    """
+    cores: set[str] = set()
+    for value in values:
+        if value:
+            cores.update(_DIGIT_RUN.findall(value))
+    return cores
+
+
+def token_document_frequencies(texts: list[str]) -> Counter:
+    """How many of these texts each token appears in. Used to down-weight
+    boilerplate — see `weighted_jaccard`."""
+    df: Counter = Counter()
+    for text in texts:
+        df.update(token_set(text))
+    return df
+
+
+def inverse_document_frequency(token: str, document_frequency: Counter, total_documents: int) -> float:
+    """Standard smoothed IDF. A token in every record carries ~no weight;
+    a token in one record carries the most."""
+    if total_documents <= 0:
+        return 1.0
+    return math.log((total_documents + 1) / (document_frequency.get(token, 0) + 1)) + 1.0
+
+
+def weighted_jaccard(a: str, b: str, document_frequency: Counter, total_documents: int) -> float:
+    """Jaccard over token sets, weighted by IDF.
+
+    Plain Jaccard treats 'payment', 'order', 'settlement' and 'customer'
+    as being worth exactly as much as the order number and the product
+    name. In a settlement population where nearly every description is
+    built from the same template, that lets shared boilerplate outrank a
+    genuine match — which is precisely the failure this system shipped
+    with (see docs/ENGINEERING_FAILURES_AND_FIXES.md). Weighting by IDF
+    makes the distinctive tokens decide the ranking.
+    """
+    ta, tb = token_set(a), token_set(b)
+    if not ta and not tb:
+        return 1.0
+    union = ta | tb
+    if not union:
+        return 1.0
+    weights = {t: inverse_document_frequency(t, document_frequency, total_documents) for t in union}
+    union_weight = sum(weights.values())
+    if union_weight <= 0:
+        return 0.0
+    return sum(weights[t] for t in (ta & tb)) / union_weight

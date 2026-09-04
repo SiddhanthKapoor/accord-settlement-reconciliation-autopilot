@@ -91,6 +91,29 @@ def get_full_log() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def get_events_since(seq: int, limit: int = 500) -> list[dict]:
+    """Events after `seq`, oldest first.
+
+    The SSE endpoint polls this several times a second. Reading the whole
+    log and filtering in Python (which is what it used to do) costs the
+    entire table on every poll, per connected client — fine at a hundred
+    events, ruinous at fifty thousand. The bound also stops a client that
+    reconnects after a long batch from being handed the entire history in
+    one frame."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM audit_log WHERE seq > ? ORDER BY seq ASC LIMIT ?", (seq, limit)
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def head_seq() -> int:
+    """Sequence number of the newest event, or 0 when the log is empty."""
+    conn = get_conn()
+    row = conn.execute("SELECT COALESCE(MAX(seq), 0) AS head FROM audit_log").fetchone()
+    return int(row["head"])
+
+
 def verify_chain() -> dict:
     """Recomputes the entire hash chain from genesis and confirms every
     stored hash matches what recomputing it from (prev_hash, payload)

@@ -46,6 +46,7 @@ class _Resolution:
     ai_invoked: bool = False
     ai_confidence: float | None = None
     ai_backend: str | None = None
+    ai_calls: int = 0
     short_circuit: ReconciliationOutcome | None = None
     short_circuit_reason: str | None = None
 
@@ -85,7 +86,17 @@ def _resolve_candidate(
             short_circuit_reason="Duplicate reference requires manual disambiguation.",
         )
 
-    # No exact candidates at all — try fuzzy/semantic resolution.
+    # No exact candidates at all.
+    if not policy.enable_fuzzy_matching:
+        return _Resolution(
+            None,
+            [_check("settlement_presence", False, "1 settlement record", "0 settlement records",
+                    "No settlement record shares this reference, and non-exact matching is disabled by policy.")],
+            short_circuit=ReconciliationOutcome.EXCEPTION,
+            short_circuit_reason="No corresponding Razorpay settlement record found for this merchant record.",
+        )
+
+    # Try fuzzy/semantic resolution.
     outcome = matching.resolve_fuzzy_or_semantic(merchant, index, policy, semantic_verifier)
     if outcome.candidate is not None:
         confident_enough = outcome.ai_confidence is None or outcome.ai_confidence >= policy.ai_confidence_threshold
@@ -93,13 +104,14 @@ def _resolve_candidate(
             "reference_match", confident_enough, f">= {policy.ai_confidence_threshold} confidence", str(outcome.ai_confidence or "n/a"),
             outcome.detail, warn=not confident_enough, confidence=outcome.ai_confidence,
         )
-        return _Resolution(outcome.candidate, [check], outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend)
+        return _Resolution(outcome.candidate, [check], outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend,
+                           ai_calls=outcome.ai_calls)
 
     if outcome.method == "semantic" and outcome.verdict == "AMBIGUOUS":
         return _Resolution(
             None,
             [_check("reference_match", False, "SAME", "AMBIGUOUS", outcome.detail, warn=True, confidence=outcome.ai_confidence)],
-            outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend,
+            outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend, ai_calls=outcome.ai_calls,
             short_circuit=ReconciliationOutcome.HUMAN_REVIEW,
             short_circuit_reason="Reference could not be matched deterministically, and the semantic classifier could not confidently rule it in or out.",
         )
@@ -112,7 +124,7 @@ def _resolve_candidate(
         return _Resolution(
             None,
             [_check("reference_match", False, "AI provider available", "provider error", outcome.detail, warn=True)],
-            outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend,
+            outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend, ai_calls=outcome.ai_calls,
             short_circuit=ReconciliationOutcome.HUMAN_REVIEW,
             short_circuit_reason=outcome.detail,
         )
@@ -121,7 +133,7 @@ def _resolve_candidate(
     return _Resolution(
         None,
         [_check("settlement_presence", False, "1 settlement record", "0 settlement records", outcome.detail)],
-        outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend,
+        outcome.ai_invoked, outcome.ai_confidence, outcome.ai_backend, ai_calls=outcome.ai_calls,
         short_circuit=ReconciliationOutcome.EXCEPTION,
         short_circuit_reason="No corresponding Razorpay settlement record found for this merchant record.",
     )
@@ -129,6 +141,18 @@ def _resolve_candidate(
 
 def _run_financial_checks(merchant: MerchantRecord, candidate: RazorpaySettlementRecord, policy: PolicyConfig) -> list[CheckResult]:
     checks = []
+
+    # Amounts are integers in minor units with no currency attached, so
+    # 50000 paise and 50000 cents compare equal. Every other check in
+    # this function would pass on a cross-currency pair. Currency is
+    # therefore checked first and on its own.
+    currency_ok = merchant.currency.upper() == candidate.currency.upper()
+    checks.append(_check(
+        "currency_match", currency_ok, merchant.currency.upper(), candidate.currency.upper(),
+        "Both sides are denominated in the same currency." if currency_ok
+        else f"Merchant recorded {merchant.currency.upper()} but the settlement is in "
+             f"{candidate.currency.upper()}; the amounts are not comparable.",
+    ))
 
     amount_ok = normalize.amounts_match(merchant.amount_minor, candidate.gross_amount_minor, policy.amount_tolerance_minor)
     checks.append(_check(
@@ -186,8 +210,8 @@ def reconcile(
         return ReconciliationResult(
             record_id=record_id, outcome=resolution.short_circuit, reason=resolution.short_circuit_reason or "",
             checks=checks, matched_payment_id=None, candidate_count=len(candidates),
-            ai_invoked=resolution.ai_invoked, ai_confidence=resolution.ai_confidence, ai_backend=resolution.ai_backend,
-            policy_threshold=policy.ai_confidence_threshold, latency_ms=latency_ms,
+            ai_invoked=resolution.ai_invoked, ai_calls=resolution.ai_calls, ai_confidence=resolution.ai_confidence,
+            ai_backend=resolution.ai_backend, policy_threshold=policy.ai_confidence_threshold, latency_ms=latency_ms,
         )
 
     assert resolution.candidate is not None
@@ -210,6 +234,6 @@ def reconcile(
     return ReconciliationResult(
         record_id=record_id, outcome=outcome, reason=reason, checks=checks,
         matched_payment_id=resolution.candidate.payment_id, candidate_count=len(candidates),
-        ai_invoked=resolution.ai_invoked, ai_confidence=resolution.ai_confidence, ai_backend=resolution.ai_backend,
-        policy_threshold=policy.ai_confidence_threshold, latency_ms=latency_ms,
+        ai_invoked=resolution.ai_invoked, ai_calls=resolution.ai_calls, ai_confidence=resolution.ai_confidence,
+        ai_backend=resolution.ai_backend, policy_threshold=policy.ai_confidence_threshold, latency_ms=latency_ms,
     )

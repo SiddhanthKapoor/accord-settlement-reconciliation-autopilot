@@ -9,15 +9,15 @@ function money(minor) {
   return `₹${(minor / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 }
 
-export default function RecordDetail({ recordId, onClose }) {
+export default function RecordDetail({ recordId, batchId, onClose }) {
   const [record, setRecord] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     setRecord(null);
     setError(null);
-    getRecord(recordId).then(setRecord).catch((e) => setError(e.message));
-  }, [recordId]);
+    getRecord(recordId, batchId).then(setRecord).catch((e) => setError(e.message));
+  }, [recordId, batchId]);
 
   const matched = record?.candidates?.find((c) => c.payment_id === record.matched_payment_id);
   const tone = record ? OUTCOME_TONE[record.outcome] || "warn" : "warn";

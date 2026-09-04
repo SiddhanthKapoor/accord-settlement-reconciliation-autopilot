@@ -28,7 +28,11 @@ export const listBatchRecords = (batchId, { outcome, limit = 200, offset = 0 } =
   return req(`${API}/batch/${batchId}/records?${params}`);
 };
 
-export const getRecord = (recordId) => req(`${API}/records/${recordId}`);
+// batchId matters: the same order can be processed in several batches,
+// and opening a record from a batch listing should show that batch's
+// decision, not whichever ran most recently.
+export const getRecord = (recordId, batchId) =>
+  req(`${API}/records/${recordId}${batchId ? `?batch_id=${encodeURIComponent(batchId)}` : ""}`);
 
 export const getLatestEvaluation = (dataset = "holdout") => req(`${API}/evaluation/latest?dataset=${dataset}`);
 

@@ -45,8 +45,15 @@ CREATE TABLE IF NOT EXISTS batches (
     status TEXT NOT NULL DEFAULT 'RUNNING'
 );
 
+-- A record_id identifies a merchant order, not a decision about one. The
+-- same order is deliberately re-run across batches (re-processing after
+-- a policy change is a normal operation), so the primary key is the
+-- (batch, record) pair. It used to be record_id alone, with INSERT OR
+-- REPLACE, which meant a second run over the same dataset silently moved
+-- rows out of the first batch: that batch still reported its original
+-- processed_records but could no longer list them.
 CREATE TABLE IF NOT EXISTS records (
-    record_id TEXT PRIMARY KEY,
+    record_id TEXT NOT NULL,
     batch_id TEXT NOT NULL REFERENCES batches(batch_id),
     seq_in_batch INTEGER NOT NULL,
     merchant_json TEXT NOT NULL,
@@ -63,10 +70,12 @@ CREATE TABLE IF NOT EXISTS records (
     ai_backend TEXT,
     policy_threshold REAL NOT NULL,
     latency_ms REAL NOT NULL,
-    processed_at TEXT NOT NULL
+    processed_at TEXT NOT NULL,
+    PRIMARY KEY (batch_id, record_id)
 );
 CREATE INDEX IF NOT EXISTS idx_records_batch ON records(batch_id);
 CREATE INDEX IF NOT EXISTS idx_records_outcome ON records(batch_id, outcome);
+CREATE INDEX IF NOT EXISTS idx_records_record ON records(record_id, processed_at);
 
 CREATE TABLE IF NOT EXISTS audit_log (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +95,29 @@ CREATE INDEX IF NOT EXISTS idx_audit_txn ON audit_log(transaction_id);
 
 def init_db() -> None:
     conn = get_conn()
+    _migrate_records_primary_key(conn)
     conn.executescript(SCHEMA)
+
+
+def _migrate_records_primary_key(conn: sqlite3.Connection) -> None:
+    """Rebuild `records` if it still carries the old record_id-only key.
+
+    CREATE TABLE IF NOT EXISTS will not alter an existing table, so a
+    database created before the composite key would keep the bug
+    silently. The table holds derived decisions that are reproduced by
+    re-running a batch, so rebuilding it is safe; it is still announced
+    rather than done quietly.
+    """
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'records'"
+    ).fetchone()
+    if row is None:
+        return
+    if "PRIMARY KEY (batch_id, record_id)" in (row["sql"] or ""):
+        return
+    print("[db] rebuilding `records` for the composite (batch_id, record_id) key; "
+          "previously processed batches must be re-run to repopulate it.")
+    conn.executescript("DROP TABLE IF EXISTS records;")
 
 
 def reset_db() -> None:

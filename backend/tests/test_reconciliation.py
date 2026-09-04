@@ -24,7 +24,7 @@ from app.domain.models import (
 )
 from app.engine import matching
 from app.engine.policy import reconcile
-from app.engine.semantic import MatchCandidateText, SemanticVerdictResult
+from app.engine.semantic import CandidateComparison, SemanticVerdictResult
 
 NOW = datetime(2026, 3, 1, tzinfo=timezone.utc)
 POLICY = PolicyConfig()
@@ -40,13 +40,13 @@ class StubVerifier:
         self.backend = backend
         self.calls = 0
 
-    def compare(self, merchant: MatchCandidateText, candidate: MatchCandidateText) -> SemanticVerdictResult:
+    def compare(self, comparison: CandidateComparison) -> SemanticVerdictResult:
         self.calls += 1
         return SemanticVerdictResult(verdict=self.verdict, confidence=self.confidence, rationale="stub", backend=self.backend)
 
 
 class RaisingVerifier:
-    def compare(self, merchant, candidate):
+    def compare(self, comparison):
         raise RuntimeError("simulated provider outage")
 
 
@@ -254,7 +254,7 @@ def test_timeout_handling_bounds_a_hanging_provider(monkeypatch):
     monkeypatch.setattr(matching, "SEMANTIC_CALL_TIMEOUT_SECONDS", 0.5)
 
     class SlowHangingVerifier:
-        def compare(self, merchant, candidate):
+        def compare(self, comparison):
             time.sleep(3)
             return SemanticVerdictResult(verdict="SAME", confidence=0.99, rationale="too slow to matter", backend="slow-stub")
 
@@ -275,13 +275,15 @@ def test_invalid_status_literal_rejected():
         merchant(status="not_a_real_status")
 
 
-def test_negative_amount_still_processes_without_crashing():
-    """Domain models don't forbid a negative amount outright (a real feed
-    could contain one, e.g. a data entry error) — the engine must not
-    crash on it; it should fail deterministic checks instead."""
-    m = merchant(amount_minor=-100)
-    result = _reconcile(m, [razorpay()])
-    assert result.outcome == ReconciliationOutcome.EXCEPTION
+def test_negative_amount_is_rejected_before_it_reaches_the_engine():
+    """A negative order amount is corrupt input, not a reconcilable
+    business condition. It used to be accepted and scored, where it
+    inverted the amount-agreement signal (the relative-difference term
+    goes negative, pushing the component above 1.0). Rejecting it at the
+    model boundary is what stops that; loaders skip and report such rows
+    rather than aborting a whole batch."""
+    with pytest.raises(ValidationError):
+        merchant(amount_minor=-100)
 
 
 def test_missing_reference_and_no_description_overlap_is_exception():

@@ -51,11 +51,16 @@ class MerchantRecord(BaseModel):
         "Razorpay actually stored — that mismatch is exactly what this system "
         "exists to resolve.",
     )
-    amount_minor: int = Field(..., description="Order amount the merchant expects to receive credit for, in paise.")
+    amount_minor: int = Field(
+        ..., ge=0,
+        description="Order amount the merchant expects to receive credit for, in paise. Non-negative: a "
+        "negative order amount is malformed input, and is rejected at the boundary rather than flowing "
+        "into the scorer, where it would silently invert the amount-agreement signal.",
+    )
     currency: str = "INR"
     order_date: datetime
     status: Literal["captured", "refunded", "partially_refunded"]
-    refund_amount_minor: int = Field(default=0, description="Merchant's own record of any refund issued.")
+    refund_amount_minor: int = Field(default=0, ge=0, description="Merchant's own record of any refund issued.")
     description: str = Field(default="", description="Free-text order description, e.g. 'Order #58291 - Premium Plan'.")
 
 
@@ -69,11 +74,11 @@ class RazorpaySettlementRecord(BaseModel):
     payment_id: str
     order_reference: str = Field(description="Razorpay's own record of the merchant reference for this payment.")
     settlement_id: str
-    gross_amount_minor: int
-    fee_minor: int
-    tax_minor: int
+    gross_amount_minor: int = Field(ge=0)
+    fee_minor: int = Field(ge=0)
+    tax_minor: int = Field(ge=0)
     net_amount_minor: int
-    refund_amount_minor: int = 0
+    refund_amount_minor: int = Field(default=0, ge=0)
     order_date: datetime = Field(description="When the payment was captured.")
     settlement_date: datetime = Field(description="When funds actually settled — can lag order_date by days.")
     currency: str = "INR"
@@ -127,6 +132,7 @@ class ReconciliationResult(BaseModel):
     matched_payment_id: Optional[str] = None
     candidate_count: int
     ai_invoked: bool = False
+    ai_calls: int = Field(default=0, description="Model calls actually spent on this record — the unit real API cost is billed in.")
     ai_confidence: Optional[float] = None
     ai_backend: Optional[str] = None
     policy_threshold: float
@@ -151,6 +157,53 @@ class PolicyConfig(BaseModel):
     fuzzy_reference_jaccard_strong: float = Field(default=0.6, description="Token-overlap threshold above which a fuzzy reference match is resolved deterministically, without calling the model.")
     fuzzy_reference_jaccard_floor: float = Field(default=0.2, description="Below this, there's not even enough textual overlap to justify escalating to the model — treated as no candidate.")
     candidate_search_window_days: int = Field(default=21, description="How far from the merchant's order_date to look for a fuzzy/semantic candidate — bounds the search, mirrors how a real system would window-scan rather than full-scan.")
+
+    max_window_scan_candidates: int = Field(
+        default=400,
+        description="Upper bound on how many date-window candidates are scored when neither the amount index "
+        "nor the reference-core index produced anything. Keeps a batch close to linear in record count instead "
+        "of records x settlement population; see matching.ReferenceIndex.nearby_by_date.",
+    )
+    candidate_shortlist_size: int = Field(
+        default=5,
+        description="How many ranked candidates are kept for consideration. Bounds both the deterministic "
+        "margin check and the maximum semantic escalation.",
+    )
+    deterministic_match_score: float = Field(
+        default=0.70,
+        description="Composite evidence score at or above which a candidate can be matched without a model "
+        "call — but only when at least two independent signals corroborate (see matching.CandidateSignals). "
+        "Kept below the 0.75 ceiling that a candidate with no shared reference core can reach, so an exact "
+        "amount on the same day with strongly corroborating wording still resolves without a model call.",
+    )
+    deterministic_min_text_similarity: float = Field(
+        default=0.25,
+        description="Descriptions must corroborate the subject this much before a match is resolved without "
+        "a model call. Identifier and amount agreement alone is not proof: an invoice counter on one side "
+        "can collide with an order number on the other, at the same amount, days apart. When the wording "
+        "does not back up the identifiers, that is ambiguity and it escalates.",
+    )
+    deterministic_match_margin: float = Field(
+        default=0.10,
+        description="How far the best candidate must lead the runner-up to be resolved deterministically. "
+        "A near-tie is genuine ambiguity and belongs to the semantic verifier or a human, not to whichever "
+        "record happened to sort first.",
+    )
+    max_semantic_calls_per_record: int = Field(
+        default=3,
+        description="Hard ceiling on model calls for a single record, so an unresolvable record cannot fan "
+        "out into unbounded API cost or latency.",
+    )
+    enable_fuzzy_matching: bool = Field(
+        default=True,
+        description="Ablation/production switch: when off, only exact normalized-reference matching is used.",
+    )
+    enable_semantic_matching: bool = Field(
+        default=True,
+        description="Ablation/production switch: when off, no model is ever called and unresolved ambiguity "
+        "falls through to the deterministic outcome. A merchant that wants a strictly deterministic pipeline "
+        "sets this and loses recall, not safety.",
+    )
 
     model_config = {"frozen": True}
 

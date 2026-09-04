@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.domain.models import GroundTruth, MerchantRecord, PolicyConfig, ReconciliationOutcome, ReconciliationRecord, RazorpaySettlementRecord
 from app.engine.batch import process_batch
@@ -36,17 +36,33 @@ def _load_pool() -> list[RazorpaySettlementRecord]:
     return _pool_cache
 
 
-def _load_split(name: str, limit: int | None = None) -> list[ReconciliationRecord]:
-    records = []
+def _load_split(name: str, limit: int | None = None) -> tuple[list[ReconciliationRecord], list[str]]:
+    """Load a split, returning the valid records and any rows that were
+    rejected.
+
+    A malformed row is skipped and reported rather than allowed to abort
+    the whole batch: one bad line in a merchant export should not stop
+    the other several thousand from being reconciled, and it must not be
+    silently dropped either.
+    """
+    records: list[ReconciliationRecord] = []
+    rejected: list[str] = []
     with (DATA_DIR / f"{name}.jsonl").open() as f:
-        for line in f:
-            row = json.loads(line)
-            merchant = MerchantRecord.model_validate(row["merchant"])
-            gt = GroundTruth(case=row["ground_truth_case"], expected_outcome=ReconciliationOutcome(row["ground_truth_outcome"]))
-            records.append(ReconciliationRecord(record_id=row["record_id"], merchant=merchant, ground_truth=gt))
-            if limit and len(records) >= limit:
+        for line_number, line in enumerate(f, start=1):
+            # `is not None`, not truthiness: limit=0 means an empty batch,
+            # and treating it as "no limit" silently ran the entire
+            # dataset instead of nothing.
+            if limit is not None and len(records) >= limit:
                 break
-    return records
+            try:
+                row = json.loads(line)
+                merchant = MerchantRecord.model_validate(row["merchant"])
+                gt = GroundTruth(case=row["ground_truth_case"],
+                                 expected_outcome=ReconciliationOutcome(row["ground_truth_outcome"]))
+                records.append(ReconciliationRecord(record_id=row["record_id"], merchant=merchant, ground_truth=gt))
+            except Exception as exc:  # noqa: BLE001 — any malformed row degrades the same way
+                rejected.append(f"line {line_number}: {type(exc).__name__}: {exc}")
+    return records, rejected
 
 
 @router.get("/health")
@@ -60,7 +76,7 @@ def health():
 
 class RunBatchRequest(BaseModel):
     dataset: str = "holdout"  # "holdout" | "dev"
-    limit: int | None = 500
+    limit: int | None = Field(default=500, ge=0, description="Records to process; 0 means none, omit for all.")
 
 
 @router.post("/batch/run")
@@ -68,7 +84,7 @@ def run_batch(body: RunBatchRequest):
     if body.dataset not in ("holdout", "dev"):
         raise HTTPException(400, "dataset must be 'holdout' or 'dev'")
 
-    records = _load_split(body.dataset, limit=body.limit)
+    records, rejected = _load_split(body.dataset, limit=body.limit)
     pool = _load_pool()
     batch_id = f"batch_{uuid.uuid4().hex[:10]}"
     label = f"{body.dataset} batch ({len(records)} records)"
@@ -76,7 +92,8 @@ def run_batch(body: RunBatchRequest):
     store.create_batch(batch_id, label, body.dataset, len(records))
     audit.append_event(
         transaction_id=batch_id, event_type="BATCH_STARTED", prior_state=None, new_state="RUNNING",
-        payload={"batch_id": batch_id, "dataset": body.dataset, "total": len(records)},
+        payload={"batch_id": batch_id, "dataset": body.dataset, "total": len(records),
+                 "rejected_rows": len(rejected)},
     )
 
     def _run():
@@ -105,7 +122,8 @@ def run_batch(body: RunBatchRequest):
         )
 
     threading.Thread(target=_run, daemon=True).start()
-    return {"batch_id": batch_id, "total_records": len(records), "label": label}
+    return {"batch_id": batch_id, "total_records": len(records), "label": label,
+            "rejected_rows": rejected}
 
 
 @router.get("/batch/latest")
@@ -132,8 +150,8 @@ def list_batch_records(batch_id: str, outcome: str | None = None, limit: int = 2
 
 
 @router.get("/records/{record_id}")
-def get_record(record_id: str):
-    record = store.get_record(record_id)
+def get_record(record_id: str, batch_id: str | None = None):
+    record = store.get_record(record_id, batch_id)
     if not record:
         raise HTTPException(404, "record not found")
     record["merchant"] = json.loads(record.pop("merchant_json"))
@@ -167,23 +185,69 @@ def verify_audit_chain():
     return audit.verify_chain()
 
 
+def resume_point(since: int | None, last_event_id: str | None, head: int) -> int:
+    """Where an SSE client should resume from.
+
+    Precedence: an explicit `?since=` wins, then the `Last-Event-ID`
+    header a browser resends automatically after a dropped connection,
+    then the current head. Falling back to the head rather than zero is
+    deliberate — a client attaching mid-batch wants what happens next,
+    not a replay of the entire ledger.
+
+    Pulled out of the endpoint so it can be tested without opening a
+    stream that never ends.
+    """
+    if since is not None:
+        return max(since, 0)
+    if last_event_id and last_event_id.strip().isdigit():
+        return int(last_event_id.strip())
+    return head
+
+
 @router.get("/audit/stream")
-async def stream_audit(request: Request):
+async def stream_audit(request: Request, since: int | None = None):
+    """Server-sent stream of audit events.
+
+    Resumption is explicit: every frame carries its sequence number as
+    the SSE event id, and a reconnecting client resumes from either the
+    standard `Last-Event-ID` header (which browsers send automatically)
+    or an explicit `?since=`. Without one, the stream starts at the
+    current head rather than replaying the whole ledger — a client
+    attaching mid-batch wants what happens next, and replaying fifty
+    thousand historical events to every new tab is how a demo falls over
+    in front of an audience.
+    """
+    last_seq = resume_point(since, request.headers.get("last-event-id"), audit.head_seq())
+
     async def event_gen():
-        last_seq = 0
+        nonlocal last_seq
+        idle_polls = 0
         while True:
             if await request.is_disconnected():
                 break
-            rows = audit.get_full_log()
-            new_rows = [r for r in rows if r["seq"] > last_seq]
-            for row in new_rows:
+            rows = audit.get_events_since(last_seq)
+            for row in rows:
                 last_seq = row["seq"]
                 event = dict(row)
                 event["payload"] = json.loads(event.pop("payload_json"))
-                yield f"data: {json.dumps(event, default=str)}\n\n"
+                yield f"id: {last_seq}\ndata: {json.dumps(event, default=str)}\n\n"
+            if rows:
+                idle_polls = 0
+            else:
+                idle_polls += 1
+                # A comment frame every ~15s keeps proxies and load
+                # balancers from culling an idle connection, and lets the
+                # client notice a dead link instead of waiting forever.
+                if idle_polls >= 150:
+                    idle_polls = 0
+                    yield ": keepalive\n\n"
             await asyncio.sleep(0.1)
 
-    return StreamingResponse(event_gen(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -59,3 +59,24 @@ def process_batch(
         if on_record:
             on_record(i, total, record, result)
     return results
+
+
+def detect_duplicate_claims(results: list[ReconciliationResult]) -> dict[str, list[str]]:
+    """Settlement records claimed by more than one merchant record.
+
+    Every decision in a batch is made for one merchant record in
+    isolation, which is correct per record and blind across them: two
+    different orders can each match the same payment, and each looks
+    perfectly reconciled on its own. That is double-counted revenue, and
+    it is invisible to any per-record check — it only exists at the batch
+    level, so it is detected here rather than pretended away.
+
+    Returns {payment_id: [record_id, ...]} for every settlement claimed
+    more than once. An empty dict means the batch's matching is
+    one-to-one.
+    """
+    claims: dict[str, list[str]] = {}
+    for result in results:
+        if result.matched_payment_id:
+            claims.setdefault(result.matched_payment_id, []).append(result.record_id)
+    return {payment_id: ids for payment_id, ids in claims.items() if len(ids) > 1}

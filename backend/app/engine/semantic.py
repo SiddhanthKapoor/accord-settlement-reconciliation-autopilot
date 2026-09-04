@@ -41,10 +41,33 @@ Verdict = Literal["SAME", "DIFFERENT", "AMBIGUOUS"]
 
 
 @dataclass
-class MatchCandidateText:
+class RecordSide:
+    reference: str
     description: str
     amount_minor: int
     date: datetime
+
+
+@dataclass
+class CandidateComparison:
+    """Everything the model is given, and nothing else.
+
+    Deliberately includes the deterministic signals the engine already
+    computed. Recomputing "do these amounts agree" inside a language
+    model would be both wasteful and less reliable than the exact integer
+    comparison that produced `amount_exact_match` — so the model is told
+    the answer and asked to spend its judgment on the part that actually
+    needs interpretation: whether two pieces of free text and two
+    differently-formatted references denote the same payment.
+    """
+
+    merchant: RecordSide
+    candidate: RecordSide
+    amount_exact_match: bool
+    amount_delta_minor: int
+    days_apart: int
+    shared_reference_core: bool
+    text_similarity: float
 
 
 @dataclass
@@ -56,20 +79,34 @@ class SemanticVerdictResult:
 
 
 class SemanticVerifier(Protocol):
-    def compare(self, merchant: MatchCandidateText, candidate: MatchCandidateText) -> SemanticVerdictResult: ...
+    def compare(self, comparison: CandidateComparison) -> SemanticVerdictResult: ...
 
 
-_PROMPT_PREAMBLE = """You are a narrow reconciliation-matching classifier used inside a \
-finance-operations system. You are given two structured transaction descriptions — MERCHANT \
-(the merchant's own order record) and CANDIDATE (a Razorpay settlement record whose reference \
-did not exactly match, but was found nearby in time with some textual overlap) — plus each \
-side's amount and date.
+_PROMPT_PREAMBLE = """You are a narrow reconciliation-matching classifier inside a finance \
+operations system. Deterministic matching has already narrowed the field; you are being asked \
+about one merchant order record and one Razorpay settlement record that it could not settle \
+on its own.
 
-Decide only one thing: do these two records plausibly describe the SAME underlying payment, \
-are they clearly DIFFERENT payments, or is it genuinely AMBIGUOUS even for a careful human \
-reviewer? A materially different amount or date is strong evidence of DIFFERENT even if the \
-text is similar. Do not guess wildly — prefer AMBIGUOUS over a confident wrong answer.
-Keep the reason to one short sentence.
+You are given both sides (reference, description, amount in paise, date) and the deterministic \
+signals already computed for the pair. Trust those signals — they are exact comparisons, not \
+estimates. Do not re-derive them.
+
+Decide one thing only: do these two records describe the SAME underlying payment, are they \
+clearly DIFFERENT payments, or is it genuinely AMBIGUOUS for a careful human reviewer?
+
+How to weigh the evidence:
+- Descriptions routinely differ in wording for the same payment: abbreviations, aliases, a \
+trading name instead of a legal entity, reordered words, gateway routing noise, or an \
+initialised customer name. Different wording is NOT evidence of a different payment.
+- An exact amount match plus close dates is strong corroboration of SAME.
+- A shared reference core is corroboration, but identifiers scoped differently on each side \
+(an invoice counter versus an order number) can collide. Weigh it with the rest.
+- Genuinely different payments are the ones where the underlying subject differs: a different \
+customer, a different product or service, or a different order in a sequence — especially when \
+amounts and dates are close enough that only the subject distinguishes them.
+- Prefer AMBIGUOUS over a confident wrong answer in either direction.
+
+Set confidence to your actual certainty in the verdict. Keep the reason to one short sentence.
 """
 
 
@@ -97,13 +134,30 @@ class GeminiSemanticVerifier:
         self._client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
         self._model = model or os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
-    def compare(self, merchant: MatchCandidateText, candidate: MatchCandidateText) -> SemanticVerdictResult:
+    def compare(self, comparison: CandidateComparison) -> SemanticVerdictResult:
         from google.genai import errors as genai_errors
         from google.genai import types
 
         payload = {
-            "merchant": {"description": merchant.description, "amount_minor": merchant.amount_minor, "date": merchant.date.isoformat()},
-            "candidate": {"description": candidate.description, "amount_minor": candidate.amount_minor, "date": candidate.date.isoformat()},
+            "merchant": {
+                "reference": comparison.merchant.reference,
+                "description": comparison.merchant.description,
+                "amount_minor": comparison.merchant.amount_minor,
+                "date": comparison.merchant.date.isoformat(),
+            },
+            "candidate": {
+                "reference": comparison.candidate.reference,
+                "description": comparison.candidate.description,
+                "amount_minor": comparison.candidate.amount_minor,
+                "date": comparison.candidate.date.isoformat(),
+            },
+            "deterministic_signals": {
+                "amount_exact_match": comparison.amount_exact_match,
+                "amount_delta_minor": comparison.amount_delta_minor,
+                "days_apart": comparison.days_apart,
+                "shared_reference_core": comparison.shared_reference_core,
+                "weighted_text_similarity": comparison.text_similarity,
+            },
         }
         contents = f"{_PROMPT_PREAMBLE}\n\nInput:\n{json.dumps(payload)}"
         config = types.GenerateContentConfig(
@@ -134,14 +188,19 @@ class HeuristicSemanticVerifier:
     see policy.py, which treats a heuristic-backend SAME the same way it
     treats a low-confidence AI verdict."""
 
-    def compare(self, merchant: MatchCandidateText, candidate: MatchCandidateText) -> SemanticVerdictResult:
-        text_sim = normalize.jaccard(merchant.description, candidate.description)
-        amount_close = normalize.amounts_match(merchant.amount_minor, candidate.amount_minor, tolerance_minor=max(2, int(merchant.amount_minor * 0.02)))
-        days_apart = abs((candidate.date - merchant.date).days)
+    def compare(self, comparison: CandidateComparison) -> SemanticVerdictResult:
+        text_sim = normalize.jaccard(comparison.merchant.description, comparison.candidate.description)
+        amount_close = comparison.amount_exact_match or abs(comparison.amount_delta_minor) <= max(
+            2, int(comparison.merchant.amount_minor * 0.02)
+        )
+        days_apart = comparison.days_apart
 
         if text_sim >= 0.6 and amount_close and days_apart <= 21:
             verdict: Verdict = "SAME"
             confidence = round(min(0.75, text_sim), 2)  # capped: heuristic is never confident enough alone
+        elif comparison.shared_reference_core and amount_close:
+            verdict = "SAME"
+            confidence = 0.7
         elif text_sim < 0.15 or not amount_close:
             verdict = "DIFFERENT"
             confidence = round(1 - text_sim, 2)
@@ -149,7 +208,10 @@ class HeuristicSemanticVerifier:
             verdict = "AMBIGUOUS"
             confidence = round(text_sim, 2)
 
-        rationale = f"heuristic: text_jaccard={text_sim:.2f}, amount_close={amount_close}, days_apart={days_apart} (no AI provider configured)"
+        rationale = (
+            f"heuristic: text_jaccard={text_sim:.2f}, amount_close={amount_close}, "
+            f"shared_core={comparison.shared_reference_core}, days_apart={days_apart} (no AI provider configured)"
+        )
         return SemanticVerdictResult(verdict=verdict, confidence=confidence, rationale=rationale, backend="heuristic-fallback")
 
 
