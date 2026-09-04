@@ -35,7 +35,8 @@ from app.domain.models import (  # noqa: E402
 from app.engine.batch import process_batch  # noqa: E402
 from app.engine.semantic import get_semantic_verifier  # noqa: E402
 
-DATA_DIR = Path(__file__).parent / "data" / "datasets"
+DEFAULT_DATA_DIR = Path(__file__).parent / "data" / "datasets"
+DATA_DIR = DEFAULT_DATA_DIR
 REPORTS_DIR = Path(__file__).parent / "data" / "eval_reports"
 
 
@@ -126,7 +127,14 @@ def compute_metrics(records: list[ReconciliationRecord], results) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", choices=["holdout", "dev"], default="holdout")
+    parser.add_argument("--dataset-dir", type=Path, default=DEFAULT_DATA_DIR,
+                        help="Directory holding the split to evaluate. Defaults to the working dataset.")
+    parser.add_argument("--label", default=None,
+                        help="Name for the report file, e.g. 'v2'. Defaults to the split name.")
     args = parser.parse_args()
+
+    global DATA_DIR
+    DATA_DIR = args.dataset_dir
 
     manifest = json.loads((DATA_DIR / "manifest.json").read_text())
     pool = load_pool()
@@ -179,7 +187,7 @@ def main() -> int:
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    report_path = REPORTS_DIR / f"latest_{args.dataset}.json"
+    report_path = REPORTS_DIR / f"latest_{args.label or args.dataset}.json"
     report_path.write_text(json.dumps(report, indent=2, default=str))
     print(f"\nFull report written to {report_path}")
     return 0

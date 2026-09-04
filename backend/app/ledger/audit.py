@@ -1,14 +1,15 @@
 """
 Receiver-attested, hash-chained audit log.
 
-Deliberately NOT the headline feature of this project — hash-chained
-tamper-evident logs are an established pattern (Certificate-Transparency
-style Merkle/hash chains, and there's already an IETF draft — "Agent Audit
-Trail" — proposing a standard format for exactly this). It's implemented
-here as plumbing that every other component depends on, following the
-"receiver-attested" principle from the "Notarized Agents" line of work:
-Interlock itself writes and hashes every entry — the agent never gets to
-author or edit its own audit trail.
+Not a novel component — a hash-chained tamper-evident log is an
+established pattern (Certificate-Transparency style hash chains). It is
+plumbing here, and every other component depends on it.
+
+The property that matters for reconciliation: the engine writes and
+hashes every entry itself, at the moment it decides. Nothing downstream
+can author or amend its own audit trail afterwards, so "this record was
+reconciled" and "here is the evidence it was reconciled on" cannot drift
+apart.
 """
 
 from __future__ import annotations

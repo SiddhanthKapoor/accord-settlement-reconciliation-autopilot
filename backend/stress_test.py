@@ -159,11 +159,21 @@ def main() -> int:
               f"{row['pct_human_review']:>15.1%}")
 
     if len(rows) > 1:
-        first, last = rows[0], rows[-1]
-        scale = last["records"] / first["records"]
-        time_scale = last["wall_clock_seconds"] / first["wall_clock_seconds"] if first["wall_clock_seconds"] else 0
-        print(f"\n{scale:.0f}x the records took {time_scale:.1f}x the time "
-              f"({'sub-linear' if time_scale < scale else 'super-linear'} scaling).")
+        print("\nScaling, step by step (a first-to-last ratio would misread this: the smallest batch "
+              "runs before the\nwindow-scan bound binds, so it is unrepresentatively fast per record).")
+        for previous, current in zip(rows, rows[1:]):
+            record_ratio = current["records"] / previous["records"]
+            time_ratio = (current["wall_clock_seconds"] / previous["wall_clock_seconds"]
+                          if previous["wall_clock_seconds"] else 0)
+            verdict = "linear" if time_ratio <= record_ratio * 1.15 else "super-linear"
+            print(f"  {previous['records']:>6,} -> {current['records']:>6,}   "
+                  f"{record_ratio:.0f}x records, {time_ratio:.1f}x time   ({verdict})")
+
+        throughputs = [r["throughput_per_sec"] for r in rows]
+        print(f"\nThroughput across all sizes: {min(throughputs):,.0f}-{max(throughputs):,.0f} records/sec. "
+              "Roughly flat\nthroughput as the population grows is the actual evidence of linear scaling.")
+        print(f"Peak RSS at the largest size: {rows[-1]['peak_rss_mb']:,.0f} MB. The batch holds every record, "
+              "the whole\nsettlement population and every result in memory at once; that is the ceiling to watch.")
 
     if args.json:
         args.json.write_text(json.dumps({

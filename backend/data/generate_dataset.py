@@ -369,7 +369,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=20260903)
     parser.add_argument("--total", type=int, default=5000)
+    parser.add_argument("--out-dir", type=Path, default=OUT_DIR,
+                        help="Where to write the split. A second evaluation set goes in its own "
+                             "directory so it cannot overwrite the one being iterated against.")
     args = parser.parse_args()
+    out_dir = args.out_dir
 
     gen = Generator(args.seed)
     gen.generate(args.total)
@@ -377,10 +381,10 @@ def main() -> None:
     split_rng = random.Random(args.seed + 1)
     dev, holdout = stratified_split(gen.gt_records, DEV_SPLIT, split_rng)
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    write_jsonl(OUT_DIR / "dev.jsonl", dev)
-    write_jsonl(OUT_DIR / "holdout.jsonl", holdout)
-    write_pool(OUT_DIR / "razorpay_pool.jsonl", gen.razorpay_pool)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    write_jsonl(out_dir / "dev.jsonl", dev)
+    write_jsonl(out_dir / "holdout.jsonl", holdout)
+    write_pool(out_dir / "razorpay_pool.jsonl", gen.razorpay_pool)
 
     case_counts: dict[str, int] = {}
     for r in gen.gt_records:
@@ -396,7 +400,7 @@ def main() -> None:
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
     manifest["dataset_version"] = content_hash({k: v for k, v in manifest.items() if k != "generated_at"})
-    (OUT_DIR / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
     print(f"Generated {len(gen.gt_records)} records (dev={len(dev)}, holdout={len(holdout)}), "
           f"razorpay pool={len(gen.razorpay_pool)}")

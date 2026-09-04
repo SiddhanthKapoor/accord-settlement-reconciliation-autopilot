@@ -7,24 +7,28 @@ account. Verified directly, not assumed:
     {'entity': 'collection', 'count': 0, 'items': [], 'has_more': False}
     >>> client.payment.all({'count': 5})
     {'entity': 'collection', 'count': 0, 'items': []}
+    >>> client.order.create({...})        # succeeds
+    {'id': 'order_TXwOqE2JuvpyeF', 'status': 'created', ...}
 
-Razorpay's Settlements API only returns records for payments that were
-actually captured AND have completed a real settlement cycle (T+2/T+3
-business days after capture, via a real bank settlement run). A test-mode
-account with no completed real payment flow — which is what any fresh
-Buildathon account is — has nothing to fetch, by construction, regardless
-of how this client is implemented. This isn't a code limitation; it's a
-data-availability limitation of the sandbox itself.
+The credentials and this client are demonstrably fine: order.create
+writes a real object and order.fetch reads it back. What cannot be
+produced is the settlement side. A settlement exists only after a payment
+is captured through the client-side checkout flow AND a real bank
+settlement cycle runs (T+2/T+3). Neither is reachable from a server-side
+test-mode API call, so no supported sandbox workflow yields
+representative settlement, fee, tax or adjustment records. The full probe
+is in docs/RAZORPAY_INTEGRATION.md.
 
 Because of that, the reconciliation engine, dataset, and evaluation in
 this project run entirely on the synthetic generator
 (backend/data/generate_dataset.py) — clearly labeled as synthetic
-everywhere it's used (see README.md's SYNTHETIC EVALUATION section).
+everywhere it's used (see README.md).
 This module exists so the integration path is real and exercised (see
 the test suite), not merely described, and so a merchant's actual
 Razorpay account — which does have real settlement history — could be
 pointed at this same code with no changes to the reconciliation engine
-itself.
+itself. app/integrations/settlement_source.py holds the boundary that
+keeps synthetic and live data from ever being confused for each other.
 """
 
 from __future__ import annotations
