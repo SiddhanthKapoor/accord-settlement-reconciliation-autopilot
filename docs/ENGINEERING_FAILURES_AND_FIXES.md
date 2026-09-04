@@ -440,22 +440,205 @@ V3 set.
 
 ---
 
+## 16. Amount agreement was treated as evidence of identity
+
+**What failed.** The root cause of the Evaluation V2 regression, and the
+single most consequential defect found in this phase. Candidate retrieval
+and candidate evidence were the same thing: whatever the indexes returned
+became a candidate.
+
+The indexes are tuned for recall — exact amount, shared reference core,
+date window. In a population of a few thousand settlements, two unrelated
+payments sharing an exact amount is ordinary, not remarkable. So a
+genuinely missing settlement would reliably surface a coincidence, the
+pipeline would escalate it to the model, the model would decline to rule
+it out (correctly — it was told to prefer AMBIGUOUS over a confident
+wrong answer), and the record landed in HUMAN_REVIEW instead of being
+reported as the missing settlement it was.
+
+V2 read this as the system becoming conservative. It was not conservatism.
+It was a category error.
+
+**How it was discovered.** Not from V2 — the held-out data that revealed
+the symptom cannot be used to design the fix. 312 development scenarios
+(`data/generate_settlement_scenarios.py`) were built to isolate the
+question: when no correct match exists, can the system tell that apart
+from a coincidence? Baseline on that set:
+
+```
+overall              85.3%
+absent (no counterpart exists)   62%
+wrong-record matches             24
+model calls per 1,000            417
+```
+
+`amount_collision_boilerplate_text` scored **0%**, selecting the wrong
+record every time. Only the confidence gate stopped those becoming false
+reconciliations — the system was one confident model verdict away from
+booking the wrong settlement.
+
+**Root cause.** Measuring the signals directly separated the two
+populations cleanly:
+
+| top-ranked candidate | shared reference core | text similarity |
+|---|---:|---:|
+| genuine counterpart | **100%** | 0.78 |
+| every coincidental one | **0%** | 0.06 – 0.63 |
+
+Text does not separate them — boilerplate reached 0.63 against a genuine
+0.78. Shared identifiers separate them perfectly.
+
+**Fix.** Retrieval and admissibility became separate questions. A
+retrieved record must carry identity evidence to become a candidate at
+all, and the discriminator is *negative* evidence: when both sides carry
+a recognisable identifier and the identifiers disagree, that is a
+statement that the records differ, not a failure to prove they match.
+
+**Result on the development scenarios:**
+
+```
+overall              85.3%  ->  100%
+absent               62%    ->  100%
+wrong-record         24     ->  0
+model calls / 1,000  417    ->  0
+```
+
+The cost dropped to zero because coincidences no longer justify an API
+call.
+
+**A first attempt that was wrong.** The initial rule admitted candidates
+only above 0.50 text similarity. That broke seven AI-path tests, and the
+tests were right: a floor that high starves the semantic tier of exactly
+the ambiguous cases it exists to judge. Lowered to 0.20 — wording is a
+weak separator and was never what should reject coincidences.
+
+**Regression tests.** `test_evidence_and_admissibility.py`, 19 tests,
+including that the amount-only guard and the contradiction guard stay
+independent.
+
+---
+
+## 17. Two orders could reconcile against one settlement
+
+**What failed.** Detected since the previous phase, unresolved. Each
+record is decided in isolation, so two orders could each match the same
+payment and each look perfectly reconciled. That is double-counted
+revenue, and no per-record check can see it.
+
+**Fix.** Conflicts are settled on evidence tier — an exact reference
+match outranks a semantic verdict — and a tie at the top demotes every
+claimant to review rather than deciding by position in the batch.
+Order-dependent outcomes are indistinguishable from wrong ones once
+someone audits them.
+
+Global assignment (bipartite matching) was considered and rejected: it
+makes one record's outcome depend on every other record in the batch,
+which cannot be explained to the operator who has to act on it.
+
+**Regression tests.** `test_claim_integrity.py`, 13 tests, including
+order-independence, batch isolation, concurrency, and that a shared
+`settlement_id` is aggregation rather than a conflict.
+
+---
+
+## 18. A settlement that was not due yet was reported as missing
+
+**What failed.** Nothing distinguished "no settlement exists" from "no
+settlement is owed yet". A payment captured hours ago was reported as a
+missing settlement — a false positive with a phone call to the provider
+attached.
+
+**Fix.** An `as_of` observation point plus `settlement_expected_days`
+(T+2). Records inside the window are classified PENDING_SETTLEMENT at low
+severity with "re-run after the window" as the action. Without an `as_of`
+the check is skipped rather than guessed, because inventing a "now" would
+manufacture a finding.
+
+---
+
+## 19. Three accessibility defects, found only in a browser
+
+**Record rows were click-only.** A keyboard user could not open a record
+at all — the entire inspection surface was unreachable. Rows are now
+focusable controls with Enter/Space handling and accessible names.
+
+**No h1 on two of three pages.** Page titles were styled divs, so the
+document had no heading structure to navigate by.
+
+**Severity was carried by colour alone** in the first draft of the review
+queue. Now shape and text as well, so it survives greyscale and every
+form of colour blindness.
+
+Browser suite went from 22 to 44 checks covering keyboard operability,
+landmarks, accessible names, table semantics, positive-tabindex
+hijacking, reduced motion, and three viewport widths.
+
+---
+
+## 20. Cleanly-matched records were scored twice
+
+**What failed.** Every exact-reference match ran `score_candidate` a
+second time — full IDF similarity, reference-core extraction — purely to
+build a candidate-evidence table. On the ~80% of records that reconcile
+cleanly there is nothing to explain: the reference matched.
+
+**How it was discovered.** The throughput suite. p50 per-record latency
+had tripled from 0.010ms to 0.026ms after the admissibility work.
+
+**Fix.** Evidence is built only where there is a refusal or a competing
+claim to justify. p50 0.026ms → 0.012ms, 50,000 records 13.77s → 12.99s,
+peak RSS 772MB → 705MB.
+
+---
+
+## 21. A Gemini benchmark run that measured rate limits, not the model
+
+**What happened.** The ablation reported Gemini at 80.8% accuracy against
+the heuristic's 84.6% — apparently worse. The p95 latency was 10,010ms,
+which is exactly the configured semantic timeout, and the run had made
+only 64 calls where an earlier run made 157.
+
+That is the signature of throttling, not of model quality: a timed-out
+call degrades to HUMAN_REVIEW, which scores as a miss.
+
+**Fix.** The benchmark now counts `PROVIDER_ERROR` classifications
+separately and prints them, so a degraded run is visibly degraded rather
+than being read as evidence about the model. Reporting the first number
+without that caveat would have been the most misleading thing in this
+document.
+
+---
+
 ## Open, not fixed
 
-**One settlement can still be claimed by several merchant records.**
-Each record is judged in isolation, which is correct per record and blind
-across them: two different orders can each match the same payment and
-each look perfectly reconciled. That is double-counted revenue and no
-per-record check can see it.
+**One payment split across several settlements is not representable.**
+The data model is one settlement record per payment. Aggregation (many
+payments sharing a `settlement_id`) is supported and tested; splitting a
+single payment across settlements would require changing the record model
+from one-to-one to one-to-many and reworking every check that assumes a
+single counterpart. It is not faked. Such data would surface as an amount
+mismatch for a human — wrong in its label, safe in its direction, and
+visible.
 
-`batch.detect_duplicate_claims` now surfaces the collisions, and
-`test_one_settlement_claimed_by_two_merchant_records_is_detected` pins
-the detection. But detection is not resolution — the affected records
-still carry their individual outcomes, and nothing currently forces them
-to HUMAN_REVIEW. Deciding which claim is legitimate needs either
-one-to-one assignment across the batch (a matching problem, not a
-per-record one) or a human. It is listed here rather than quietly left
-out.
+**The reference-contradiction rule has a real false-negative mode.** It
+assumes the settlement's `order_reference` derives from the merchant's,
+which is what Razorpay's data model specifies. A provider using an opaque
+internal id would break it, and a genuine match would be reported as a
+missing settlement. Mitigated three ways: the rejected candidate is
+listed with its supporting signals so a reviewer sees it immediately, the
+failure direction is safe, and
+`treat_reference_contradiction_as_negative` turns it off. It is still a
+real limitation.
+
+**`product_alias` remains 0% across every configuration.** Investigated
+rather than chased. That benchmark variation asserts two records are the
+same payment while their references name *different* transactions
+(order 91426 against reference SETL91430). That is not an alias problem;
+it is a contradictory premise, and a system that matched them would be
+matching on amount and date alone — the exact behaviour that caused the
+V2 regression. The system now refuses and shows the operator the rejected
+record with "amount matches exactly, dated 0d apart" attached, which is a
+one-click confirmation for a human and an honest refusal for the machine.
 
 **The generator's ambiguous cases are easier than real ones.** Its
 `semantic_true_match` records embed the order number in both
