@@ -241,6 +241,99 @@ result.
 
 ---
 
+## Evaluation V3 — run once
+
+Generated after all development finished, with the **generator unchanged
+since V1 and V2** — only the seed differs. A changed generator would have
+made the generations incomparable: any movement could be the engine
+improving or the test getting easier, with no way to separate them.
+
+```bash
+python data/generate_dataset.py --seed 20260905 --total 5000 --out-dir data/datasets_v3
+python evaluate.py --dataset holdout --dataset-dir data/datasets_v3 --label v3
+```
+
+| Metric | V1 | V2 | V3 |
+|---|---:|---:|---:|
+| Reconciliation accuracy | 97.7% | 94.8% | **100.0%** |
+| Exception precision | 95.5% | 100.0% | 100.0% |
+| Exception recall | 90.9% | 71.6% | **100.0%** |
+| False auto-reconciliation rate | 0.0% | 0.0% | 0.0% |
+| False exception rate | 0.9% | 0.0% | 0.0% |
+| Routed to human review | 3.6% | 7.2% | 2.0% |
+| AI invocation rate | 7.1% | 5.2% | **0.0%** |
+
+Every category resolved correctly, including the two that defined the
+earlier failures: `semantic_true_match` 8/8 (V1 got 0/8) and
+`missing_settlement` 60/60 (the V2 regression).
+
+### Read the 100% as a finding about the dataset
+
+A perfect score should raise suspicion, and this one has a specific
+explanation. The AI invocation rate is **0.0%** — the model was
+configured, available, and never called. Deterministic tiers resolved
+every record.
+
+That is because this generator embeds the order number in both the
+reference and the description, so once identity evidence is used properly
+the identifier core recovers it without semantics. **The synthetic
+dataset is saturated.** It no longer discriminates between a good system
+and a better one, and it should not be used to claim the reconciliation
+problem is solved.
+
+The honest measure of the semantic layer is the ambiguous-matching
+benchmark, where references share nothing and wording differs through
+abbreviations, aliases and gateway noise. Deterministic matching scores
+77.9% there.
+
+This limitation is recorded in `evaluations/v3/FROZEN.json` itself, so
+the caveat travels with the number.
+
+### Controlled comparison — same data, three engines
+
+V1, V2 and V3 were each measured on different records, so their published
+numbers are not directly comparable. `compare_engines.py --generations`
+removes that confound: it checks each pinned commit out into a throwaway
+worktree and scores all three on the **same** V3 dataset with the
+deterministic backend.
+
+```bash
+python compare_engines.py --generations --dataset-dir data/datasets_v3
+```
+
+| Metric | V1 engine | V2 engine | current |
+|---|---:|---:|---:|
+| Reconciliation accuracy | 98.9% | 96.7% | **100.0%** |
+| Exception precision | 95.9% | 100.0% | 100.0% |
+| Exception recall | 98.2% | 80.1% | **100.0%** |
+| False auto-reconciliation rate | 0.0% | 0.0% | 0.0% |
+| False exception rate | 0.9% | 0.0% | 0.0% |
+| Routed to human review | 2.4% | 5.3% | 2.0% |
+
+This is the strongest statement available about what the code change did,
+and unlike a cross-dataset comparison it isolates the engine. The V2
+regression is fully recovered and V1 is beaten on every metric.
+
+### Settlement-presence discrimination (development)
+
+The V2 regression was a settlement-presence problem, and the held-out
+data that revealed it could not be used to design the fix. 312
+development scenarios stand in for it:
+
+| | before | after |
+|---|---:|---:|
+| Overall | 85.3% | 100% |
+| `absent` (no counterpart exists) | 62% | 100% |
+| Wrong-record selections | 24 | 0 |
+| Model calls per 1,000 | 417 | 0 |
+
+```bash
+python data/generate_settlement_scenarios.py --seed 4127 --count 312
+python benchmark_settlement_presence.py
+```
+
+---
+
 ## Metric definitions
 
 - **Reconciliation accuracy** — predicted outcome equals ground truth, over all records.
@@ -283,4 +376,6 @@ growth. Flat throughput as the population grows is the real evidence.
 - **Policy thresholds are defaults, not calibrated** against any merchant's risk tolerance. They are configurable and every decision records which threshold applied.
 - **The Gemini run is not byte-reproducible**, so V2's model-backed figures will move slightly on a re-run.
 - **The benchmark is adversarial by construction.** Its variation mix is not a claim about real-world frequency — `reference_core_collision` is 20% of its non-matches and would be far rarer in practice.
-- **One settlement can still be claimed by several merchant records.** Detected, not resolved. See `ENGINEERING_FAILURES_AND_FIXES.md`.
+- **The synthetic dataset is saturated.** V3 scores 100% with zero model calls. It no longer measures anything above the current engine's level, and a V4 on the same generator would be uninformative. A harder generator is the next thing this evaluation needs, and it must be built before rather than after the next engine change.
+- **The ambiguous-matching benchmark is adversarial by construction.** Its variation mix is not a claim about real-world frequency.
+- **`product_alias` scores 0% in every configuration.** Investigated rather than chased: that variation asserts two records are the same payment while their references name different transactions, so matching them would require matching on amount and date alone.

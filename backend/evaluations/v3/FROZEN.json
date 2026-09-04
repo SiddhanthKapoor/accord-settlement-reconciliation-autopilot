@@ -1,0 +1,75 @@
+{
+  "evaluation_id": "V3",
+  "status": "FROZEN \u2014 do not modify any file in this directory",
+  "frozen_at": "2026-09-04T19:03:29.205656+00:00",
+  "code_commit": "1a55e01a361c7c1c271d45efe62c70f27c6c6f25",
+  "dataset": {
+    "version": "ac74031ba0b170160b6cc56d18c9e410a45eca9816961a2de48b5ebc55b50a97",
+    "seed": 20260905,
+    "generator": "backend/data/generate_dataset.py \u2014 UNCHANGED since V1/V2, new seed only, so a difference across generations is attributable to the engine",
+    "holdout_records": 1000,
+    "razorpay_pool_records": 4800,
+    "category_counts": {
+      "partial_refund": 350,
+      "delayed_settlement_normal": 400,
+      "clean_match": 2750,
+      "fee_tax_rounding": 500,
+      "duplicate_reference": 100,
+      "delayed_settlement_excessive": 150,
+      "missing_settlement": 300,
+      "amount_mismatch": 250,
+      "ambiguous_text_reference_semantic_decoy": 29,
+      "ambiguous_text_reference_fuzzy_strong": 30,
+      "ambiguous_text_reference_semantic_true_match": 41,
+      "refund_mismatch": 100
+    }
+  },
+  "semantic_config": {
+    "primary_backend": "GeminiSemanticVerifier",
+    "model": "gemini-3.5-flash-lite",
+    "temperature": 0.0,
+    "prompt_version": "structured-candidate-comparison-v2",
+    "note": "Configured and available, but invoked zero times: deterministic tiers resolved every record. V3 is therefore a purely deterministic result."
+  },
+  "policy": {
+    "amount_tolerance_minor": 2,
+    "max_settlement_delay_days": 21,
+    "ai_confidence_threshold": 0.85,
+    "fuzzy_reference_jaccard_floor": 0.2,
+    "candidate_search_window_days": 21,
+    "max_window_scan_candidates": 400,
+    "candidate_shortlist_size": 5,
+    "deterministic_match_score": 0.7,
+    "deterministic_min_text_similarity": 0.25,
+    "deterministic_match_margin": 0.1,
+    "max_semantic_calls_per_record": 3,
+    "require_identity_evidence": true,
+    "admissible_text_similarity": 0.2,
+    "treat_reference_contradiction_as_negative": true,
+    "settlement_expected_days": 2,
+    "enable_fuzzy_matching": true,
+    "enable_semantic_matching": true
+  },
+  "headline_metrics": {
+    "reconciliation_accuracy": 1.0,
+    "exception_precision": 1.0,
+    "exception_recall": 1.0,
+    "false_auto_reconciliation_rate": 0.0,
+    "false_exception_rate": 0.0,
+    "pct_auto_reconciled": 0.814,
+    "pct_human_review": 0.02,
+    "pct_exception": 0.166,
+    "ai_invocation_rate": 0.0
+  },
+  "interpretation": {
+    "warning": "100% is a statement about the dataset, not about reconciliation. Once identity evidence is used properly, this generator's ambiguous cases are fully solvable deterministically \u2014 it embeds the order number in both descriptions and references. The dataset is saturated and no longer discriminates between good and better systems.",
+    "where_the_model_still_matters": "backend/data/generate_ambiguous_benchmark.py, where references share nothing and wording differs. Deterministic matching scores 77.9% there."
+  },
+  "checksums_sha256": {
+    "dataset_manifest.json": "1c6012700edc437fa7d27652fcf3d1d353b95ff6905d353ebb2602635cf73e64",
+    "generations_on_v3.json": "3be77aa56db92609e3f8e083747fe834408f91f565bd9dfb0a0a160a77312380",
+    "holdout.jsonl.gz": "d4a1d00e8ad4f7199f7d22cda9fd5023948d31eb35584ed28e5abc61ddf275e3",
+    "razorpay_pool.jsonl.gz": "768a87600dd4e986be3ecef60b2623dfc3edf11395c7354b5ba6c154fbc34c83",
+    "report_gemini.json": "55e751e36e770c81547b11d896e72319003b86784f239bb8064a6e99ebd45ccf"
+  }
+}

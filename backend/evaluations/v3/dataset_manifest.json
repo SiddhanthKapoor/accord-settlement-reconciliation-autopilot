@@ -1,0 +1,23 @@
+{
+  "seed": 20260905,
+  "total_records": 5000,
+  "dev_count": 4000,
+  "holdout_count": 1000,
+  "razorpay_pool_count": 4800,
+  "category_counts": {
+    "partial_refund": 350,
+    "delayed_settlement_normal": 400,
+    "clean_match": 2750,
+    "fee_tax_rounding": 500,
+    "duplicate_reference": 100,
+    "delayed_settlement_excessive": 150,
+    "missing_settlement": 300,
+    "amount_mismatch": 250,
+    "ambiguous_text_reference_semantic_decoy": 29,
+    "ambiguous_text_reference_fuzzy_strong": 30,
+    "ambiguous_text_reference_semantic_true_match": 41,
+    "refund_mismatch": 100
+  },
+  "generated_at": "2026-09-04T19:02:02.365884+00:00",
+  "dataset_version": "ac74031ba0b170160b6cc56d18c9e410a45eca9816961a2de48b5ebc55b50a97"
+}

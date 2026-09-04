@@ -31,7 +31,23 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-V1_COMMIT = json.loads((Path(__file__).resolve().parent / "evaluations" / "v1" / "FROZEN.json").read_text())["code_commit"]
+_HERE = Path(__file__).resolve().parent
+
+
+def _frozen_commit(evaluation: str) -> str:
+    return json.loads((_HERE / "evaluations" / evaluation / "FROZEN.json").read_text())["code_commit"]
+
+
+V1_COMMIT = _frozen_commit("v1")
+# Each engine generation, pinned by the commit that produced its
+# evaluation. Scoring all of them on one untouched dataset is the only
+# comparison that isolates the code — V1, V2 and V3 were each measured on
+# different records, so their published numbers are not directly
+# comparable to each other.
+ENGINE_GENERATIONS = [
+    ("V1", _frozen_commit("v1")),
+    ("V2", _frozen_commit("v2")),
+]
 
 HEADLINE = [
     ("reconciliation_accuracy", "Reconciliation accuracy", True),
@@ -70,11 +86,63 @@ def run_evaluation(cwd: Path, dataset_dir: Path, label: str, supports_dataset_di
     return json.loads((cwd / "data" / "eval_reports" / report_name).read_text())
 
 
+def compare_generations(dataset_dir: Path) -> list[tuple[str, dict]]:
+    """Every pinned engine generation plus the working tree, all scored on
+    the same records with the deterministic backend on both sides."""
+    reports: list[tuple[str, dict]] = []
+    for label, commit in ENGINE_GENERATIONS:
+        workdir = Path(tempfile.mkdtemp(prefix=f"engine_{label}_"))
+        worktree = workdir / "repo"
+        try:
+            subprocess.run(["git", "worktree", "add", "--detach", str(worktree), commit],
+                           cwd=REPO_ROOT, check=True, capture_output=True, text=True)
+            supports_dir = _supports_dataset_dir(worktree / "backend" / "evaluate.py")
+            reports.append((label, run_evaluation(worktree / "backend", dataset_dir,
+                                                 f"engine_{label}", supports_dataset_dir=supports_dir)))
+        finally:
+            subprocess.run(["git", "worktree", "remove", "--force", str(worktree)],
+                           cwd=REPO_ROOT, capture_output=True, text=True)
+            shutil.rmtree(workdir, ignore_errors=True)
+    reports.append(("current", run_evaluation(_HERE, dataset_dir, "engine_current",
+                                              supports_dataset_dir=True)))
+    return reports
+
+
+def _supports_dataset_dir(evaluate_path: Path) -> bool:
+    return "--dataset-dir" in evaluate_path.read_text()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dir", type=Path, default=Path("data/datasets_v2"))
+    parser.add_argument("--generations", action="store_true",
+                        help="score every pinned engine generation (V1, V2, current) on this dataset")
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
+
+    if args.generations:
+        dataset_dir = args.dataset_dir.resolve()
+        print(f"dataset : {dataset_dir}")
+        print("backend : deterministic heuristic for every generation\n")
+        reports = compare_generations(dataset_dir)
+
+        labels = [label for label, _ in reports]
+        print(f"{'metric':<34}" + "".join(f"{label:>12}" for label in labels))
+        print("-" * (34 + 12 * len(labels)))
+        for key, label, _ in HEADLINE:
+            cells = ""
+            for _, report in reports:
+                value = report["metrics"].get(key)
+                cells += f"{value:>11.1%} " if value is not None else f"{'n/a':>12}"
+            print(f"{label:<34}{cells}")
+
+        if args.json:
+            args.json.write_text(json.dumps(
+                {"dataset_dir": str(dataset_dir),
+                 "generations": [{"label": label, "report": report} for label, report in reports]},
+                indent=2, default=str))
+            print(f"\nWrote {args.json}")
+        return 0
 
     dataset_dir = args.dataset_dir.resolve()
     workdir = Path(tempfile.mkdtemp(prefix="engine_compare_"))
