@@ -123,23 +123,43 @@ REVIEW_ACTIONS: dict[str, dict] = {
 }
 
 
+# Exceptions about *which* settlement this is. Only these are resolvable
+# by a reviewer confirming or rejecting the candidate.
+_MATCHING_DISPUTES = {
+    "AMBIGUOUS_MATCH", "LOW_CONFIDENCE_MATCH", "DUPLICATE_REFERENCE",
+    "DUPLICATE_CLAIM", "MISSING_SETTLEMENT", "PENDING_SETTLEMENT",
+}
+
+
 def available_actions(record: dict) -> list[dict]:
     """Actions that make sense for this record's current state.
 
-    A reviewer should not be offered "approve match" on a record with no
-    candidate to approve. Offering impossible actions is how a review
-    queue becomes a place where people click things that do nothing.
+    Two constraints, both about not teaching an operator a false model of
+    the system. There must be a candidate before anyone is invited to
+    approve one. And where the match itself is settled but the money
+    disagrees — an amount, currency, fee or refund discrepancy — the
+    dispute is not about *which* settlement this is, so "approve match and
+    reconcile" is not an available answer. Reconciling a record whose
+    amount is known to be wrong is precisely the outcome this system
+    exists to prevent, and offering it as a button would undo that at the
+    last step.
     """
     if record.get("review_state") not in (None, "OPEN"):
         return []
     has_candidate = bool(record.get("matched_payment_id")) or bool(
         json.loads(record.get("considered_json") or "[]")
     )
-    return [
-        {"action": key, **{k: v for k, v in meta.items() if k != "requires_candidate"}}
-        for key, meta in REVIEW_ACTIONS.items()
-        if not meta["requires_candidate"] or has_candidate
-    ]
+    exception_type = record.get("exception_type")
+    match_is_disputed = exception_type in _MATCHING_DISPUTES or exception_type is None
+
+    actions = []
+    for key, meta in REVIEW_ACTIONS.items():
+        if meta["requires_candidate"] and not has_candidate:
+            continue
+        if key == "APPROVE_MATCH" and not match_is_disputed:
+            continue
+        actions.append({"action": key, **{k: v for k, v in meta.items() if k != "requires_candidate"}})
+    return actions
 
 
 def set_review_state(batch_id: str, record_id: str, new_state: str) -> None:

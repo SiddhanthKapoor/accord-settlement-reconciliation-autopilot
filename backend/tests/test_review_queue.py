@@ -195,3 +195,36 @@ def test_a_reviewed_record_is_not_reopened_by_re_running_the_batch(client):
     store.save_record(batch["batch_id"], 0, rebuilt, result, [])
 
     assert store.get_record(record_id, batch["batch_id"])["review_state"] == "DEFERRED"
+
+
+def test_a_money_discrepancy_cannot_be_resolved_by_approving_the_match(client):
+    """An amount or currency mismatch is not a dispute about which
+    settlement this is — the match is settled, the numbers disagree.
+    Offering "approve match and reconcile" there would hand a reviewer a
+    button that books a known-wrong amount."""
+    batch = _run_batch(client, limit=120)
+    items = client.get("/review/queue",
+                       params={"batch_id": batch["batch_id"], "limit": 100}).json()["items"]
+    money_problems = [i for i in items if i["exception_type"] in
+                      ("AMOUNT_MISMATCH", "CURRENCY_MISMATCH", "FEE_TAX_INCONSISTENT", "REFUND_MISMATCH")]
+    if not money_problems:
+        pytest.skip("no money-discrepancy items in this batch")
+
+    for item in money_problems:
+        actions = {a["action"] for a in item["available_actions"]}
+        assert "APPROVE_MATCH" not in actions, \
+            f"{item['record_id']} ({item['exception_type']}) offered approve-and-reconcile"
+        assert actions, "the item must still offer some way forward"
+        assert "ESCALATE" in actions
+
+
+def test_a_matching_dispute_can_still_be_approved(client):
+    batch = _run_batch(client, limit=120)
+    items = client.get("/review/queue",
+                       params={"batch_id": batch["batch_id"], "limit": 100}).json()["items"]
+    disputes = [i for i in items
+                if i["exception_type"] in ("AMBIGUOUS_MATCH", "LOW_CONFIDENCE_MATCH", "DUPLICATE_REFERENCE")
+                and (i["matched_payment_id"] or i["considered_candidates"])]
+    if not disputes:
+        pytest.skip("no matching disputes in this batch")
+    assert "APPROVE_MATCH" in {a["action"] for a in disputes[0]["available_actions"]}
