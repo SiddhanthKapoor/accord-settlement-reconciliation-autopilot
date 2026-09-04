@@ -71,11 +71,19 @@ CREATE TABLE IF NOT EXISTS records (
     policy_threshold REAL NOT NULL,
     latency_ms REAL NOT NULL,
     processed_at TEXT NOT NULL,
+    classification TEXT,
+    exception_type TEXT,
+    severity TEXT,
+    explanation TEXT,
+    recommended_action TEXT,
+    considered_json TEXT,
+    review_state TEXT NOT NULL DEFAULT 'OPEN',
     PRIMARY KEY (batch_id, record_id)
 );
 CREATE INDEX IF NOT EXISTS idx_records_batch ON records(batch_id);
 CREATE INDEX IF NOT EXISTS idx_records_outcome ON records(batch_id, outcome);
 CREATE INDEX IF NOT EXISTS idx_records_record ON records(record_id, processed_at);
+CREATE INDEX IF NOT EXISTS idx_records_review ON records(batch_id, review_state, severity);
 
 CREATE TABLE IF NOT EXISTS audit_log (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,9 +121,10 @@ def _migrate_records_primary_key(conn: sqlite3.Connection) -> None:
     ).fetchone()
     if row is None:
         return
-    if "PRIMARY KEY (batch_id, record_id)" in (row["sql"] or ""):
+    sql = row["sql"] or ""
+    if "PRIMARY KEY (batch_id, record_id)" in sql and "review_state" in sql:
         return
-    print("[db] rebuilding `records` for the composite (batch_id, record_id) key; "
+    print("[db] rebuilding `records` for the current schema (composite key + review workflow columns); "
           "previously processed batches must be re-run to repopulate it.")
     conn.executescript("DROP TABLE IF EXISTS records;")
 

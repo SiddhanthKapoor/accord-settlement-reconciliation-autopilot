@@ -114,7 +114,22 @@ def run_batch(body: RunBatchRequest):
                 },
             )
 
-        process_batch(records, pool, policy=policy, semantic_verifier=semantic_verifier, on_record=on_record)
+        def on_revision(i, record, result):
+            # A claim conflict can change a decision after it was first
+            # emitted; persist the correction and record it, rather than
+            # leaving the stored row disagreeing with the engine.
+            candidates = index.exact_candidates(record.merchant)
+            store.save_record(batch_id, i, record, result, candidates)
+            audit.append_event(
+                transaction_id=record.record_id, event_type="RECORD_REVISED",
+                prior_state="RECONCILED", new_state=result.outcome.value,
+                payload={"batch_id": batch_id, "record_id": record.record_id,
+                         "outcome": result.outcome.value, "reason": result.reason,
+                         "exception_type": result.exception_type.value if result.exception_type else None},
+            )
+
+        process_batch(records, pool, policy=policy, semantic_verifier=semantic_verifier,
+                      on_record=on_record, on_revision=on_revision)
         store.mark_batch_complete(batch_id)
         audit.append_event(
             transaction_id=batch_id, event_type="BATCH_COMPLETED", prior_state="RUNNING", new_state="COMPLETED",
@@ -174,6 +189,92 @@ def latest_evaluation(dataset: str = "holdout"):
     if not path.exists():
         raise HTTPException(404, f"no evaluation report found for '{dataset}' — run `python evaluate.py --dataset {dataset}` first")
     return json.loads(path.read_text())
+
+
+# ---------------------------------------------------------------------------
+# Human review queue
+# ---------------------------------------------------------------------------
+
+class ReviewActionRequest(BaseModel):
+    batch_id: str
+    action: str
+    note: str | None = None
+    reviewer: str = "operator"
+
+
+def _hydrate(record: dict) -> dict:
+    record["merchant"] = json.loads(record.pop("merchant_json"))
+    record["candidates"] = json.loads(record.pop("candidates_json"))
+    record["checks"] = json.loads(record.pop("checks_json"))
+    record["considered_candidates"] = json.loads(record.pop("considered_json") or "[]")
+    record["available_actions"] = store.available_actions(record)
+    return record
+
+
+@router.get("/review/queue")
+def review_queue(batch_id: str | None = None, state: str = "OPEN", limit: int = 50, offset: int = 0):
+    """Work waiting on a person, worst first.
+
+    These are real pipeline decisions, not a separate workflow store: the
+    queue is a view over the same records the engine produced, so it can
+    never drift from what the engine actually decided.
+    """
+    if batch_id is None:
+        batch = store.get_latest_batch()
+        if not batch:
+            return {"batch_id": None, "items": [], "summary": {"open_count": 0, "open_amount_minor": 0,
+                                                               "by_exception_type": {}}}
+        batch_id = batch["batch_id"]
+    items = [_hydrate(r) for r in store.list_review_queue(batch_id, state=state, limit=limit, offset=offset)]
+    return {"batch_id": batch_id, "items": items, "summary": store.review_queue_summary(batch_id)}
+
+
+@router.post("/review/{record_id}/action")
+def review_action(record_id: str, body: ReviewActionRequest):
+    """Record a human decision.
+
+    Writes to the same hash-chained ledger as every automated decision,
+    carrying the state it moved from, the state it moved to, and the
+    reason the automation escalated it in the first place. A reviewer
+    overriding the system is itself an auditable event — losing that is
+    how a reconciliation trail stops being evidence.
+    """
+    meta = store.REVIEW_ACTIONS.get(body.action)
+    if meta is None:
+        raise HTTPException(400, f"unknown action '{body.action}'")
+
+    record = store.get_record(record_id, body.batch_id)
+    if not record:
+        raise HTTPException(404, "record not found")
+    if record["review_state"] != "OPEN":
+        raise HTTPException(409, f"record already actioned ({record['review_state']})")
+    if not any(a["action"] == body.action for a in store.available_actions(record)):
+        raise HTTPException(400, f"action '{body.action}' is not available for this record")
+
+    prior_state = record["review_state"]
+    new_state = meta["new_state"]
+    store.set_review_state(body.batch_id, record_id, new_state)
+
+    audit.append_event(
+        transaction_id=record_id,
+        event_type="HUMAN_REVIEW_ACTION",
+        prior_state=prior_state,
+        new_state=new_state,
+        payload={
+            "batch_id": body.batch_id,
+            "record_id": record_id,
+            "action": body.action,
+            "reviewer": body.reviewer,
+            "note": body.note,
+            # Why the automation escalated, preserved alongside what the
+            # human then decided.
+            "escalated_because": record.get("reason"),
+            "exception_type": record.get("exception_type"),
+            "automated_outcome": record.get("outcome"),
+            "matched_payment_id": record.get("matched_payment_id"),
+        },
+    )
+    return {"record_id": record_id, "review_state": new_state, "action": body.action}
 
 
 # ---------------------------------------------------------------------------
