@@ -5,12 +5,12 @@ Held-out evaluation for the Settlement Reconciliation Autopilot.
     python evaluate.py                  # evaluate backend/data/datasets/holdout.jsonl
     python evaluate.py --dataset dev    # evaluate the dev set instead (for iteration, not scoring)
 
-Every number this prints is computed from an actual run against the
-held-out dataset in this process, right now — nothing here is a
-hardcoded or remembered figure. The held-out set is not touched by
-anything else in this codebase (see backend/data/generate_dataset.py and
-docs/EVALUATION.md) — this script is the only place it is read for
-scoring, and thresholds are not tuned after looking at its output.
+Every number this prints is computed from an actual run in this process,
+right now — nothing here is hardcoded or remembered. This script is the
+only place a held-out split is read for scoring, and the implementation
+is not changed in response to what it prints. See
+docs/EVALUATION_METHODOLOGY.md for how the splits are built and what
+"held-out" is actually guaranteeing.
 """
 
 from __future__ import annotations

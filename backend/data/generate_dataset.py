@@ -50,7 +50,7 @@ PRODUCTS = [
 # than a handful of price points, and a low-entropy amount space made
 # unrelated transactions collide on amount by pure chance far more often
 # than a real system would ever see (found during dev-set iteration, see
-# docs/EVALUATION.md).
+# docs/EVALUATION_METHODOLOGY.md).
 AMOUNT_MIN_MINOR = 9900
 AMOUNT_MAX_MINOR = 2499900
 
