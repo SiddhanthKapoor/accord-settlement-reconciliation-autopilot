@@ -90,7 +90,10 @@ export default function RecordDetail({ recordId, batchId, onClose }) {
           ) : (
             <div className="detail-section">
               <div className="card-title">Semantic classifier</div>
-              <p className="small muted">Not invoked — resolved deterministically.</p>
+              <p className="small muted">
+                Not invoked — resolved deterministically. The policy threshold of{" "}
+                {record.policy_threshold} applies only to model-resolved matches.
+              </p>
             </div>
           )}
 

@@ -177,8 +177,38 @@ def latest_evaluation(dataset: str = "holdout"):
 
 
 # ---------------------------------------------------------------------------
+# Data provenance — what is real and what is generated
+# ---------------------------------------------------------------------------
+
+@router.get("/data-sources")
+def data_sources():
+    """Which settlement source is in use and what each one can supply.
+    Surfaced in the console so a viewer is never left to assume the
+    numbers came from a live Razorpay account."""
+    from app.integrations.settlement_source import describe_sources
+
+    return describe_sources()
+
+
+# ---------------------------------------------------------------------------
 # Audit
 # ---------------------------------------------------------------------------
+
+@router.get("/audit/log")
+def audit_log(limit: int = 200, since: int = 0):
+    """Historical audit events.
+
+    History is a query, not a stream. The live stream deliberately starts
+    at the current head so a newly-attached client is not sent the whole
+    ledger, which means anything wanting existing events — the audit
+    view on load — has to ask for them here and then tail the stream from
+    the sequence this returns.
+    """
+    events = audit.get_events_since(since, limit=limit)
+    for event in events:
+        event["payload"] = json.loads(event.pop("payload_json"))
+    return {"events": events, "head_seq": audit.head_seq()}
+
 
 @router.get("/audit/verify")
 def verify_audit_chain():

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { streamAudit, verifyChain } from "../api.js";
+import { getAuditLog, streamAudit, verifyChain } from "../api.js";
 
 export default function AuditTrail() {
   const [events, setEvents] = useState([]);
@@ -9,11 +9,28 @@ export default function AuditTrail() {
   const [expanded, setExpanded] = useState(null);
   const scrollRef = useRef(null);
 
+  // Load the existing ledger first, then tail the stream from wherever
+  // that history ended. The stream starts at the head by design, so it
+  // carries new events only — subscribing without loading history first
+  // leaves this view empty next to a chain reporting hundreds of events.
   useEffect(() => {
-    const stop = streamAudit((event) => {
-      setEvents((prev) => [...prev.slice(-999), event]);
-    });
-    return stop;
+    let stop = () => {};
+    let cancelled = false;
+    getAuditLog(500)
+      .then(({ events: history, head_seq }) => {
+        if (cancelled) return;
+        setEvents(history);
+        stop = streamAudit((event) => {
+          setEvents((prev) => (prev.some((e) => e.seq === event.seq) ? prev : [...prev.slice(-999), event]));
+        }, head_seq);
+      })
+      .catch(() => {
+        if (!cancelled) stop = streamAudit((event) => setEvents((prev) => [...prev.slice(-999), event]));
+      });
+    return () => {
+      cancelled = true;
+      stop();
+    };
   }, []);
 
   useEffect(() => {
@@ -69,8 +86,8 @@ export default function AuditTrail() {
       </div>
 
       <div className="card">
-        <div className="card-title">Live event feed ({events.length})</div>
-        <div className="log-scroll" ref={scrollRef}>
+        <div className="card-title">Event ledger ({events.length})</div>
+        <div className="log-scroll table-scroll" ref={scrollRef}>
           <table className="audit-table">
             <thead>
               <tr><th>#</th><th>Record / Batch</th><th>Event</th><th>State</th><th></th></tr>

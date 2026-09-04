@@ -223,3 +223,56 @@ button { font-family: inherit; }
   .stats-grid, .compare-grid { grid-template-columns: 1fr; }
   .detail-panel { width: 100%; }
 }
+
+/* Wide content scrolls inside its own container rather than pushing the
+   page sideways. The records and audit tables carry five columns of
+   identifiers and reasons, which forced ~190px of horizontal body
+   scroll on a phone. */
+.records-table, .audit-table { min-width: 640px; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 720px) {
+  .page { padding-left: 16px; padding-right: 16px; }
+  .batch-controls { flex-wrap: wrap; }
+  .filter-row { flex-wrap: wrap; }
+  .live-outcome-row { flex-wrap: wrap; gap: 12px; }
+
+  /* The status chips are fixed-width and sit in a non-wrapping flex row,
+     so on a phone they pushed the header ~190px past the viewport and
+     took the whole page's horizontal scroll with them. The backend
+     status belongs on a desktop header, not a 390px one. */
+  .topnav { padding: 0 16px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; }
+  .topnav-right { display: none; }
+  .brand-text { font-size: 14px; }
+}
+
+/* Provenance banner — states plainly whether what's on screen came from
+   Razorpay or from the generator, so the console can't imply live data
+   it doesn't have. */
+.provenance-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 11px 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--warn);
+  border-radius: 8px;
+  background: var(--surface-2, #fbfbfd);
+}
+.provenance-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warn);
+  white-space: nowrap;
+}
+.provenance-detail {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  flex: 1;
+  min-width: 240px;
+}

@@ -36,12 +36,17 @@ export const getRecord = (recordId, batchId) =>
 
 export const getLatestEvaluation = (dataset = "holdout") => req(`${API}/evaluation/latest?dataset=${dataset}`);
 
+export const getDataSources = () => req(`${API}/data-sources`);
+
+export const getAuditLog = (limit = 200) => req(`${API}/audit/log?limit=${limit}`);
+
 export const verifyChain = () => req(`${API}/audit/verify`);
 
 export const adminReset = () => req(`${API}/admin/reset`, { method: "POST" });
 
-export function streamAudit(onEvent) {
-  const es = new EventSource(`${API}/audit/stream`);
+export function streamAudit(onEvent, since) {
+  const url = since === undefined ? `${API}/audit/stream` : `${API}/audit/stream?since=${since}`;
+  const es = new EventSource(url);
   es.onmessage = (e) => {
     try {
       onEvent(JSON.parse(e.data));

@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { getLatestBatch, getLatestEvaluation, listBatchRecords, runBatch, streamAudit } from "../api.js";
+import { getDataSources, getLatestBatch, getLatestEvaluation, listBatchRecords, runBatch, streamAudit } from "../api.js";
 import RecordDetail from "./RecordDetail.jsx";
 
 const OUTCOME_COLORS = { RECONCILED: "var(--pass)", EXCEPTION: "var(--fail)", HUMAN_REVIEW: "var(--warn)" };
@@ -18,11 +18,13 @@ export default function Console() {
   const [records, setRecords] = useState([]);
   const [outcomeFilter, setOutcomeFilter] = useState(null);
   const [selectedRecordId, setSelectedRecordId] = useState(null);
+  const [dataSources, setDataSources] = useState(null);
 
   const currentBatchIdRef = useRef(null);
 
   useEffect(() => {
     getLatestEvaluation("holdout").then(setEvalReport).catch(() => setEvalError(true));
+    getDataSources().then(setDataSources).catch(() => {});
     getLatestBatch().then((b) => {
       if (b.batch) {
         setBatch(b.batch);
@@ -84,6 +86,17 @@ export default function Console() {
           genuinely ambiguous reference matching, gated by a confidence threshold it can never override.
         </div>
       </div>
+
+      {dataSources && (
+        <div className="provenance-banner">
+          <span className="provenance-tag">{dataSources.active_source === "SYNTHETIC" ? "Synthetic data" : "Live Razorpay data"}</span>
+          <span className="provenance-detail">
+            {dataSources.sources.find((s) => s.provenance === "LIVE_RAZORPAY")?.record_count === 0
+              ? "Razorpay's live settlements API is connected and returns zero records for this test account, so reconciliation runs on generated data. Accuracy figures are measured against that synthetic set, not real merchant data."
+              : dataSources.active_source_reason}
+          </span>
+        </div>
+      )}
 
       <div className="stats-grid" style={{ marginBottom: 22 }}>
         <div className="stat-tile">
@@ -163,6 +176,7 @@ export default function Console() {
             </button>
           ))}
         </div>
+        <div className="table-scroll">
         <table className="records-table">
           <thead>
             <tr><th>Record</th><th>Merchant amount</th><th>Outcome</th><th>AI used</th><th>Reason</th></tr>
@@ -186,6 +200,7 @@ export default function Console() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <AnimatePresence>
