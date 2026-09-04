@@ -90,7 +90,6 @@ class ReferenceIndex:
     """
 
     def __init__(self, razorpay_records: list[RazorpaySettlementRecord]) -> None:
-        self.all_records = razorpay_records
         self.by_reference: dict[str, list[RazorpaySettlementRecord]] = defaultdict(list)
         self.by_day: dict[int, list[RazorpaySettlementRecord]] = defaultdict(list)
         self.by_reference_core: dict[str, list[RazorpaySettlementRecord]] = defaultdict(list)

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:ui": "node e2e/verify-ui.mjs"
   },
   "dependencies": {
     "motion": "^13.1.1",

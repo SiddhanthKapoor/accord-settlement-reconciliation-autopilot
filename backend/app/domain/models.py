@@ -154,7 +154,6 @@ class PolicyConfig(BaseModel):
         "it is routed to HUMAN_REVIEW regardless of how clean the rest of the arithmetic looks. This is "
         "enforced in policy.py, not by trusting the model to self-limit.",
     )
-    fuzzy_reference_jaccard_strong: float = Field(default=0.6, description="Token-overlap threshold above which a fuzzy reference match is resolved deterministically, without calling the model.")
     fuzzy_reference_jaccard_floor: float = Field(default=0.2, description="Below this, there's not even enough textual overlap to justify escalating to the model — treated as no candidate.")
     candidate_search_window_days: int = Field(default=21, description="How far from the merchant's order_date to look for a fuzzy/semantic candidate — bounds the search, mirrors how a real system would window-scan rather than full-scan.")
 

@@ -1,400 +1,259 @@
 # Settlement Reconciliation Autopilot
 
-**AI-assisted reconciliation between a merchant's own order records and
-Razorpay-style settlement data — deterministic wherever a computer can be
-certain, a narrow, confidence-gated model call only where it genuinely
-can't, and human review for everything in between.**
-
-Built for the Razorpay AI Buildathon 2026, Track 04 (AI Finance Controller).
+Reconciles a merchant's own order records against Razorpay-style
+settlement data. Deterministic matching handles everything a computer can
+be certain about; a narrow, confidence-gated model call handles genuine
+textual ambiguity; anything still unresolved goes to a human. Every
+decision is written to a hash-chained audit trail with the evidence it
+was made on.
 
 ## The problem
 
-A merchant's order system says what it believes happened. Razorpay's
-settlement data says what actually happened to the money — after fees,
-tax, refunds, and settlement delay. The two don't always agree, and
-today a finance team reconciles them by hand: matching references,
-recomputing fee arithmetic, chasing down missing records, and guessing
-at duplicate or reworded references. This system automates the part
-that's genuinely mechanical, and routes the rest to a human instead of
-guessing.
+A merchant's order system records what it believes happened. Razorpay's
+settlement data records what actually happened to the money, after fees,
+tax, refunds, and settlement delay. The two disagree often enough that
+finance teams reconcile them by hand: matching references that were
+reformatted somewhere in the middle, recomputing fee arithmetic, chasing
+settlements that never arrived, and guessing at duplicates.
+
+Most of that work is mechanical. Some of it genuinely isn't. The point of
+this system is to be honest about which is which.
 
 ## The three outcomes
 
-Every record gets exactly one of:
+Every record ends in exactly one of these, never a fourth "probably
+fine" state:
 
-- **RECONCILED** — merchant and Razorpay records agree, deterministically, within policy tolerance.
-- **EXCEPTION** — a known, certain problem: amount mismatch, broken fee/tax arithmetic, a missing settlement, an excessive delay, a refund that doesn't reconcile.
-- **HUMAN_REVIEW** — genuine ambiguity: a duplicate reference that can't be disambiguated by amount, or a reference match the semantic classifier resolved below the confidence threshold.
+- **RECONCILED** — both sides agree, deterministically, within policy tolerance.
+- **EXCEPTION** — a known, certain problem: amount mismatch, broken fee/tax arithmetic, a missing settlement, an excessive delay, a refund that doesn't add up, a currency that doesn't match.
+- **HUMAN_REVIEW** — real ambiguity: a duplicate reference that amount can't separate, a match the model resolved below the confidence threshold, or a model call that failed or timed out.
 
-There is no fourth "silently fine" state. Every decision — RECONCILED
-included — is written into a hash-chained audit ledger with the full
-check-by-check evidence behind it.
+The confidence gate is enforced in `policy.py`, not left to the model to
+respect. A match the model is not confident enough about cannot become
+RECONCILED no matter how clean the rest of the arithmetic looks.
 
 ## Architecture
 
 ```
 INGEST → NORMALIZE → MATCH → RESOLVE AMBIGUITY → APPLY POLICY
-  → RECONCILE / EXCEPTION / HUMAN_REVIEW → AUDIT → EVALUATE
+   → RECONCILED / EXCEPTION / HUMAN_REVIEW → AUDIT → EVALUATE
 ```
+
+Matching runs in tiers, cheapest first:
+
+1. **Exact** normalized-reference lookup. `ORD-58291`, `ord_58291` and `Ord58291 ` all normalize to the same key.
+2. **Deterministic corroborated match.** Candidates are scored on amount agreement, shared reference core, date proximity, and IDF-weighted description similarity. A match resolves here — with no model call — only when two independent signals agree *and* the wording backs them up.
+3. **Semantic.** Only what tier 2 couldn't settle. The model gets a structured comparison: both references, both descriptions, both amounts and dates, and the deterministic signals already computed. It returns SAME / DIFFERENT / AMBIGUOUS with a confidence, and `policy.py` decides what that's worth.
+
+Anything falling through all three is a genuine absence, which is an
+EXCEPTION rather than an ambiguity.
+
+Why IDF weighting matters: settlement descriptions are template text.
+Ranking on plain word overlap means shared boilerplate ("payment for
+order customer checkout") outranks the real counterpart. That is not
+hypothetical — it is the bug this system shipped with, and it is written
+up in full in [docs/ENGINEERING_FAILURES_AND_FIXES.md](docs/ENGINEERING_FAILURES_AND_FIXES.md).
+
+## Does the model actually earn its place?
+
+Worth asking directly, because "we put an LLM in it" is not an
+architecture. `benchmark_matching.py` runs the real decision path under
+four configurations against a 240-example development benchmark, built
+so that **amount alone cannot solve it** — half the true matches sit
+beside a distractor with an identical amount, and half the non-matches
+have a candidate whose amount matches exactly.
+
+| Configuration | Accuracy | True-match recall | Correct rejection | Wrong match | Model calls / 1k |
+|---|---:|---:|---:|---:|---:|
+| **A** exact reference only | 60.8% | 21.7% | 100.0% | 0.0% | 0 |
+| **B** + deterministic corroborated | 77.9% | 55.8% | 100.0% | 0.0% | 0 |
+| **C** + heuristic semantic | 64.6% | **89.2%** | **40.0%** | 0.0% | 642 |
+| **D** + Gemini semantic | **87.5%** | 75.0% | **100.0%** | 0.0% | 654 |
+
+Read C and D together, because C is the trap. The heuristic gets the
+highest recall in the table and it does it by saying SAME too easily:
+correct rejection collapses to 40%, and it fails every hard rejection
+outright — `sequential_orders` (adjacent order numbers, same customer,
+same product, minutes apart, same amount) 0%, `reference_core_collision`
+0%, `near_duplicate_different` 0%. On those three, Gemini scores 100%.
+
+So the model buys +19.2 points of recall over deterministic-only while
+holding correct rejection at 100% and wrong matches at zero. That is the
+part a fixed rule set could not do here.
+
+It is not free, and it is not uniformly better. Latency goes from
+sub-millisecond to a p50 of ~1s (p95 sits at the 10s timeout ceiling,
+meaning some calls do time out and correctly degrade to HUMAN_REVIEW),
+and it costs ~654 calls per 1,000 records at this benchmark's difficulty
+— which is far denser in ambiguity than the real distribution, where
+model invocation runs around 5%. Converting calls to a currency figure
+needs the account's pricing tier, so the call count is reported and the
+cost is not invented.
+
+The clearest failure is `product_alias`, 0% for every configuration
+including Gemini: references share nothing, the product is recorded under
+a synonym, and only amount and date link the two. Nothing in this system
+currently gets those, and they are counted as failures rather than
+excluded.
+
+The metric that settles it is not accuracy on its own. It is recall and
+correct rejection together, because a component can buy one by wrecking
+the other — and the heuristic fallback does exactly that.
+
+## Results
+
+Two held-out evaluations, each run once, neither used for tuning.
+
+**V1** is the original system, frozen at commit `86318d6`. Because the
+generator itself changed during hardening, a seed no longer reproduces
+it, so the dataset bytes, both reports, and a SHA256 for each are
+archived in `backend/evaluations/v1/` and checked by
+`verify_evaluation_v1.py --rerun`, which re-runs it at its pinned commit.
+
+**V2** is the hardened system on a dataset generated afterwards with a
+new seed. Same generator on purpose: an improved generator would have
+made the two incomparable, since any movement could be the engine
+improving or the test getting easier.
+
+<!-- V2_TABLE -->
+
+## What's real and what's generated
+
+The Razorpay integration is real and it does not return any data. Both
+halves of that were verified rather than assumed:
+
+```
+client.order.create({...})     -> order_TXwOqE2JuvpyeF, status 'created'   (works)
+client.order.fetch(...)        -> full order returned                      (works)
+client.settlement.all(...)     -> count 0, items []
+client.settlement.report(...)  -> count 0, items []
+client.payment.all(...)        -> count 0, items []
+```
+
+Credentials and the client are fine. What can't be produced is the
+settlement side: a settlement exists only after a payment is captured
+through the browser checkout flow *and* a real bank settlement cycle
+runs. Neither is reachable from a server-side test-mode API call, so no
+supported sandbox workflow yields representative settlement, fee or
+adjustment records.
+
+So the engine runs on generated data, and the boundary is explicit rather
+than implied. `settlement_source.py` defines one interface with two
+implementations, each reporting its own provenance; `GET /data-sources`
+exposes it and the console renders it as a banner. Full probe and
+reasoning in [docs/RAZORPAY_INTEGRATION.md](docs/RAZORPAY_INTEGRATION.md).
+
+## Running it
+
+Python 3.11+ and Node 18+.
+
+```bash
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+
+cd backend
+python data/generate_dataset.py --seed 20260903 --total 5000
+cp .env.example .env          # GEMINI_API_KEY and RAZORPAY_* are optional
+uvicorn app.main:app --port 8000
+
+# separate terminal
+cd frontend && npm install && npm run dev   # http://localhost:5173
+```
+
+Without `GEMINI_API_KEY` the semantic step falls back to a deterministic
+heuristic. That is a real fallback, not a stub — the ablation above
+measures exactly what it costs you.
+
+## Verifying it
+
+```bash
+cd backend
+python -m pytest tests/ -q                                   # 86 tests
+python verify_evaluation_v1.py --rerun                       # V1 still reproduces
+python evaluate.py --dataset holdout                         # held-out evaluation
+python benchmark_matching.py                                 # tier ablation
+python stress_test.py --sizes 1000 5000 10000 50000          # throughput, not accuracy
+
+cd ../frontend
+npm run build
+node e2e/verify-ui.mjs                                       # 22 browser checks
+```
+
+The browser check drives a real Chromium against the running stack. It
+found three defects that every backend test passed through, including an
+audit view rendering an empty feed next to a chain reporting 102 events.
+
+## Scale
+
+Deterministic backend, so this measures the pipeline rather than
+Google's network latency.
+
+| Records | Settlement pool | Wall clock | Throughput | p50 | p95 | p99 | Peak RSS |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1,000 | 960 | 0.10 s | 10,394/s | 0.010 ms | 0.97 ms | 1.43 ms | 42 MB |
+| 5,000 | 4,800 | 1.00 s | 4,997/s | 0.010 ms | 2.19 ms | 3.05 ms | 94 MB |
+| 10,000 | 9,600 | 2.13 s | 4,705/s | 0.010 ms | 2.33 ms | 3.20 ms | 158 MB |
+| 50,000 | 48,000 | 11.43 s | 4,376/s | 0.010 ms | 2.38 ms | 3.32 ms | 664 MB |
+
+| Step | Records | Time | |
+|---|---|---|---|
+| 1k → 5k | 5x | 10.6x | super-linear (below the scan bound) |
+| 5k → 10k | 2x | 2.1x | linear |
+| 10k → 50k | 5x | 5.4x | linear |
+
+Candidate search used to be records × settlement population; 5,000
+records took 2.18s before the amount and reference-core indexes and the
+bounded window scan, and 0.99s after. The 664 MB at 50k is the ceiling
+worth watching — a batch holds every record, the whole settlement
+population, and every result in memory at once.
+
+Read that step by step, not first-to-last: the smallest batch runs before
+the window-scan bound engages, so a 1k→50k ratio overstates the growth.
+Roughly flat throughput as the population grows is the real evidence.
+
+This measures speed, not correctness. Processing 50,000 synthetic records
+says nothing about 50,000 real reconciliations.
+
+## Limitations
+
+Stated plainly rather than buried:
+
+- **No real merchant data has ever been processed.** Every accuracy number here is against synthetic records.
+- **The fee model is simplified** — flat 2% plus 18% GST on the fee. Real MDR varies by payment method, merchant category, and negotiated rate. The arithmetic consistency check (`net = gross − fee − tax − refund`) generalises to any fee structure; the specific rate in the generator does not.
+- **The generator's ambiguous cases are easier than real ones.** They embed the order number in both descriptions, so the identifier is usually recoverable. The 240-example benchmark exists to cover the harder variation, and its numbers are the more honest read on the semantic layer.
+- **Policy thresholds are defaults, not calibrated** against any real risk tolerance. They're configurable, and every decision records which threshold applied.
+- **The model-backed numbers are not byte-reproducible.** Temperature 0 is not a determinism guarantee across time.
+- **One settlement can still be claimed by two merchant records.** Each record is judged alone and both can look reconciled. `detect_duplicate_claims` surfaces it; nothing resolves it yet. That's a real open problem, not an oversight.
+- **This is not fraud detection.** It reconciles bookkeeping discrepancies and makes no attempt to be anything more.
+
+## Repository layout
 
 ```
 backend/
   app/
-    domain/models.py        MerchantRecord, RazorpaySettlementRecord, PolicyConfig,
-                             CheckResult, ReconciliationResult — the whole data model
+    domain/models.py        records, results, and PolicyConfig — every threshold in one place
     engine/
-      normalize.py           reference/text/amount normalization (deterministic)
-      matching.py             candidate resolution: exact reference index -> fuzzy
-                               token-overlap -> semantic (Gemini) fallback, in that
-                               order, with a real enforced timeout on the model call
-      semantic.py              the ONE place an LLM is used — narrow, structured,
-                               confidence-scored, never money-deciding on its own
-      policy.py                 the decision core: runs the deterministic checks,
-                               aggregates them into RECONCILED / EXCEPTION / HUMAN_REVIEW
-      batch.py                   shared batch-processing loop — used identically by
-                               evaluate.py and the API's live batch endpoint
-    ledger/
-      db.py, audit.py, store.py   SQLite + a receiver-attested hash-chained audit log
-                               (the audit.py module is domain-agnostic — reused as-is)
-    integrations/
-      razorpay_settlements.py      real Razorpay Settlements API client (see below
-                               for why it can't be demonstrated against live data)
-    api/routes.py                FastAPI: batch run + SSE progress, record detail,
-                               evaluation report, audit stream/verify
-
-  data/
-    generate_dataset.py        synthetic dataset generator (deterministic, seeded)
-    datasets/                  generated dev.jsonl / holdout.jsonl / razorpay_pool.jsonl
-    eval_reports/               evaluate.py's machine-readable output
-
-  evaluate.py                  terminal evaluation harness — the numbers below come
-                             from running this against the held-out set, nothing
-                             is hand-entered
-  tests/                       exact matches, fee/tax normalization, partial refunds,
-                             delayed settlements, missing settlements, duplicate
-                             references, ambiguous matching, AI failure fallback,
-                             timeout handling, invalid data, policy threshold
-                             enforcement, audit integrity, batch resilience
-
-frontend/                      React + Vite finance-operations console — live batch
-                             progress via real SSE (never simulated), a record
-                             inspector, and the audit trail
+      normalize.py          reference/text/amount normalization, IDF weighting
+      matching.py           tiered candidate resolution, indexes, enforced timeout
+      semantic.py           the one place a model is used
+      policy.py             the decision core; the confidence gate lives here
+      batch.py              shared batch loop + cross-record collision detection
+    ledger/                 SQLite + hash-chained audit log
+    integrations/           real Razorpay client, and the synthetic/live boundary
+    api/routes.py           batch runs, SSE progress, record detail, audit, provenance
+  data/                     dataset + benchmark generators
+  evaluations/v1/           frozen V1: dataset bytes, reports, checksums, pinned commit
+  evaluate.py               held-out evaluation
+  benchmark_matching.py     tier ablation
+  stress_test.py            throughput evaluation
+  verify_evaluation_v1.py   V1 integrity + re-run at pinned commit
+  tests/                    86 tests
+frontend/
+  src/components/           console, record inspector, audit trail
+  e2e/verify-ui.mjs         real-browser verification
+docs/
+  ENGINEERING_FAILURES_AND_FIXES.md
+  EVALUATION_METHODOLOGY.md
+  RAZORPAY_INTEGRATION.md
+  MANUAL_QA.md
 ```
-
-### The two things that matter most about the design
-
-**Deterministic first, AI narrow and gated.** Every check — reference
-match, gross amount, fee/tax arithmetic, settlement timing, refund
-consistency — is a plain comparison against an explicit tolerance. The
-model is only ever called when a merchant record's reference doesn't
-match anything exactly, deterministic token-overlap can't confidently
-resolve it either, and there's at least one Razorpay record nearby (in
-time) with *some* plausible textual overlap. Even then, its verdict
-can't reconcile a record on its own: `PolicyConfig.ai_confidence_threshold`
-(default 0.85) is enforced in `policy.py`, not left to the model to
-self-limit — a confident-sounding match below that threshold is routed
-to HUMAN_REVIEW regardless.
-
-**Failure degrades safely, never silently.** A provider timeout or error
-during the semantic call is its own outcome — HUMAN_REVIEW, with the
-reason naming the failure — never a crash, and never a silent
-RECONCILED. The semantic call itself is wrapped in a real
-`ThreadPoolExecutor`-based timeout (`SEMANTIC_CALL_TIMEOUT_SECONDS`,
-10s), not just trusting the SDK's own client timeout, so one hung call
-can't stall a batch of thousands of records. See
-`tests/test_reconciliation.py::test_timeout_handling_bounds_a_hanging_provider`,
-which monkeypatches the timeout down and proves the wrapper — not the
-simulated provider's own eventual failure — is what actually cuts it
-off.
-
-## BUILT
-
-Components that exist and run, verified by the test suite and the
-evaluation run below — not aspirational:
-
-- Deterministic normalization (reference, text, amount, date) — `engine/normalize.py`
-- Exact-reference candidate index, amount-plausibility-filtered fuzzy fallback, semantic (Gemini) fallback with a real enforced timeout — `engine/matching.py`
-- Policy-gated decision engine producing RECONCILED / EXCEPTION / HUMAN_REVIEW with a named reason and full check evidence — `engine/policy.py`
-- Batch-resilient processing (one record's unexpected failure can't take down the batch) — `engine/batch.py`
-- Receiver-attested, hash-chained audit ledger with a tamper-detection self-test — `ledger/audit.py`
-- Real Razorpay Settlements API integration client (see below for why it returns empty in this environment)
-- Terminal evaluation harness producing a reproducible JSON report — `evaluate.py`
-- FastAPI backend: batch run with real SSE progress, per-record detail (merchant record, matched Razorpay record, every check, AI involvement, audit history), evaluation report endpoint
-- React finance-operations console: live stats, batch control with real backend-driven progress, a filterable records table, a record inspector, and the audit trail
-- 31 backend tests covering every category the product spec named by name (see `backend/tests/`)
-
-## SYNTHETIC EVALUATION
-
-The dataset (`backend/data/generate_dataset.py`) is fully synthetic,
-deterministically generated from a fixed seed, with ground truth assigned
-from the *problem definition* of each category at construction time —
-never by running the engine and recording what it happened to output.
-That's what makes the accuracy numbers below a real measurement instead
-of a tautology.
-
-**5,000 records**, stratified 80/20 into dev (used for all iteration) and
-a **held-out set touched exactly once** for the numbers below — see
-"Process discipline" below for exactly how that was enforced.
-
-| Category | Records | Expected outcome |
-|---|---:|---|
-| clean_match | 2,750 | RECONCILED |
-| fee_tax_rounding | 500 | RECONCILED (rounding within tolerance) |
-| delayed_settlement_normal | 400 | RECONCILED |
-| delayed_settlement_excessive | 150 | EXCEPTION (delay beyond policy) |
-| partial_refund | 350 | RECONCILED |
-| refund_mismatch | 100 | EXCEPTION |
-| missing_settlement | 300 | EXCEPTION |
-| amount_mismatch | 250 | EXCEPTION |
-| duplicate_reference | 100 | HUMAN_REVIEW (amount can't disambiguate) |
-| ambiguous_text_reference (fuzzy-resolvable) | ~32 | RECONCILED, resolved deterministically |
-| ambiguous_text_reference (needs real semantic judgment, genuine match) | ~41 | RECONCILED, needs the model |
-| ambiguous_text_reference (decoy — different transaction, superficial overlap) | ~27 | EXCEPTION, needs the model to reject it |
-
-### Held-out evaluation results
-
-Run once, with `GEMINI_API_KEY` set (real Gemini calls, not the heuristic
-fallback), against `dataset_version=dcf754f76ce3ee6e4d811ec2cdf1a1988a075f411cd894f11a3bcb0b7329e433`,
-`seed=20260903`, 999 held-out records. Raw report: `backend/data/eval_reports/gemini_holdout.json`.
-
-| Metric | Value |
-|---|---:|
-| Reconciliation accuracy | 97.7% |
-| Exception precision | 95.5% |
-| Exception recall | 90.9% |
-| **False auto-reconciliation rate** | **0.0%** |
-| False exception rate | 0.9% |
-| Auto-reconciled | 80.7% |
-| Routed to human review | 3.6% |
-| Flagged as exception | 15.7% |
-| AI invocation rate | 7.1% |
-| Throughput | 2.4 records/sec (real Gemini network calls) |
-| p50 latency | 0.04 ms |
-| p95 latency | 3,881.95 ms |
-
-**The number that matters most for a finance system is the first bolded
-row: 0.0%.** Across all 999 held-out records, not one was ever
-auto-reconciled when it shouldn't have been — every error the system
-made was on the conservative side (EXCEPTION or HUMAN_REVIEW when the
-truth was RECONCILED), never the reverse.
-
-Where the errors are concentrated: `ambiguous_text_reference_semantic_true_match`
-(8 held-out records — genuinely the same transaction, but with only
-moderate textual overlap, needing real semantic judgment) is where
-Gemini's verdict disagreed with ground truth most: 7 of 8 were called
-DIFFERENT and correctly-but-wrongly resolved to EXCEPTION, 1 was
-HUMAN_REVIEW, 0 were RECONCILED. That single 8-record category accounts
-for essentially all of the 0.9% false-exception rate (7 of the ~814
-truly-RECONCILED held-out records). `ambiguous_text_reference_semantic_decoy`
-(5 records — a genuinely different transaction with superficial word
-overlap, which should be rejected) fared better: 3 of 5 correctly
-resolved to EXCEPTION, 2 to HUMAN_REVIEW, 0 wrongly RECONCILED. Every
-other category resolved exactly as the category table above predicts.
-This is a real, measured limitation of the semantic classifier on the
-hardest 1.3% of the distribution — not a threshold that was loosened or
-tightened in response to it. See "Process discipline" below for why
-nothing was changed after seeing this.
-
-Regenerate with:
-
-Regenerate with:
-
-```bash
-cd backend
-python data/generate_dataset.py --seed 20260903 --total 5000   # deterministic; only needed once
-python evaluate.py --dataset holdout
-```
-
-### Semantic classifier: heuristic fallback vs. Gemini
-
-The one non-deterministic component is evaluated on its own, separately
-from the end-to-end outcome accuracy above, because it's the one place a
-plain accuracy number would hide the metric that actually matters for a
-finance system: how often something genuinely different gets confidently
-called the same transaction.
-
-Both backends were run against the identical 999-record held-out set —
-same candidates, same policy, same threshold — the only variable is
-which `SemanticVerifier` implementation `app/engine/semantic.py`
-selected. Reports: `backend/data/eval_reports/gemini_holdout.json` /
-`heuristic_holdout.json`.
-
-| | Heuristic fallback | Gemini (`gemini-3.5-flash-lite`) |
-|---|---:|---:|
-| Reconciliation accuracy (whole set) | 99.2% | 97.7% |
-| False auto-reconciliation rate | 0.0% | 0.0% |
-| False exception rate | 1.0% | 0.9% |
-| Routed to human review | 2.0% | 3.6% |
-| `semantic_true_match` correctly RECONCILED | 0 / 8 | 0 / 8 |
-| `semantic_decoy` correctly rejected (EXCEPTION) | 5 / 5 | 3 / 5 |
-| Throughput | 3,743 records/sec | 2.4 records/sec |
-| p95 latency | 3.1 ms | 3,882 ms |
-
-Two honest things this table says, neither of them flattering to either
-backend:
-
-1. **Neither backend recovers the genuinely-ambiguous true-match case in
-   this dataset** (0/8 for both). The construction deliberately keeps
-   textual overlap in the "moderate" band — enough to reach the semantic
-   step, not enough for either a pure-Jaccard heuristic or a
-   temperature-0, deliberately-conservative-prompted LLM to confidently
-   call it SAME. Both back off instead of guessing (Gemini splits
-   7 EXCEPTION / 1 HUMAN_REVIEW; the heuristic sends all 8 to EXCEPTION,
-   since its DIFFERENT threshold is lower and it never emits AMBIGUOUS
-   for these specific records) — safe in both cases, correct in neither.
-2. **The heuristic actually scores higher on raw accuracy here**,
-   because it's more decisive (0% of ambiguous cases become
-   HUMAN_REVIEW) and that decisiveness happens to land on the right side
-   for `semantic_decoy` on this seed. That is not evidence the heuristic
-   is the better component — it has no real judgment, just a fixed
-   Jaccard cutoff, and its confidence is hard-capped at 0.75 in
-   `HeuristicSemanticVerifier` specifically so `policy.py` never lets it
-   single-handedly reconcile anything. Gemini's willingness to say
-   AMBIGUOUS and route to a human, rather than confidently guess, is the
-   behavior this system's design explicitly wants from a model
-   component — it costs a fraction of a point of raw accuracy on this
-   held-out set and buys a hedge against confidently-wrong verdicts that
-   the heuristic structurally cannot express.
-
-### Process discipline
-
-Every threshold and design decision below was made by iterating against
-the **dev** split only:
-
-- Amounts were originally drawn from 11 fixed price points; this caused
-  unrelated transactions to coincidentally share an exact amount far
-  more often than any real system would, inflating false fuzzy-matches
-  on `missing_settlement` records. Found and fixed on dev (higher-entropy
-  amount generation) before the held-out set was touched.
-- The fuzzy-match candidate search originally ranked purely by text
-  overlap; an amount-plausibility pre-filter (0.5x-2x) was added after
-  dev-set inspection showed the same failure mode.
-
-The held-out set was evaluated exactly once against the system as
-actually configured (Gemini backend) — that run produced every number
-in the "Held-out evaluation results" table above, and no engine, policy,
-or dataset code changed afterward. One further run was made against the
-**same** held-out set with `GEMINI_API_KEY` unset, forcing the fixed
-heuristic fallback, solely to populate the comparison table below —
-`HeuristicSemanticVerifier` has no tunable parameters to fit against
-holdout results, so this is a controlled comparison of two already-fixed
-algorithms, not a second bite at tuning. If a future change is made to
-the engine, the correct process is: iterate on dev, re-run
-`evaluate.py --dataset holdout` once against the real configuration, and
-report whatever comes out — not the other way around.
-
-## NOT PRODUCTION VALIDATED
-
-Stated plainly, not buried:
-
-- **This has never processed a real merchant's data.** Every number
-  above is against a synthetic, generated dataset. It demonstrates that
-  the *architecture* — deterministic-first, AI-gated, policy-enforced,
-  audit-complete — behaves correctly against a controlled, labeled
-  distribution of the failure modes the product spec named. It is not a
-  claim about real-world merchant reconciliation accuracy, real fraud
-  prevention, or real financial savings.
-- **The fee/tax model is simplified**: a flat 2% fee + 18% GST-on-fee,
-  applied uniformly. Real Razorpay MDR varies by payment method,
-  merchant category, and negotiated rate. The *arithmetic consistency
-  check* (`net = gross - fee - tax - refund`) generalizes to any real fee
-  structure; the specific rate assumption in the data generator does
-  not.
-- **The synthetic dataset's product/description vocabulary is
-  deliberately small** (12 product names) so that coincidental textual
-  overlap between unrelated records is a real, present phenomenon to
-  test against — not eliminated by unrealistic textual diversity. This
-  is a deliberate stress-test choice, not an attempt to make the numbers
-  look better than they would on more varied real text.
-- **Policy thresholds (`PolicyConfig`) are defaults, not calibrated
-  against any real merchant's risk tolerance.** They are configurable
-  and every decision names which threshold was applied — see each
-  record's `policy_threshold` field — but the specific numbers (21-day
-  settlement window, 0.85 AI confidence gate, ±2 paise tolerance) are
-  reasonable starting points, not the product of real operational data.
-- **No claim of fraud prevention.** This system reconciles bookkeeping
-  discrepancies (fees, timing, refunds, references). It is not a fraud
-  detection system and makes no attempt to be one.
-
-## Razorpay integration — what's real, what isn't, and why
-
-`backend/app/integrations/razorpay_settlements.py` is a real,
-functioning client against Razorpay's actual Settlements API
-(`client.settlement.all()`), tested against mocked-but-realistically-shaped
-responses in `tests/test_razorpay_integration.py`. It is **not** a stub.
-
-It cannot be demonstrated against live data in this environment, and
-that's stated honestly rather than worked around. Verified directly
-against the project's own Razorpay test-mode account:
-
-```
->>> client.settlement.all()
-{'entity': 'collection', 'count': 0, 'items': [], 'has_more': False}
->>> client.payment.all({'count': 5})
-{'entity': 'collection', 'count': 0, 'items': []}
-```
-
-Razorpay's Settlements API only returns records for payments that were
-actually captured *and* have completed a real settlement cycle (a real
-bank settlement run, T+2/T+3 business days after capture). A fresh
-test-mode account with no real payment flow through it has nothing to
-fetch — that's a property of the sandbox, not a limitation of this
-client. Because of that, the reconciliation engine, dataset, and
-evaluation run entirely on the synthetic generator, clearly labeled as
-such throughout this README and the UI. A merchant's real Razorpay
-account — which does have real settlement history — could be pointed at
-this exact same integration module with no changes to the reconciliation
-engine itself.
-
-## Running it
-
-Requires Python 3.11+ and Node 18+.
-
-```bash
-# 1. Backend deps
-python3.11 -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements.txt
-
-# 2. Generate the dataset (deterministic — do this once)
-cd backend
-python data/generate_dataset.py --seed 20260903 --total 5000
-
-# 3. Backend
-cp .env.example .env   # add GEMINI_API_KEY / RAZORPAY_* if you have them — optional
-uvicorn app.main:app --port 8000
-
-# 4. Frontend (separate terminal)
-cd frontend && npm install && npm run dev
-# open http://localhost:5173
-```
-
-Optional environment variables (`backend/.env`):
-
-- `GEMINI_API_KEY` (+ optional `GEMINI_MODEL`, default `gemini-3.5-flash-lite`) — without it, the semantic classifier runs on a deterministic heuristic fallback (see the comparison table above).
-- `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — enables `razorpay_settlements.py`'s live API calls; see the integration section above for what this can and can't demonstrate in a fresh test-mode account.
-
-### Reproducing everything
-
-```bash
-cd backend
-python -m pytest tests/ -v                    # 31 tests
-python evaluate.py --dataset holdout           # the official, reported numbers
-python evaluate.py --dataset dev               # dev-set numbers, for reference only
-cd ../frontend && npm run build                # production build
-```
-
-## Demo
-
-1. **Console tab** — run a batch (holdout set, a few hundred records) and
-   watch the progress bar and outcome counts update live, driven entirely
-   by SSE events the backend emits per record as it's actually decided —
-   nothing in the frontend fabricates timing or progress.
-2. Click any record to see the merchant record, the matched Razorpay
-   record, every deterministic check with its actual expected/observed
-   values, whether the semantic classifier was invoked and its confidence
-   against the policy threshold, and the full audit history for that
-   record.
-3. **Audit Trail tab** — the same hash-chained ledger every decision
-   above was written into, with a one-click integrity self-test.
-4. Terminal: `python evaluate.py` prints the same metrics reported above,
-   freshly computed, plus per-category outcome breakdown.

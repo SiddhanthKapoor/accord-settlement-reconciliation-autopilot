@@ -103,6 +103,7 @@ def compute_metrics(records: list[ReconciliationRecord], results) -> dict:
         by_case[case][res.outcome.value] += 1
 
     ai_invoked_count = sum(1 for r in results if r.ai_invoked)
+    ai_calls_total = sum(r.ai_calls for r in results)
 
     return {
         "record_count": n,
@@ -117,6 +118,8 @@ def compute_metrics(records: list[ReconciliationRecord], results) -> dict:
         "pct_human_review": outcome_counts["HUMAN_REVIEW"] / n if n else 0.0,
         "pct_exception": outcome_counts["EXCEPTION"] / n if n else 0.0,
         "ai_invocation_rate": ai_invoked_count / n if n else 0.0,
+        "ai_calls_total": ai_calls_total,
+        "ai_calls_per_1000_records": (ai_calls_total / n * 1000) if n else 0.0,
         "p50_latency_ms": percentile(latencies, 0.50),
         "p95_latency_ms": percentile(latencies, 0.95),
         "outcome_counts": outcome_counts,
@@ -167,6 +170,7 @@ def main() -> int:
     print(f"{'Routed to human review':<38} {metrics['pct_human_review']:.1%}")
     print(f"{'Flagged as exception':<38} {metrics['pct_exception']:.1%}")
     print(f"{'AI invocation rate':<38} {metrics['ai_invocation_rate']:.1%}")
+    print(f"{'Model calls per 1,000 records':<38} {metrics['ai_calls_per_1000_records']:.0f}")
     print(f"{'Throughput':<38} {throughput:.1f} records/sec")
     print(f"{'p50 latency':<38} {metrics['p50_latency_ms']:.2f} ms")
     print(f"{'p95 latency':<38} {metrics['p95_latency_ms']:.2f} ms")
