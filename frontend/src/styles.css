@@ -402,3 +402,6 @@ summary:focus-visible,
 .kv-list dt { color: var(--faint); }
 .kv-list dd { margin: 0; }
 .row-pass { background: rgba(16, 150, 96, 0.06); }
+
+/* Rows are real controls: focusable, and visibly so. */
+.records-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

@@ -56,16 +56,16 @@ export default function AuditTrail() {
   return (
     <div className="page">
       <div className="page-header">
-        <div className="page-title">Audit Trail</div>
-        <div className="page-subtitle">
+        <h1 className="page-title">Audit Trail</h1>
+        <p className="page-subtitle">
           Every reconciliation decision is written by the engine itself into a hash-chained,
           receiver-attested ledger — never inferred from the UI, never editable after the fact.
-        </div>
+        </p>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div className="card-title" style={{ marginBottom: 0 }}>Chain integrity</div>
+          <h2 className="card-title" style={{ marginBottom: 0 }}>Chain integrity</h2>
           <button className="btn-small" onClick={handleVerify} disabled={verifying}>
             {verifying ? "Verifying…" : "Verify chain integrity"}
           </button>
@@ -86,11 +86,15 @@ export default function AuditTrail() {
       </div>
 
       <div className="card">
-        <div className="card-title">Event ledger ({events.length})</div>
+        <h2 className="card-title">Event ledger ({events.length})</h2>
         <div className="log-scroll table-scroll" ref={scrollRef}>
           <table className="audit-table">
+            <caption className="sr-only">Hash-chained audit events</caption>
             <thead>
-              <tr><th>#</th><th>Record / Batch</th><th>Event</th><th>State</th><th></th></tr>
+              <tr>
+                <th scope="col">#</th><th scope="col">Record / Batch</th><th scope="col">Event</th>
+                <th scope="col">State</th><th scope="col"><span className="sr-only">Expand</span></th>
+              </tr>
             </thead>
             <tbody>
               {events.map((e) => (

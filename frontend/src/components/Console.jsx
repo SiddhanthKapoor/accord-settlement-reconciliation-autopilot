@@ -80,11 +80,11 @@ export default function Console() {
   return (
     <div className="page">
       <div className="page-header">
-        <div className="page-title">Reconciliation Console</div>
-        <div className="page-subtitle">
+        <h1 className="page-title">Reconciliation Console</h1>
+        <p className="page-subtitle">
           Deterministic matching for everything that can be resolved mathematically; Gemini only for
           genuinely ambiguous reference matching, gated by a confidence threshold it can never override.
-        </div>
+        </p>
       </div>
 
       {dataSources && (
@@ -123,7 +123,7 @@ export default function Console() {
       </div>
 
       <div className="card" style={{ marginBottom: 22 }}>
-        <div className="card-title">Batch processing</div>
+        <h2 className="card-title">Batch processing</h2>
         <div className="batch-controls">
           <select className="select-field" value={dataset} onChange={(e) => setDataset(e.target.value)} disabled={running}>
             <option value="holdout">Held-out evaluation set</option>
@@ -168,7 +168,7 @@ export default function Console() {
       </div>
 
       <div className="card">
-        <div className="card-title">Records {batch ? `(${batch.label})` : ""}</div>
+        <h2 className="card-title">Records {batch ? `(${batch.label})` : ""}</h2>
         <div className="filter-row">
           {[null, "RECONCILED", "EXCEPTION", "HUMAN_REVIEW"].map((o) => (
             <button key={o || "all"} className={"btn-ghost" + (outcomeFilter === o ? " active" : "")} onClick={() => handleFilter(o)}>
@@ -178,15 +178,29 @@ export default function Console() {
         </div>
         <div className="table-scroll">
         <table className="records-table">
+          <caption className="sr-only">Reconciliation results for the current batch</caption>
           <thead>
-            <tr><th>Record</th><th>Merchant amount</th><th>Outcome</th><th>AI used</th><th>Reason</th></tr>
+            <tr>
+              <th scope="col">Record</th><th scope="col">Merchant amount</th>
+              <th scope="col">Outcome</th><th scope="col">AI used</th><th scope="col">Reason</th>
+            </tr>
           </thead>
           <tbody>
             {records.map((r) => (
               <tr
                 key={r.record_id}
                 className={"records-row" + (selectedRecordId === r.record_id ? " selected" : "")}
+                tabIndex={0}
+                role="button"
+                aria-label={`Open record ${r.record_id}, outcome ${r.outcome.replace("_", " ")}`}
+                aria-pressed={selectedRecordId === r.record_id}
                 onClick={() => setSelectedRecordId(r.record_id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedRecordId(r.record_id);
+                  }
+                }}
               >
                 <td className="mono">{r.record_id}</td>
                 <td className="mono">₹{(JSON.parse(r.merchant_json).amount_minor / 100).toLocaleString("en-IN")}</td>
