@@ -385,6 +385,77 @@ python benchmark_settlement_presence.py
 
 ---
 
+## The final evaluation
+
+### Why a new dataset was necessary
+
+V3 scored 100% with **zero** model invocations. That is not a statement
+about reconciliation being solved; it is a statement about the
+instrument. The V3 generator embedded the order number in both the
+reference and the description, so once identity evidence was used
+properly the identifier core recovered every ambiguous case and the
+semantic tier was never reached. A dataset a deterministic system scores
+100% on cannot measure anything above that system, and a further
+iteration against it would have been uninformative.
+
+`generate_final_dataset.py` withholds identity evidence for a substantial
+minority of records, the way real reconciliation data does:
+
+| Withheld how | Category | Share |
+|---|---|---:|
+| Truncated, consonant-stripped bank narration; reference is a UTR from a different numbering system | `bank_narration_match` | 7% |
+| Legal entity on the books, trading name on the statement | `merchant_alias_match` | 5% |
+| Two digits transposed within the same numbering system | `corrupted_reference` | 4% |
+
+16% of records require semantics by construction. The traps that punish
+naive matching are kept and strengthened: same amount different
+transaction, same amount *and* same date, adjacent invoice numbers at
+identical amounts, near duplicates minutes apart.
+
+Nothing leaks the answer. Where a case is meant to require semantics, no
+shared identifier exists anywhere in either record — not in the
+reference, not in the description.
+
+### Protocol
+
+- 4,000 records, seed 90210, stratified 75/25 into dev and holdout.
+- All investigation and every threshold decision happened on **dev**.
+- The holdout was evaluated with each of the two configurations once.
+- Two configurations, identical data, identical protocol:
+  **A** deterministic only (`enable_semantic_matching=False` equivalent —
+  the heuristic fallback), **B** deterministic + Gemini.
+
+Running the same holdout under two fixed configurations is a comparison
+of two already-frozen systems, not a second round of tuning. No
+implementation changed after either run.
+
+### One dataset bug, found and fixed on dev
+
+Transposing two identical digits is a no-op, so a "corrupted" reference
+was sometimes byte-identical to the real one and reconciled cleanly. That
+produced a 1.0% false auto-reconciliation rate attributable to the
+generator rather than the engine. Fixed on the dev split before the
+holdout was touched; the rate is now 0.0%.
+
+### Results
+
+<!-- METHODOLOGY_RESULTS -->
+
+### Earlier evaluations
+
+V1, V2 and V3 are frozen in `backend/evaluations/` with dataset bytes,
+SHA256 checksums, and the commit that produced each. They are not
+modified, and `verify_evaluation_v1.py --rerun` still reproduces all
+three deterministically at their pinned commits.
+
+They are engineering history rather than product claims. The one finding
+worth carrying forward is the mistake, not the numbers: an exact amount
+collision was being treated as evidence that two transactions belonged
+together, which is why retrieval and admissibility are now separate
+questions.
+
+---
+
 ## Metric definitions
 
 - **Reconciliation accuracy** — predicted outcome equals ground truth, over all records.

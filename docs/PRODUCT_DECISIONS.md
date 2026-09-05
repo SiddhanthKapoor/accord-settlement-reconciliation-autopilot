@@ -212,6 +212,103 @@ reconcile and the record would surface as an amount mismatch for a human
 
 ---
 
+## The product is not a Razorpay wrapper
+
+The engine was never gateway-specific: it compares two sides on amount,
+reference, date and text, and none of that cares where the rows came
+from. Only the *loading* was Razorpay-shaped.
+
+`app/ingest/` is the seam. Any CSV maps into one of two canonical roles —
+**ledger** (what the business believes happened) and **settlement** (what
+happened to the money) — and the engine is unchanged. A bank statement
+reconciles against an accounting export using the same code that
+reconciles a gateway payout against an order book.
+
+`MerchantRecord` and `RazorpaySettlementRecord` keep their names
+deliberately. Renaming them would churn the engine, the tests and three
+frozen evaluations for no behavioural gain. Read them as roles, not
+vendors.
+
+**The alternative** was a generic `Record` type with a bag of optional
+fields. Rejected: the two sides genuinely have different shapes — only
+one of them has a fee, a tax and a settlement date — and collapsing that
+into one nullable structure would have pushed the distinction into
+runtime checks scattered through the engine.
+
+---
+
+## Schema detection asks rather than guesses
+
+Detection reports a confidence and a reason per column, and a run will
+not start while a required column is unresolved.
+
+This is the one place where being unhelpful is correct. A reconciliation
+tool that quietly mis-reads an amount column produces confident, wrong
+financial output, and the error is invisible precisely because the
+output looks normal. Asking the user to confirm a column is a small cost;
+mis-reading one is not recoverable by anything downstream.
+
+Two consequences worth stating:
+
+- **Assignment is global, not first-come.** A header often fits several
+  slots, and which reading is right depends on what else the file
+  contains — `order_id` is the cross-system reference in a gateway export
+  and the file's own key in an order book. Assigning by column order got
+  this backwards and silently reconciled an order book against nothing.
+- **A stated net amount is kept, never recomputed.** Deriving
+  `net = gross − fee − tax` would make the arithmetic check verify a
+  subtraction the mapper had just performed, so a payout file that
+  genuinely does not add up could never fail it.
+
+---
+
+## Identifier namespaces, not just identifiers
+
+Reference *contradiction* — both sides naming a transaction, naming
+different ones — is strong negative evidence, and it is what stops
+amount-only coincidences being matched.
+
+But a bank UTR and an invoice number are both digit runs that will never
+agree, and their disagreement means nothing: they are different numbering
+systems. Treating that as contradiction rejected every genuine
+bank-statement match on principle.
+
+Contradiction now requires *comparable* identifiers, using width as the
+proxy — a counter issued by one system produces identifiers of consistent
+length. When two identifier sets are incomparable, the pair carries no
+identifier evidence either way, and amount and date can admit it for the
+model to judge.
+
+That single change is what gives the semantic tier a real job on bank
+data, and it is the difference between a product that reconciles gateway
+exports and one that reconciles bank statements.
+
+---
+
+## Aggregated settlements are proposed, never booked
+
+A bank credits one amount for several gateway payments, so an unmatched
+settlement can be the sum of unmatched orders.
+
+Deciding *which* orders make up a lump sum is subset-sum. With enough
+unmatched records several decompositions usually add up, and picking one
+would be a guess with money attached. So a grouping is reported only when
+it is the **unique** combination summing to the settlement within
+tolerance, and even then its members go to HUMAN_REVIEW with the proposed
+grouping attached rather than being matched.
+
+The search is bounded — groups of at most three, from records inside the
+window, with a hard cap on candidates. An unbounded search is
+exponential, and a run that hangs is worse than one that misses an
+aggregation.
+
+**Still not supported:** one payment split across several settlements.
+That would require changing the record model from one-to-one to
+one-to-many and reworking every check that assumes a single counterpart.
+It is not faked; such data surfaces as an amount mismatch for a human.
+
+---
+
 ## Thresholds are defaults, not calibration
 
 Every threshold lives in `PolicyConfig`, every decision records which one
