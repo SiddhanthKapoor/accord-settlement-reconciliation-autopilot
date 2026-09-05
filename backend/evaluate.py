@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -180,7 +181,20 @@ def main() -> int:
     for case, counts in sorted(metrics["outcome_by_ground_truth_case"].items()):
         print(f"{case:<45} {counts['RECONCILED']:>11} {counts['EXCEPTION']:>10} {counts['HUMAN_REVIEW']:>10}")
 
+    # The commit that produced these numbers, recorded by the run itself.
+    # Stamping it at freeze time instead let a freeze point at code that no
+    # longer reproduced its own report — caught by verify_evaluation_v1.py
+    # --rerun, which is what that check is for.
+    try:
+        code_commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parent,
+            text=True, stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:  # noqa: BLE001 — a report outside a checkout is still valid
+        code_commit = None
+
     report = {
+        "code_commit": code_commit,
         "dataset_version": manifest["dataset_version"],
         "dataset_split": args.dataset,
         "seed": manifest["seed"],

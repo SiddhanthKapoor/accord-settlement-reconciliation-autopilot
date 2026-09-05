@@ -58,6 +58,21 @@ def sha256(path: Path) -> str:
 def check_integrity(frozen: dict, V1_DIR: Path) -> list[str]:
     failures = []
 
+    # A freeze whose pinned commit did not produce its reports cannot be
+    # reproduced from that commit, and the --rerun check will disagree for
+    # reasons that look like a bug in the engine. Reports now carry the
+    # commit that produced them, so the two can be compared directly.
+    for report_name in ("report_gemini.json", "report_deterministic.json", "report_heuristic.json"):
+        report_path = V1_DIR / report_name
+        if not report_path.exists():
+            continue
+        produced_by = json.loads(report_path.read_text()).get("code_commit")
+        if produced_by and produced_by != frozen["code_commit"]:
+            failures.append(
+                f"{report_name} was produced by {produced_by[:12]} but the freeze pins "
+                f"{frozen['code_commit'][:12]} — the pinned commit will not reproduce it"
+            )
+
     for name, expected in frozen["checksums_sha256"].items():
         path = V1_DIR / name
         if not path.exists():
@@ -70,16 +85,26 @@ def check_integrity(frozen: dict, V1_DIR: Path) -> list[str]:
     # The headline metrics recorded in FROZEN.json must still agree with
     # the reports they were copied from -- catches a report being edited
     # without the summary being updated, or vice versa.
-    # V1 recorded headline metrics per backend; V2 and V3 record one flat
-    # set. Both shapes are checked against the report they came from.
-    headline = frozen["headline_metrics"]
-    per_backend = headline if all(isinstance(v, dict) for v in headline.values()) else {"gemini": headline}
+    # Three shapes across the frozen set: V1 records headline metrics per
+    # backend, V2/V3 record one flat set, and the final evaluation records
+    # a named configuration per backend. All are checked against the
+    # report they were copied from.
+    if "configurations" in frozen:
+        per_backend = {
+            "gemini" if key.endswith("gemini") else "deterministic": metrics
+            for key, metrics in frozen["configurations"].items()
+        }
+    else:
+        headline = frozen["headline_metrics"]
+        per_backend = headline if all(isinstance(v, dict) for v in headline.values()) else {"gemini": headline}
     for backend, metrics in per_backend.items():
         report_path = V1_DIR / f"report_{backend}.json"
         if not report_path.exists():
             continue
         report = json.loads(report_path.read_text())
         for metric, frozen_value in metrics.items():
+            if metric not in report["metrics"]:
+                continue          # descriptive fields like `backend`
             actual = report["metrics"][metric]
             if actual != frozen_value:
                 failures.append(f"{backend}.{metric}: FROZEN.json says {frozen_value}, report says {actual}")
@@ -126,11 +151,12 @@ def rerun_at_pinned_commit(frozen: dict, V1_DIR: Path, evaluation: str) -> list[
         rerun_report = json.loads((worktree / "backend" / "data" / "eval_reports" / report_name).read_text())
         # The deterministic report is the reproducible one; a Gemini run
         # calls a hosted model and is not byte-reproducible across time.
-        baseline = V1_DIR / "report_heuristic.json"
-        if not baseline.exists():
-            baseline = V1_DIR / "report_heuristic_new_engine.json"
-        if not baseline.exists():
-            baseline = V1_DIR / "report_gemini.json"
+        baseline = next(
+            (V1_DIR / name for name in ("report_heuristic.json", "report_heuristic_new_engine.json",
+                                        "report_deterministic.json", "report_gemini.json")
+             if (V1_DIR / name).exists()),
+            V1_DIR / "report_gemini.json",
+        )
         frozen_report = json.loads(baseline.read_text())
 
         failures = []
