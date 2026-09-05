@@ -11,11 +11,15 @@
     />
     <meta name="theme-color" content="#0B121C" />
 
-    <!-- PNG first for the platforms that prefer a raster mark; the existing
-         SVG stays as a fallback for anything that would rather scale it. -->
+    <!-- SVG first and marked `any`, so a browser that can scale it does,
+         at whatever density the tab actually needs. The PNGs are rendered
+         from that same SVG rather than drawn separately, so the three can
+         never drift apart — which is exactly what had happened: the SVG
+         still carried the previous product's mark, and because browsers
+         prefer SVG, that was the icon everyone saw. -->
+    <link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Paths are root-relative: there is no canonical domain for this build
          yet, and inventing one would put a dead URL in the card. -->

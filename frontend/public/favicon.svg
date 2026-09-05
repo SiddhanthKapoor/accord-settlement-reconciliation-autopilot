@@ -1,8 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#192839"/>
-  <!-- Same reconciliation waveform as the in-app brand mark: two ledgers
-       meeting at a peak. -->
-  <path d="M6 16h5.5l2.5-7 4.5 14 2.5-7H26"
-        stroke="#ffffff" stroke-width="2.4" fill="none"
-        stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Accord">
+  <!-- The product mark reduced for a tab: three sources converging on one
+       point, then an arrow. The full logo's curves and its large chevron
+       both dissolve at this size, so the streams are straightened and made
+       to meet at a single junction — that convergence is the idea the mark
+       has to carry, and it is the only part that survives 16px. The centre
+       keeps the emerald, as in the logo.
+
+       Padding is deliberately tight and the strokes heavy: a favicon is
+       composited into roughly 16 device pixels on a non-retina tab, and
+       generous whitespace there just produces a smaller, muddier glyph. -->
+  <rect width="32" height="32" rx="7.5" fill="#16202E"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+    <path d="M5.6 9.4h6.6l4.2 6.6" stroke="#F4F7F9"/>
+    <path d="M5.6 22.6h6.6l4.2-6.6" stroke="#F4F7F9"/>
+    <path d="M5.6 16h10.8" stroke="#00C389"/>
+    <path d="M21.6 10.6 26.8 16l-5.2 5.4" stroke="#F4F7F9"/>
+  </g>
 </svg>
