@@ -1,0 +1,14 @@
+payment_id,order_id,amount,fee,tax,net_amount,currency,created_at,settlement_date,status,description,refund_amount
+pay_AX9001,INV-2048,12500.00,250.00,45.00,12205.00,INR,2026-03-01,2026-03-03,captured,Payment for INV-2048 cloud platform,
+pay_AX9002,INV-2049,4300.50,86.01,15.48,4199.01,INR,2026-03-01,2026-03-03,captured,Payment for INV-2049 SoundMax Pro,
+pay_AX9003,INV-2050,899.00,17.98,3.24,877.78,INR,2026-03-02,2026-03-04,captured,Payment for INV-2050 starter plan,
+pay_AX9004,INV-2051,24999.00,499.98,90.00,24409.02,INR,2026-03-02,2026-03-04,captured,Payment for INV-2051 onboarding,
+pay_AX9005,INV-2052,1750.00,35.00,6.30,1708.70,INR,2026-03-03,2026-03-05,captured,Payment for INV-2052 priority support,
+pay_AX9006,INV-2053,6300.00,126.00,22.68,6151.32,INR,2026-03-03,2026-03-05,captured,Payment for INV-2053 team seats,
+pay_AX9007,INV-2054,15400.00,308.00,55.44,15036.56,INR,2026-03-04,2026-03-06,captured,Payment for INV-2054 data export,
+pay_AX9008,INV-2055,2200.00,44.00,7.92,2148.08,INR,2026-03-04,2026-03-06,captured,Payment for INV-2055 widget bundle,
+pay_AX9009,INV-2056,8750.00,175.00,31.50,8543.50,INR,2026-03-05,2026-03-07,captured,Payment for INV-2056 consulting,
+pay_AX9014,INV-2061,7700.00,980.00,176.40,6800.00,INR,2026-03-07,2026-03-09,captured,Payment for INV-2061 pro subscription,
+pay_AX9015,INV-2062,1200.00,24.00,4.32,1171.68,INR,2026-03-08,2026-03-10,captured,Payment for INV-2062 licence fee,
+pay_AX9016,INV-2063,3300.00,66.00,11.88,3222.12,INR,2026-03-09,2026-03-11,captured,Payment for INV-2063 membership,
+pay_AX9018,INV-2064,11000.00,220.00,39.60,8240.40,INR,2026-03-10,2026-03-12,partially_refunded,Payment for INV-2064 widget bundle premium,2500.00

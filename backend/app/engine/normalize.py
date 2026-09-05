@@ -79,6 +79,28 @@ def reference_cores(*values: str | None) -> set[str]:
     return cores
 
 
+def references_comparable(a_cores: set[str], b_cores: set[str]) -> bool:
+    """Are these two identifier sets drawn from the same numbering system?
+
+    A merchant invoice number and a bank UTR are both digit runs, and they
+    will never agree — but their disagreement means nothing, because they
+    are not the same kind of identifier. Treating that as contradiction
+    would reject every genuine bank-statement match on principle.
+
+    Width is the available proxy: a counter issued by one system produces
+    identifiers of consistent length, so `INV-2057` (4 digits) and
+    `UTR774120` (6 digits) are not comparable, while `ORD-2057` and
+    `RZP/2058/S` are. Crude, but it fails in the safe direction — when the
+    two are judged incomparable the pair simply loses its identifier
+    evidence and has to be carried by other signals or by the model.
+    """
+    if not a_cores or not b_cores:
+        return False
+    widths_a = {len(c) for c in a_cores}
+    widths_b = {len(c) for c in b_cores}
+    return bool(widths_a & widths_b)
+
+
 def token_document_frequencies(texts: list[str]) -> Counter:
     """How many of these texts each token appears in. Used to down-weight
     boilerplate — see `weighted_jaccard`."""

@@ -85,6 +85,27 @@ CREATE INDEX IF NOT EXISTS idx_records_outcome ON records(batch_id, outcome);
 CREATE INDEX IF NOT EXISTS idx_records_record ON records(record_id, processed_at);
 CREATE INDEX IF NOT EXISTS idx_records_review ON records(batch_id, review_state, severity);
 
+-- A run is a reconciliation over one or more uploaded sources. `batches`
+-- remains for the dataset-driven evaluation path; a run that came from
+-- uploads carries its sources here and reuses the same batch_id, so the
+-- results, review queue and audit trail are one set of tables rather than
+-- a parallel universe for uploaded data.
+CREATE TABLE IF NOT EXISTS run_sources (
+    source_id TEXT PRIMARY KEY,
+    batch_id TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    role TEXT NOT NULL,
+    row_count INTEGER NOT NULL,
+    accepted_count INTEGER NOT NULL DEFAULT 0,
+    rejected_count INTEGER NOT NULL DEFAULT 0,
+    mapping_json TEXT NOT NULL,
+    detection_json TEXT NOT NULL,
+    raw_csv TEXT NOT NULL,
+    uploaded_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_run_sources_batch ON run_sources(batch_id);
+
 CREATE TABLE IF NOT EXISTS audit_log (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT NOT NULL,

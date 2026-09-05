@@ -266,8 +266,9 @@ def score_candidate(
     # fields; a number occurring in free text is not an identifier claim.
     merchant_ref_cores = normalize.reference_cores(merchant.reference_id)
     candidate_ref_cores = normalize.reference_cores(candidate.order_reference)
+    comparable = normalize.references_comparable(merchant_ref_cores, candidate_ref_cores)
     reference_contradiction = bool(
-        merchant_ref_cores and candidate_ref_cores and not (merchant_ref_cores & candidate_ref_cores)
+        comparable and not (merchant_ref_cores & candidate_ref_cores)
     )
 
     days_apart = normalize.days_between(merchant.order_date, candidate.order_date)
@@ -296,7 +297,10 @@ def score_candidate(
 
     admissible, reason = _assess_admissibility(
         policy, amount_exact, shared_core, reference_contradiction, within_window, text,
-        has_any_reference_identifier=bool(merchant_ref_cores or candidate_ref_cores),
+        # Incomparable identifiers are no evidence either way, so the pair
+        # is treated as carrying none — which lets amount and date admit it
+        # for the model to judge, rather than dismissing it outright.
+        has_any_reference_identifier=comparable,
     )
 
     return CandidateSignals(

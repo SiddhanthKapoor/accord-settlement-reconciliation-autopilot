@@ -36,10 +36,101 @@ def get_batch(batch_id: str) -> Optional[dict]:
     return dict(row) if row else None
 
 
+def list_batches(limit: int = 20) -> list[dict]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM batches ORDER BY started_at DESC LIMIT ?", (limit,)
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["outcome_counts"] = batch_outcome_counts(d["batch_id"])
+        out.append(d)
+    return out
+
+
+def set_batch_total(batch_id: str, total: int, label: str) -> None:
+    """A run's size is only known once its sources are mapped, so the row
+    is created empty and sized at execution."""
+    conn = get_conn()
+    conn.execute(
+        "UPDATE batches SET total_records=?, label=?, status='RUNNING', processed_records=0 WHERE batch_id=?",
+        (total, label, batch_id),
+    )
+
+
 def get_latest_batch() -> Optional[dict]:
     conn = get_conn()
     row = conn.execute("SELECT * FROM batches ORDER BY started_at DESC LIMIT 1").fetchone()
     return dict(row) if row else None
+
+
+# ---------------------------------------------------------------------------
+# Uploaded sources
+# ---------------------------------------------------------------------------
+
+def save_source(
+    source_id: str, batch_id: str, filename: str, source_type: str, role: str,
+    row_count: int, mapping: dict, detection: dict, raw_csv: str,
+) -> None:
+    conn = get_conn()
+    conn.execute(
+        """INSERT OR REPLACE INTO run_sources
+           (source_id, batch_id, filename, source_type, role, row_count, accepted_count,
+            rejected_count, mapping_json, detection_json, raw_csv, uploaded_at)
+           VALUES (?,?,?,?,?,?,0,0,?,?,?,?)""",
+        (source_id, batch_id, filename, source_type, role, row_count,
+         json.dumps(mapping), json.dumps(detection, default=str), raw_csv,
+         datetime.now(timezone.utc).isoformat()),
+    )
+
+
+def update_source_mapping(source_id: str, mapping: dict, source_type: str, role: str) -> None:
+    conn = get_conn()
+    conn.execute(
+        "UPDATE run_sources SET mapping_json=?, source_type=?, role=? WHERE source_id=?",
+        (json.dumps(mapping), source_type, role, source_id),
+    )
+
+
+def record_source_outcome(source_id: str, accepted: int, rejected: int) -> None:
+    conn = get_conn()
+    conn.execute(
+        "UPDATE run_sources SET accepted_count=?, rejected_count=? WHERE source_id=?",
+        (accepted, rejected, source_id),
+    )
+
+
+def list_sources(batch_id: str, include_raw: bool = False) -> list[dict]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM run_sources WHERE batch_id=? ORDER BY uploaded_at ASC", (batch_id,)
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["mapping"] = json.loads(d.pop("mapping_json"))
+        d["detection"] = json.loads(d.pop("detection_json"))
+        if not include_raw:
+            d.pop("raw_csv", None)
+        out.append(d)
+    return out
+
+
+def get_source(source_id: str) -> Optional[dict]:
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM run_sources WHERE source_id=?", (source_id,)).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["mapping"] = json.loads(d.pop("mapping_json"))
+    d["detection"] = json.loads(d.pop("detection_json"))
+    return d
+
+
+def delete_source(source_id: str) -> None:
+    conn = get_conn()
+    conn.execute("DELETE FROM run_sources WHERE source_id=?", (source_id,))
 
 
 def save_record(

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
+from app.api.runs import router as runs_router
 from app.config import CORS_ORIGINS
 from app.ledger.db import init_db
 
@@ -29,3 +30,4 @@ def _startup() -> None:
 
 
 app.include_router(router)
+app.include_router(runs_router)
