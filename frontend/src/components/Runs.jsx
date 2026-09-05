@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getLatestEvaluation, listRuns } from "../api.js";
 import { listIndexDelay, pageTransition, riseIn } from "../motion.js";
 import NewRun from "./NewRun.jsx";
+import RunDetail from "./RunDetail.jsx";
 
 const OUTCOME_COLOR = {
   RECONCILED: "var(--pass)",
@@ -14,9 +15,10 @@ function money(minor) {
   return `₹${((minor || 0) / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
-export default function Runs({ onOpenRun }) {
+export default function Runs() {
   const [runs, setRuns] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [openRunId, setOpenRunId] = useState(null);
   const [evaluation, setEvaluation] = useState(null);
 
   const load = useCallback(() => {
@@ -30,13 +32,24 @@ export default function Runs({ onOpenRun }) {
     getLatestEvaluation("v3").then(setEvaluation).catch(() => {});
   }, [load]);
 
+  if (openRunId) {
+    return (
+      <RunDetail
+        runId={openRunId}
+        onBack={() => {
+          setOpenRunId(null);
+          load();
+        }}
+      />
+    );
+  }
+
   if (creating) {
     return (
       <NewRun
         onRunStarted={(runId) => {
           setCreating(false);
-          load();
-          onOpenRun?.(runId);
+          setOpenRunId(runId);
         }}
       />
     );
@@ -114,7 +127,7 @@ export default function Runs({ onOpenRun }) {
                   {...riseIn}
                   transition={{ ...riseIn.transition, delay: listIndexDelay(i) }}
                 >
-                  <button type="button" className="run-row" onClick={() => onOpenRun?.(run.batch_id)}>
+                  <button type="button" className="run-row" onClick={() => setOpenRunId(run.batch_id)}>
                     <span className={`status-pill status-${(run.status || "draft").toLowerCase()}`}>
                       {run.status}
                     </span>

@@ -40,13 +40,18 @@ export default function NewRun({ onRunStarted }) {
   const [dragging, setDragging] = useState(null);
   const [expanded, setExpanded] = useState(null);
   const fileInputs = useRef({});
+  // A ref rather than state: two files dropped in quick succession would
+  // both read the pre-update state and each create their own run, leaving
+  // the sources split across two runs that can never reconcile.
+  const runRef = useRef(null);
 
   const ensureRun = useCallback(async () => {
-    if (run) return run;
+    if (runRef.current) return runRef.current;
     const created = await createRun(null);
+    runRef.current = created;
     setRun(created);
     return created;
-  }, [run]);
+  }, []);
 
   async function addFile(file, sourceType) {
     if (!file) return;
@@ -81,7 +86,7 @@ export default function NewRun({ onRunStarted }) {
     if (column) mapping[canonical] = column;
     else delete mapping[canonical];
     try {
-      const updated = await updateMapping(run.run_id, source.source_id, { mapping });
+      const updated = await updateMapping(runRef.current.run_id, source.source_id, { mapping });
       setSources((prev) =>
         prev.map((s) =>
           s.source_id === source.source_id
@@ -101,7 +106,7 @@ export default function NewRun({ onRunStarted }) {
 
   async function drop_(sourceId) {
     try {
-      await removeSource(run.run_id, sourceId);
+      await removeSource(runRef.current.run_id, sourceId);
       setSources((prev) => prev.filter((s) => s.source_id !== sourceId));
     } catch (e) {
       setError(e.message);
@@ -109,11 +114,13 @@ export default function NewRun({ onRunStarted }) {
   }
 
   async function start() {
+    const current = runRef.current;
+    if (!current) return;
     setBusy(true);
     setError(null);
     try {
-      const result = await executeRun(run.run_id, null);
-      onRunStarted?.(run.run_id, result);
+      const result = await executeRun(current.run_id, null);
+      onRunStarted?.(current.run_id, result);
     } catch (e) {
       setError(e.message);
     } finally {
