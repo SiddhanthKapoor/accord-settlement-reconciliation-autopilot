@@ -66,6 +66,7 @@ class ExceptionType(str, Enum):
     AMBIGUOUS_MATCH = "AMBIGUOUS_MATCH"
     DUPLICATE_REFERENCE = "DUPLICATE_REFERENCE"
     DUPLICATE_CLAIM = "DUPLICATE_CLAIM"
+    AGGREGATED_SETTLEMENT = "AGGREGATED_SETTLEMENT"
     AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
     CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
     FEE_TAX_INCONSISTENT = "FEE_TAX_INCONSISTENT"
@@ -301,6 +302,12 @@ class PolicyConfig(BaseModel):
         "This assumes the settlement's order_reference is derived from the merchant's reference, which is "
         "what Razorpay's data model specifies. A provider whose reference is an opaque internal id unrelated "
         "to the merchant's would need this off; the system then falls back to requiring other corroboration.",
+    )
+    max_aggregation_candidates: int = Field(
+        default=40,
+        description="Upper bound on unmatched records considered when looking for a settlement that "
+        "bundles several of them. Subset-sum is exponential; a run that hangs is worse than one that "
+        "misses an aggregation, so the search is capped rather than exhaustive.",
     )
     settlement_expected_days: int = Field(
         default=2,

@@ -254,3 +254,72 @@ def test_settlement_id_may_be_shared_without_conflict():
     results = process_batch(records, pool, policy=POLICY, semantic_verifier=StubVerifier())
     assert all(r.outcome is ReconciliationOutcome.RECONCILED for r in results)
     assert detect_duplicate_claims(results) == {}
+
+
+# ---------------------------------------------------------------------------
+# Aggregated settlements: detected and proposed, never applied
+# ---------------------------------------------------------------------------
+
+def test_a_settlement_bundling_several_records_is_detected():
+    """A bank credits one amount for several gateway payments. That shape
+    is real and worth surfacing — but the grouping is proposed, not
+    booked."""
+    from app.domain.models import ExceptionType as ET
+    records = [
+        ReconciliationRecord(record_id="A", merchant=merchant("A", reference_id="R-A", amount_minor=30000)),
+        ReconciliationRecord(record_id="B", merchant=merchant("B", reference_id="R-B", amount_minor=70000)),
+    ]
+    lump = settlement("pay_lump", order_reference="BANKREF-9", gross_amount_minor=100000,
+                      fee_minor=0, tax_minor=0, net_amount_minor=100000)
+
+    results = process_batch(records, [lump], policy=POLICY,
+                            semantic_verifier=StubVerifier(verdict="DIFFERENT", confidence=0.9))
+
+    assert all(r.outcome is ReconciliationOutcome.HUMAN_REVIEW for r in results)
+    assert all(r.exception_type is ET.AGGREGATED_SETTLEMENT for r in results)
+    assert all(r.matched_payment_id is None for r in results), \
+        "a proposed grouping must not book a match"
+    assert any("pay_lump" in r.reason for r in results)
+
+
+def test_an_ambiguous_decomposition_is_not_reported():
+    """Two different pairs summing to the same total means the system
+    cannot tell which grouping is real, and saying nothing is correct."""
+    from app.engine.batch import detect_aggregated_settlements
+    records = [
+        ReconciliationRecord(record_id=rid, merchant=merchant(rid, reference_id=f"R-{rid}", amount_minor=amt))
+        for rid, amt in [("A", 30000), ("B", 70000), ("C", 40000), ("D", 60000)]
+    ]
+    lump = settlement("pay_lump", order_reference="BANKREF-9", gross_amount_minor=100000,
+                      fee_minor=0, tax_minor=0, net_amount_minor=100000)
+    results = process_batch(records, [lump], policy=POLICY,
+                            semantic_verifier=StubVerifier(verdict="DIFFERENT", confidence=0.9))
+    # A+B and C+D both total 100000.
+    assert detect_aggregated_settlements(results, records, [lump], POLICY) == {}
+
+
+def test_aggregation_detection_ignores_already_matched_settlements():
+    from app.engine.batch import detect_aggregated_settlements
+    records = [ReconciliationRecord(record_id="A", merchant=merchant("A", reference_id="R1"))]
+    pool = [settlement("pay_1", order_reference="R1")]
+    results = process_batch(records, pool, policy=POLICY, semantic_verifier=StubVerifier())
+    assert detect_aggregated_settlements(results, records, pool, POLICY) == {}
+
+
+def test_aggregation_search_is_bounded():
+    """Subset-sum is exponential; a run that hangs is worse than one that
+    misses an aggregation."""
+    from app.engine.batch import detect_aggregated_settlements
+    records = [
+        ReconciliationRecord(record_id=f"R{i}",
+                             merchant=merchant(f"R{i}", reference_id=f"REF-{i}", amount_minor=1000 + i))
+        for i in range(200)
+    ]
+    lump = settlement("pay_lump", order_reference="BANKREF", gross_amount_minor=999_999_99,
+                      fee_minor=0, tax_minor=0, net_amount_minor=999_999_99)
+    results = [type("R", (), {"record_id": r.record_id, "matched_payment_id": None,
+                              "outcome": ReconciliationOutcome.EXCEPTION})() for r in records]
+    import time as _t
+    started = _t.perf_counter()
+    detect_aggregated_settlements(results, records, [lump], POLICY)
+    assert _t.perf_counter() - started < 2.0, "the candidate cap must keep this bounded"

@@ -22,7 +22,7 @@ from app.domain.models import (
     CheckResult, CheckStatus, ExceptionType, MatchClassification, PolicyConfig, ReconciliationOutcome,
     ReconciliationRecord, ReconciliationResult, RazorpaySettlementRecord, Severity,
 )
-from app.engine import matching, policy as policy_engine
+from app.engine import matching, normalize, policy as policy_engine
 from app.engine.semantic import SemanticVerifier, get_semantic_verifier
 
 
@@ -74,13 +74,20 @@ def process_batch(
         if on_record:
             on_record(i, total, record, result)
 
+    pre_revision = list(results)
+
     # One settlement, one merchant record. This can only be checked once
     # every record has been decided, so it is a second pass rather than
     # part of the loop; revised records are re-emitted so anything that
     # persisted the first decision corrects it.
+    # A settlement that bundles several ledger records is detected and
+    # proposed, never applied — see detect_aggregated_settlements.
+    aggregations = detect_aggregated_settlements(results, records, razorpay_records, policy)
+    results = apply_aggregation_findings(results, aggregations)
+
     resolved, conflicts = resolve_claims(results)
-    if conflicts and on_revision:
-        for i, (before, after) in enumerate(zip(results, resolved)):
+    if (conflicts or aggregations) and on_revision:
+        for i, (before, after) in enumerate(zip(pre_revision, resolved)):
             if before.outcome is not after.outcome:
                 on_revision(i, records[i], after)
     return resolved
@@ -175,6 +182,128 @@ def resolve_claims(
             })
 
     return updated, reported
+
+
+def detect_aggregated_settlements(
+    results: list[ReconciliationResult],
+    records: list[ReconciliationRecord],
+    settlements: list[RazorpaySettlementRecord],
+    policy: PolicyConfig,
+    max_group_size: int = 3,
+) -> dict[str, list[str]]:
+    """Find settlements that appear to bundle several ledger records.
+
+    A bank credits one amount for several gateway payments, so an
+    unmatched settlement can be the sum of unmatched orders. That is a
+    real and common shape, and it is worth surfacing.
+
+    It is surfaced, not reconciled. Deciding *which* orders make up a
+    lump sum is subset-sum: with enough unmatched records there are
+    usually several decompositions that add up, and picking one would be
+    a guess with money attached. So a group is only reported when it is
+    the **unique** combination that sums to the settlement within
+    tolerance, and even then the records go to HUMAN_REVIEW rather than
+    being matched — the operator confirms the grouping, the system does
+    not invent it.
+
+    Bounded deliberately: groups of at most `max_group_size`, drawn from
+    records inside the settlement window, with a hard cap on how many
+    candidates are considered. An unbounded search here would be
+    exponential, and a reconciliation run that hangs is worse than one
+    that misses an aggregation.
+    """
+    from itertools import combinations
+
+    unmatched_by_id = {
+        r.record_id: r for r, res in zip(records, results)
+        if res.matched_payment_id is None and res.outcome is not ReconciliationOutcome.RECONCILED
+    }
+    if len(unmatched_by_id) < 2:
+        return {}
+
+    claimed = {res.matched_payment_id for res in results if res.matched_payment_id}
+    merchant_by_id = {r.record_id: r.merchant for r in records}
+    tolerance = policy.amount_tolerance_minor
+
+    found: dict[str, list[str]] = {}
+    for settlement in settlements:
+        if settlement.payment_id in claimed:
+            continue
+        # Only records that could plausibly belong: inside the window and
+        # individually smaller than the settlement.
+        pool = [
+            rid for rid, rec in unmatched_by_id.items()
+            if merchant_by_id[rid].amount_minor < settlement.gross_amount_minor
+            and normalize.days_between(merchant_by_id[rid].order_date, settlement.order_date)
+            <= policy.candidate_search_window_days
+        ]
+        if len(pool) < 2 or len(pool) > policy.max_aggregation_candidates:
+            continue
+
+        matches: list[tuple[str, ...]] = []
+        for size in range(2, min(max_group_size, len(pool)) + 1):
+            for group in combinations(pool, size):
+                total = sum(merchant_by_id[rid].amount_minor for rid in group)
+                if abs(total - settlement.gross_amount_minor) <= tolerance:
+                    matches.append(group)
+                    if len(matches) > 1:
+                        break
+            if len(matches) > 1:
+                break
+
+        # Exactly one decomposition, or it is not evidence of anything.
+        if len(matches) == 1:
+            found[settlement.payment_id] = list(matches[0])
+
+    return found
+
+
+def apply_aggregation_findings(
+    results: list[ReconciliationResult],
+    aggregations: dict[str, list[str]],
+) -> list[ReconciliationResult]:
+    """Route the members of a detected group to review, explaining why."""
+    if not aggregations:
+        return results
+
+    by_record: dict[str, str] = {}
+    for payment_id, record_ids in aggregations.items():
+        for record_id in record_ids:
+            by_record[record_id] = payment_id
+
+    updated = []
+    for result in results:
+        payment_id = by_record.get(result.record_id)
+        if payment_id is None:
+            updated.append(result)
+            continue
+        siblings = [r for r in aggregations[payment_id] if r != result.record_id]
+        updated.append(result.model_copy(update={
+            "outcome": ReconciliationOutcome.HUMAN_REVIEW,
+            "exception_type": ExceptionType.AGGREGATED_SETTLEMENT,
+            "severity": Severity.MEDIUM,
+            "reason": (
+                f"Settlement {payment_id} matches the combined total of this record and "
+                f"{', '.join(siblings)}."
+            ),
+            "explanation": (
+                f"No settlement matches this record on its own, but one settlement equals the "
+                f"combined total of {len(aggregations[payment_id])} unmatched records including this "
+                "one. That is consistent with the provider settling them together."
+            ),
+            "recommended_action": (
+                f"Confirm that settlement {payment_id} covers these records together, then reconcile "
+                "them as a group."
+            ),
+            "checks": list(result.checks) + [CheckResult(
+                name="aggregated_settlement",
+                status=CheckStatus.WARN,
+                expected="one settlement per record",
+                observed=f"{len(aggregations[payment_id])} records sum to {payment_id}",
+                detail="Grouping is proposed, not applied — a lump sum can decompose several ways.",
+            )],
+        }))
+    return updated
 
 
 def detect_duplicate_claims(results: list[ReconciliationResult]) -> dict[str, list[str]]:
