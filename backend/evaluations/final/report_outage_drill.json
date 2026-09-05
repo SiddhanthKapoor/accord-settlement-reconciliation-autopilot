@@ -4,7 +4,7 @@
   "dataset_split": "holdout",
   "seed": 90210,
   "record_count": 1000,
-  "semantic_backend": "HeuristicSemanticVerifier",
+  "semantic_backend": "GeminiSemanticVerifier",
   "policy": {
     "amount_tolerance_minor": 2,
     "max_settlement_delay_days": 21,
@@ -27,27 +27,27 @@
   },
   "metrics": {
     "record_count": 1000,
-    "reconciliation_accuracy": 0.825,
-    "exception_precision": 0.7261904761904762,
-    "exception_recall": 0.9838709677419355,
+    "reconciliation_accuracy": 0.768,
+    "exception_precision": 0.8763636363636363,
+    "exception_recall": 0.7774193548387097,
     "false_auto_reconciliation_rate": 0.0,
     "false_auto_reconciliation_rate_definition": "share of records PREDICTED RECONCILED whose ground truth was NOT RECONCILED",
-    "false_exception_rate": 0.11875,
+    "false_exception_rate": 0.003125,
     "false_exception_rate_definition": "share of TRULY RECONCILED records that were predicted EXCEPTION",
     "pct_auto_reconciled": 0.509,
-    "pct_human_review": 0.071,
-    "pct_exception": 0.42,
+    "pct_human_review": 0.216,
+    "pct_exception": 0.275,
     "ai_invocation_rate": 0.204,
-    "ai_calls_total": 220,
-    "provider_errors": 0,
-    "provider_error_rate_of_ai_records": 0.0,
-    "ai_calls_per_1000_records": 220.0,
-    "p50_latency_ms": 0.030541501473635435,
-    "p95_latency_ms": 4.02015209547244,
+    "ai_calls_total": 204,
+    "provider_errors": 204,
+    "provider_error_rate_of_ai_records": 1.0,
+    "ai_calls_per_1000_records": 204.0,
+    "p50_latency_ms": 0.1700414577499032,
+    "p95_latency_ms": 10016.591361904284,
     "outcome_counts": {
       "RECONCILED": 509,
-      "EXCEPTION": 420,
-      "HUMAN_REVIEW": 71
+      "EXCEPTION": 275,
+      "HUMAN_REVIEW": 216
     },
     "outcome_by_ground_truth_case": {
       "fee_tax_normal": {
@@ -62,8 +62,8 @@
       },
       "corrupted_reference": {
         "RECONCILED": 0,
-        "EXCEPTION": 39,
-        "HUMAN_REVIEW": 1
+        "EXCEPTION": 32,
+        "HUMAN_REVIEW": 8
       },
       "delayed_normal": {
         "RECONCILED": 50,
@@ -77,8 +77,8 @@
       },
       "missing_settlement": {
         "RECONCILED": 0,
-        "EXCEPTION": 59,
-        "HUMAN_REVIEW": 1
+        "EXCEPTION": 56,
+        "HUMAN_REVIEW": 4
       },
       "fee_tax_broken": {
         "RECONCILED": 0,
@@ -102,13 +102,13 @@
       },
       "same_amount_same_date": {
         "RECONCILED": 0,
-        "EXCEPTION": 20,
-        "HUMAN_REVIEW": 0
+        "EXCEPTION": 1,
+        "HUMAN_REVIEW": 19
       },
       "bank_narration_match": {
         "RECONCILED": 0,
-        "EXCEPTION": 41,
-        "HUMAN_REVIEW": 29
+        "EXCEPTION": 2,
+        "HUMAN_REVIEW": 68
       },
       "partial_refund": {
         "RECONCILED": 50,
@@ -117,8 +117,8 @@
       },
       "same_amount_different_txn": {
         "RECONCILED": 0,
-        "EXCEPTION": 39,
-        "HUMAN_REVIEW": 1
+        "EXCEPTION": 3,
+        "HUMAN_REVIEW": 37
       },
       "currency_mismatch": {
         "RECONCILED": 0,
@@ -127,13 +127,13 @@
       },
       "merchant_alias_match": {
         "RECONCILED": 0,
-        "EXCEPTION": 35,
-        "HUMAN_REVIEW": 15
+        "EXCEPTION": 0,
+        "HUMAN_REVIEW": 50
       },
       "adjacent_invoice_same_amount": {
         "RECONCILED": 0,
-        "EXCEPTION": 20,
-        "HUMAN_REVIEW": 0
+        "EXCEPTION": 15,
+        "HUMAN_REVIEW": 5
       },
       "near_duplicate": {
         "RECONCILED": 0,
@@ -142,12 +142,12 @@
       },
       "pending_settlement": {
         "RECONCILED": 0,
-        "EXCEPTION": 19,
-        "HUMAN_REVIEW": 1
+        "EXCEPTION": 18,
+        "HUMAN_REVIEW": 2
       }
     },
-    "throughput_records_per_sec": 842.8981793864168,
-    "wall_clock_seconds": 1.1863829160574824
+    "throughput_records_per_sec": 0.5025290449038613,
+    "wall_clock_seconds": 1989.9347314169863
   },
-  "timestamp": "2026-09-05T08:37:50.640125+00:00"
+  "timestamp": "2026-09-05T08:34:59.388266+00:00"
 }

@@ -181,11 +181,66 @@ Full detail: [docs/EVALUATION_METHODOLOGY.md](docs/EVALUATION_METHODOLOGY.md)
 
 ## 10. Final results
 
-Held-out set: 1,000 records, seed 90210, evaluated once per
-configuration. Frozen with dataset bytes and checksums in
+Held-out set: 1,000 records, seed 90210. Frozen with dataset bytes,
+checksums and the commit that produced each report in
 `backend/evaluations/final/`.
 
-| Metric | Deterministic only | + Gemini |
+### Deterministic baseline (pinned commit, clean run)
+
+| Metric | Value |
+|---|---:|
+| Reconciliation accuracy | 82.5% |
+| Exception precision | 72.6% |
+| Exception recall | 98.4% |
+| **False auto-reconciliation rate** | **0.0%** |
+| False exception rate | 11.9% |
+| Auto-reconciled | 50.9% |
+| Human review | 7.1% |
+| AI invocation rate | 20.4% |
+| Throughput | 724 records/sec |
+
+### Outage drill: 100% of model calls failed
+
+The account's Gemini quota was exhausted while producing the final
+numbers. Rather than discard the run, it is kept — **204 of 204 model
+calls failed**, and what the system did next is worth more than a lucky
+result would have been:
+
+| Metric | Value |
+|---|---:|
+| Reconciliation accuracy | 76.8% |
+| **False auto-reconciliation rate** | **0.0%** |
+| Exception precision | 87.6% |
+| Human review | 21.6% |
+| Provider failures | **204 of 204 (100%)** |
+
+Every deterministic category came through untouched:
+
+```
+exact_reference     260 / 260 reconciled     currency_mismatch   20 / 20 exception
+fee_tax_normal       70 /  70 reconciled     fee_tax_broken      30 / 30 exception
+partial_refund       50 /  50 reconciled     amount_mismatch     48 / 50 exception
+delayed_normal       50 /  50 reconciled     refund_mismatch     20 / 20 exception
+```
+
+Only the semantic-dependent categories degraded, and they degraded to
+HUMAN_REVIEW — `bank_narration_match` 68 of 70, `merchant_alias_match`
+50 of 50. **Not one record was wrongly reconciled during a total outage
+of the system's only external dependency.**
+
+That is the architecture's central claim, tested by accident and passed:
+the model can disappear entirely and the system loses recall, never
+safety.
+
+## 11. AI contribution
+
+Measured on the immediately preceding code state, **not** the pinned
+commit, and labelled that way in `FROZEN.json` rather than quietly
+attributed to the final build. Both sides of this A/B ran on identical
+code, so the comparison holds; two attempts to re-run it cleanly on the
+pinned commit were rate-limited, the second at 100% failure.
+
+| Metric | Deterministic | + Gemini |
 |---|---:|---:|
 | Reconciliation accuracy | 78.2% | **85.0%** |
 | Exception precision | 77.8% | **90.8%** |
@@ -193,29 +248,10 @@ configuration. Frozen with dataset bytes and checksums in
 | **False auto-reconciliation rate** | **0.0%** | **0.0%** |
 | False exception rate | 7.0% | **0.3%** |
 | Auto-reconciled | 50.9% | 59.5% |
-| Human review | 17.1% | 15.6% |
-| AI invocation rate | 20.4% | 20.4% |
-| Model calls per 1,000 records | 0 | 216 |
 
-**The number that matters most is the bolded 0.0%, in both columns.**
-Across 1,000 held-out records, nothing was ever auto-reconciled that
-should not have been. The model bought accuracy without spending safety.
-
-**Exception recall falls 7.4 points, and that is the trade.** The model
-converts some confident-but-sometimes-wrong EXCEPTIONs into human review.
-Exception precision rises 13 points and the false exception rate drops
-from 7.0% to 0.3% — the system stops flagging good records — at the cost
-of being less willing to declare a problem outright.
-
-Throughput with the model is 1.7 records/sec, network-bound at ~1s per
-call; deterministic-only runs at ~250/sec on the same data. p95 was 1.9s
-against a 10s timeout ceiling, so this run was not materially
-rate-limited.
-
-## 11. AI contribution
-
-The gain is not spread thinly across the dataset. It is concentrated
-exactly on the categories built to withhold identity evidence:
+**+6.8 accuracy points, and the gain is not spread thinly.** It is
+concentrated entirely on the categories built to withhold identity
+evidence:
 
 | Category | Deterministic | + Gemini | of |
 |---|---:|---:|---:|
@@ -224,24 +260,22 @@ exactly on the categories built to withhold identity evidence:
 | `reformatted_reference` | 79 | 89 | 90 |
 | every other category | unchanged | unchanged | — |
 
-(reconciled counts)
-
-Two categories go from **zero** to a majority. Those are the ones where a
-bank statement's narration has been truncated past recognition, or the
-counterparty appears under a trading name instead of a legal entity. No
-rule closes that gap; reading the text does.
+Two categories go from **zero** to a majority — a bank narration
+truncated past recognition, a counterparty under a trading name instead
+of a legal entity. No rule closes that gap.
 
 Equally important is where the model changes **nothing**. On the traps —
 `same_amount_different_txn`, `same_amount_same_date`,
 `adjacent_invoice_same_amount`, `near_duplicate` — both configurations
-reconcile zero, which is the correct answer. The model is not used where
-deterministic logic already decides, and it does not talk the system into
-matches the evidence refuses.
+reconcile zero, which is correct. The model is not consulted where
+deterministic logic already decides, and it cannot talk the system into a
+match the evidence refuses.
 
-**The honest summary:** AI improves resolution of genuinely ambiguous
-records by 6.8 accuracy points, recovering two categories deterministic
-logic cannot touch at all, while deterministic policy holds false
-auto-reconciliation at zero in both configurations.
+**Honest summary:** AI resolves genuinely ambiguous records that
+deterministic logic cannot touch at all, worth ~7 accuracy points, while
+deterministic policy holds false auto-reconciliation at 0.0% in every
+configuration measured — including the one where the model was entirely
+unavailable.
 
 ## 12. Failure modes
 

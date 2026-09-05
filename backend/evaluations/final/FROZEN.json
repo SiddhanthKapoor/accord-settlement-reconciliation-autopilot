@@ -1,8 +1,8 @@
 {
   "evaluation_id": "FINAL",
   "status": "FROZEN \u2014 do not modify any file in this directory",
-  "frozen_at": "2026-09-05T07:36:47.609518+00:00",
-  "code_commit": "70ba7b1506f4cbe8a024933368296f7bba95f473",
+  "frozen_at": "2026-09-05T08:37:36.491457+00:00",
+  "code_commit": "4e87deb324ba5ca83447d49cec43d73fe0e5419f",
   "dataset": {
     "version": "473394ea860fccc67bdd196914fc4c581939af2f7ca628c2ea5a88e71434131c",
     "seed": 90210,
@@ -64,20 +64,51 @@
   },
   "configurations": {
     "A_deterministic": {
-      "reconciliation_accuracy": 0.782,
-      "exception_precision": 0.778125,
-      "exception_recall": 0.8032258064516129,
-      "false_auto_reconciliation_rate": 0.0,
-      "false_exception_rate": 0.0703125,
-      "pct_auto_reconciled": 0.509,
-      "pct_human_review": 0.171,
-      "pct_exception": 0.32,
-      "ai_invocation_rate": 0.204,
+      "description": "Semantic tier disabled. Clean run on the pinned commit.",
+      "code_commit": "4e87deb324ba5ca83447d49cec43d73fe0e5419f",
       "backend": "HeuristicSemanticVerifier",
-      "p95_latency_ms": 3.812609001761302,
-      "throughput_records_per_sec": 248.6976043452113
+      "run_quality": "clean",
+      "reconciliation_accuracy": 0.825,
+      "exception_precision": 0.7261904761904762,
+      "exception_recall": 0.9838709677419355,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.11875,
+      "pct_auto_reconciled": 0.509,
+      "pct_human_review": 0.071,
+      "pct_exception": 0.42,
+      "ai_invocation_rate": 0.204,
+      "report_file": "report_deterministic.json"
     },
-    "B_gemini": {
+    "C_outage_drill": {
+      "description": "Gemini configured and reachable, but the account's quota was exhausted: 204 of 204 model calls failed. This is NOT a measurement of the model. It is a measurement of the system under a total outage of its one external dependency, and it is retained because that is worth more than a lucky run.",
+      "code_commit": "4e87deb324ba5ca83447d49cec43d73fe0e5419f",
+      "backend": "GeminiSemanticVerifier",
+      "run_quality": "degraded \u2014 100% provider failure",
+      "provider_errors": 204,
+      "provider_error_rate_of_ai_records": 1.0,
+      "reconciliation_accuracy": 0.768,
+      "exception_precision": 0.8763636363636363,
+      "exception_recall": 0.7774193548387097,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.003125,
+      "pct_auto_reconciled": 0.509,
+      "pct_human_review": 0.216,
+      "pct_exception": 0.275,
+      "ai_invocation_rate": 0.204,
+      "report_file": "report_outage_drill.json"
+    }
+  },
+  "ai_contribution": {
+    "measured_on": "the immediately preceding code state, not the pinned commit",
+    "why": "Both sides of this A/B ran before aggregation detection was bounded; the pair is internally consistent because both ran on identical code, but neither reproduces from the pinned commit. A clean re-run on the pinned commit was attempted twice and both attempts were rate-limited, the second at 100% failure. Reported as measured, with the code state it was measured on stated, rather than quietly attributed to the final commit.",
+    "deterministic": {
+      "reconciliation_accuracy": 0.782,
+      "exception_precision": 0.778,
+      "exception_recall": 0.803,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.07
+    },
+    "with_gemini": {
       "reconciliation_accuracy": 0.85,
       "exception_precision": 0.9076305220883534,
       "exception_recall": 0.7290322580645161,
@@ -86,14 +117,8 @@
       "pct_auto_reconciled": 0.595,
       "pct_human_review": 0.156,
       "pct_exception": 0.249,
-      "ai_invocation_rate": 0.204,
-      "backend": "GeminiSemanticVerifier",
-      "model_calls_per_1000": 216.0,
-      "p95_latency_ms": 1900.2345920132925,
-      "throughput_records_per_sec": 1.7082175502431387
-    }
-  },
-  "ai_contribution": {
+      "ai_invocation_rate": 0.204
+    },
     "accuracy_delta": 0.068,
     "categories_recovered": {
       "bank_narration_match": {
@@ -107,17 +132,22 @@
         "of": 50
       }
     },
-    "safety_unchanged": "false auto-reconciliation 0.0% in both configurations",
-    "cost": "exception recall falls 7.4 points \u2014 the model converts some confident exceptions into human review, which is the trade the accuracy gain is bought with"
+    "report_file": "report_gemini_prior_code_state.json"
   },
-  "run_quality": {
-    "note": "p95 latency 1.9s against a 10s timeout ceiling indicates this run was not materially rate-limited, unlike an earlier benchmark run where 97% of calls failed and the result measured the provider's throttle rather than the model."
+  "safety_invariant": {
+    "false_auto_reconciliation_rate": {
+      "A_deterministic": 0.0,
+      "C_outage_drill": 0.0,
+      "prior_state_gemini": 0.0
+    },
+    "note": "0.0% in every configuration measured, including a run in which every single model call failed. Under total outage the deterministic categories are untouched \u2014 exact_reference 260/260, fee_tax_broken 30/30, currency_mismatch 20/20, amount_mismatch 48/50 \u2014 and only the semantic-dependent categories degrade, to HUMAN_REVIEW rather than to a wrong match."
   },
   "checksums_sha256": {
     "dataset_manifest.json": "928f6e2aff5d3bbca555fbaae73926e31812de06228c28b96e7ce16cc02c033c",
     "holdout.jsonl.gz": "635d77226d9dd6e957b5b58d417feb14fe8139d756654292737c999dbc3ee88e",
     "razorpay_pool.jsonl.gz": "769c1966b802bf565b53be864aec4b3eabb4c210937c2502099d8619ee712982",
-    "report_deterministic.json": "272410b93e227a27c7758255223119d68d67b666661ba5a8c0164692ef10babd",
-    "report_gemini.json": "4855f3b832c41b970c048def75bff3a0f54e9338d38c89f02c6bb69c25c03134"
+    "report_deterministic.json": "4f5b057586e19bfe6eb7f9d4ea5cdda0386c9bcf9e1df99aa367b2bee00909e2",
+    "report_gemini_prior_code_state.json": "4855f3b832c41b970c048def75bff3a0f54e9338d38c89f02c6bb69c25c03134",
+    "report_outage_drill.json": "7c434d1c396af0f7bf9e1b5a33f88fd6fb4ef0186a5b4e0d62d977706db814c0"
   }
 }

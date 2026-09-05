@@ -62,7 +62,8 @@ def check_integrity(frozen: dict, V1_DIR: Path) -> list[str]:
     # reproduced from that commit, and the --rerun check will disagree for
     # reasons that look like a bug in the engine. Reports now carry the
     # commit that produced them, so the two can be compared directly.
-    for report_name in ("report_gemini.json", "report_deterministic.json", "report_heuristic.json"):
+    for report_name in ("report_gemini.json", "report_deterministic.json", "report_heuristic.json",
+                        "report_outage_drill.json"):
         report_path = V1_DIR / report_name
         if not report_path.exists():
             continue
@@ -90,9 +91,14 @@ def check_integrity(frozen: dict, V1_DIR: Path) -> list[str]:
     # a named configuration per backend. All are checked against the
     # report they were copied from.
     if "configurations" in frozen:
+        # Each configuration names the report it was copied from. Inferring
+        # it from the key silently compared an outage drill against the
+        # deterministic report and reported eight metric mismatches that
+        # were really one wiring mistake.
         per_backend = {
-            "gemini" if key.endswith("gemini") else "deterministic": metrics
-            for key, metrics in frozen["configurations"].items()
+            metrics["report_file"].removeprefix("report_").removesuffix(".json"): metrics
+            for metrics in frozen["configurations"].values()
+            if "report_file" in metrics
         }
     else:
         headline = frozen["headline_metrics"]
