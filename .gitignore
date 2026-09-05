@@ -20,6 +20,7 @@ backend/data/*.db-*
 # because the generator changes and a seed alone stops reproducing them.
 backend/data/datasets/
 backend/data/datasets_v2/
+backend/data/datasets_final/
 backend/data/eval_reports/
 
 # Frontend
