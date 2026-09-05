@@ -222,7 +222,7 @@ def test_resume_point_ignores_a_junk_header_and_clamps_negatives():
 # TestClient: the endpoint never completes by design, so any assertion
 # against it is a race with a sleep. Its resumption logic is covered by
 # the pure-function tests above, and the wire format is verified by hand
-# against a running server (see docs/MANUAL_QA.md).
+# against a running server (see frontend/e2e/ for the browser suites).
 
 
 def test_admin_reset_clears_state(client):
