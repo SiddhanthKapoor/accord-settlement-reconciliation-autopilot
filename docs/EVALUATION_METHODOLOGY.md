@@ -439,7 +439,33 @@ holdout was touched; the rate is now 0.0%.
 
 ### Results
 
-<!-- METHODOLOGY_RESULTS -->
+| Metric | A: deterministic | B: + Gemini | Δ |
+|---|---:|---:|---:|
+| Reconciliation accuracy | 78.2% | 85.0% | +6.8 |
+| Exception precision | 77.8% | 90.8% | +13.0 |
+| Exception recall | 80.3% | 72.9% | −7.4 |
+| False auto-reconciliation | 0.0% | 0.0% | unchanged |
+| False exception rate | 7.0% | 0.3% | −6.7 |
+| Auto-reconciled | 50.9% | 59.5% | +8.6 |
+| Human review | 17.1% | 15.6% | −1.5 |
+
+Reconciled counts by category, where the difference lives:
+
+| Category | A | B | of |
+|---|---:|---:|---:|
+| `bank_narration_match` | 0 | 50 | 70 |
+| `merchant_alias_match` | 0 | 26 | 50 |
+| `reformatted_reference` | 79 | 89 | 90 |
+
+Every other category is identical between the two configurations,
+including all four traps, where both correctly reconcile nothing.
+
+**Run quality.** p95 latency was 1.9s against a 10s timeout ceiling, so
+this run was not materially throttled. That matters because an earlier
+benchmark run had 97% of its calls fail to rate limiting and reported
+numbers that measured the provider's throttle rather than the model;
+`benchmark_matching.py` now counts provider failures separately so a
+degraded run is visibly degraded.
 
 ### Earlier evaluations
 

@@ -181,11 +181,67 @@ Full detail: [docs/EVALUATION_METHODOLOGY.md](docs/EVALUATION_METHODOLOGY.md)
 
 ## 10. Final results
 
-<!-- FINAL_RESULTS -->
+Held-out set: 1,000 records, seed 90210, evaluated once per
+configuration. Frozen with dataset bytes and checksums in
+`backend/evaluations/final/`.
+
+| Metric | Deterministic only | + Gemini |
+|---|---:|---:|
+| Reconciliation accuracy | 78.2% | **85.0%** |
+| Exception precision | 77.8% | **90.8%** |
+| Exception recall | 80.3% | 72.9% |
+| **False auto-reconciliation rate** | **0.0%** | **0.0%** |
+| False exception rate | 7.0% | **0.3%** |
+| Auto-reconciled | 50.9% | 59.5% |
+| Human review | 17.1% | 15.6% |
+| AI invocation rate | 20.4% | 20.4% |
+| Model calls per 1,000 records | 0 | 216 |
+
+**The number that matters most is the bolded 0.0%, in both columns.**
+Across 1,000 held-out records, nothing was ever auto-reconciled that
+should not have been. The model bought accuracy without spending safety.
+
+**Exception recall falls 7.4 points, and that is the trade.** The model
+converts some confident-but-sometimes-wrong EXCEPTIONs into human review.
+Exception precision rises 13 points and the false exception rate drops
+from 7.0% to 0.3% — the system stops flagging good records — at the cost
+of being less willing to declare a problem outright.
+
+Throughput with the model is 1.7 records/sec, network-bound at ~1s per
+call; deterministic-only runs at ~250/sec on the same data. p95 was 1.9s
+against a 10s timeout ceiling, so this run was not materially
+rate-limited.
 
 ## 11. AI contribution
 
-<!-- ABLATION -->
+The gain is not spread thinly across the dataset. It is concentrated
+exactly on the categories built to withhold identity evidence:
+
+| Category | Deterministic | + Gemini | of |
+|---|---:|---:|---:|
+| `bank_narration_match` | 0 | **50** | 70 |
+| `merchant_alias_match` | 0 | **26** | 50 |
+| `reformatted_reference` | 79 | 89 | 90 |
+| every other category | unchanged | unchanged | — |
+
+(reconciled counts)
+
+Two categories go from **zero** to a majority. Those are the ones where a
+bank statement's narration has been truncated past recognition, or the
+counterparty appears under a trading name instead of a legal entity. No
+rule closes that gap; reading the text does.
+
+Equally important is where the model changes **nothing**. On the traps —
+`same_amount_different_txn`, `same_amount_same_date`,
+`adjacent_invoice_same_amount`, `near_duplicate` — both configurations
+reconcile zero, which is the correct answer. The model is not used where
+deterministic logic already decides, and it does not talk the system into
+matches the evidence refuses.
+
+**The honest summary:** AI improves resolution of genuinely ambiguous
+records by 6.8 accuracy points, recovering two categories deterministic
+logic cannot touch at all, while deterministic policy holds false
+auto-reconciliation at zero in both configurations.
 
 ## 12. Failure modes
 

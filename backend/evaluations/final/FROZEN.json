@@ -1,0 +1,123 @@
+{
+  "evaluation_id": "FINAL",
+  "status": "FROZEN \u2014 do not modify any file in this directory",
+  "frozen_at": "2026-09-05T07:36:47.609518+00:00",
+  "code_commit": "70ba7b1506f4cbe8a024933368296f7bba95f473",
+  "dataset": {
+    "version": "473394ea860fccc67bdd196914fc4c581939af2f7ca628c2ea5a88e71434131c",
+    "seed": 90210,
+    "generator": "generate_final_dataset.py",
+    "generator_version": "1.0",
+    "holdout_records": 1000,
+    "dev_records": 3000,
+    "settlement_pool": 4680,
+    "semantics_required_count": 640,
+    "as_of": "2026-08-04T00:00:00+00:00",
+    "category_counts": {
+      "reformatted_reference": 360,
+      "currency_mismatch": 80,
+      "delayed_excessive": 120,
+      "partial_refund": 200,
+      "exact_reference": 1040,
+      "fee_tax_broken": 120,
+      "corrupted_reference": 160,
+      "delayed_normal": 200,
+      "bank_narration_match": 280,
+      "merchant_alias_match": 200,
+      "adjacent_invoice_same_amount": 80,
+      "fee_tax_normal": 280,
+      "same_amount_different_txn": 160,
+      "amount_mismatch": 200,
+      "near_duplicate": 40,
+      "refund_mismatch": 80,
+      "missing_settlement": 240,
+      "pending_settlement": 80,
+      "same_amount_same_date": 80
+    }
+  },
+  "semantic_config": {
+    "model": "gemini-3.5-flash-lite",
+    "temperature": 0.0,
+    "prompt_version": "structured-candidate-comparison-v2",
+    "confidence_threshold": 0.85,
+    "timeout_seconds": 10.0
+  },
+  "policy": {
+    "amount_tolerance_minor": 2,
+    "max_settlement_delay_days": 21,
+    "ai_confidence_threshold": 0.85,
+    "fuzzy_reference_jaccard_floor": 0.2,
+    "candidate_search_window_days": 21,
+    "max_window_scan_candidates": 400,
+    "candidate_shortlist_size": 5,
+    "deterministic_match_score": 0.7,
+    "deterministic_min_text_similarity": 0.25,
+    "deterministic_match_margin": 0.1,
+    "max_semantic_calls_per_record": 3,
+    "require_identity_evidence": true,
+    "admissible_text_similarity": 0.2,
+    "treat_reference_contradiction_as_negative": true,
+    "max_aggregation_candidates": 40,
+    "settlement_expected_days": 2,
+    "enable_fuzzy_matching": true,
+    "enable_semantic_matching": true
+  },
+  "configurations": {
+    "A_deterministic": {
+      "reconciliation_accuracy": 0.782,
+      "exception_precision": 0.778125,
+      "exception_recall": 0.8032258064516129,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.0703125,
+      "pct_auto_reconciled": 0.509,
+      "pct_human_review": 0.171,
+      "pct_exception": 0.32,
+      "ai_invocation_rate": 0.204,
+      "backend": "HeuristicSemanticVerifier",
+      "p95_latency_ms": 3.812609001761302,
+      "throughput_records_per_sec": 248.6976043452113
+    },
+    "B_gemini": {
+      "reconciliation_accuracy": 0.85,
+      "exception_precision": 0.9076305220883534,
+      "exception_recall": 0.7290322580645161,
+      "false_auto_reconciliation_rate": 0.0,
+      "false_exception_rate": 0.003125,
+      "pct_auto_reconciled": 0.595,
+      "pct_human_review": 0.156,
+      "pct_exception": 0.249,
+      "ai_invocation_rate": 0.204,
+      "backend": "GeminiSemanticVerifier",
+      "model_calls_per_1000": 216.0,
+      "p95_latency_ms": 1900.2345920132925,
+      "throughput_records_per_sec": 1.7082175502431387
+    }
+  },
+  "ai_contribution": {
+    "accuracy_delta": 0.068,
+    "categories_recovered": {
+      "bank_narration_match": {
+        "deterministic": 0,
+        "with_gemini": 50,
+        "of": 70
+      },
+      "merchant_alias_match": {
+        "deterministic": 0,
+        "with_gemini": 26,
+        "of": 50
+      }
+    },
+    "safety_unchanged": "false auto-reconciliation 0.0% in both configurations",
+    "cost": "exception recall falls 7.4 points \u2014 the model converts some confident exceptions into human review, which is the trade the accuracy gain is bought with"
+  },
+  "run_quality": {
+    "note": "p95 latency 1.9s against a 10s timeout ceiling indicates this run was not materially rate-limited, unlike an earlier benchmark run where 97% of calls failed and the result measured the provider's throttle rather than the model."
+  },
+  "checksums_sha256": {
+    "dataset_manifest.json": "928f6e2aff5d3bbca555fbaae73926e31812de06228c28b96e7ce16cc02c033c",
+    "holdout.jsonl.gz": "635d77226d9dd6e957b5b58d417feb14fe8139d756654292737c999dbc3ee88e",
+    "razorpay_pool.jsonl.gz": "769c1966b802bf565b53be864aec4b3eabb4c210937c2502099d8619ee712982",
+    "report_deterministic.json": "272410b93e227a27c7758255223119d68d67b666661ba5a8c0164692ef10babd",
+    "report_gemini.json": "4855f3b832c41b970c048def75bff3a0f54e9338d38c89f02c6bb69c25c03134"
+  }
+}
