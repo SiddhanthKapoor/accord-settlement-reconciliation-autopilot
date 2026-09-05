@@ -609,6 +609,166 @@ document.
 
 ---
 
+## 22. Column detection assigned by position, and reconciled an order book against nothing
+
+**What failed.** Every record in the first demo run came back a missing
+settlement. Not some — all eighteen.
+
+**Root cause.** Detection walked columns in file order and let the first
+plausible match claim a canonical field. In the order book, `order_id`
+appears before `invoice_ref`, and both match the reference pattern. So
+`order_id` claimed the reference slot, the ledger side referenced
+`ORD-5001`, the gateway side referenced `INV-2048`, and nothing could
+ever match.
+
+The same header means different things in different files: `order_id` is
+the cross-system reference in a gateway export and the file's own primary
+key in an order book. Which reading is right depends on what else the
+file contains, and position cannot express that.
+
+**Fix.** Every header now yields all its plausible readings with a
+confidence, and assignment is a global best-fit: the highest-confidence
+pairing wins and consumes both the column and the field. The
+`order_id → transaction_id` reading is deliberately weighted below the
+reference reading (0.70), so it loses that contest by default and wins
+only when nothing better claims the reference slot.
+
+**How it was found.** Building the demo dataset and running it. No unit
+test would have caught it — each component was behaving exactly as
+specified.
+
+**Regression tests.**
+`test_ingest.py::test_an_order_book_does_not_let_its_own_key_claim_the_reference_slot`,
+`test_a_gateway_export_is_detected_without_help`.
+
+---
+
+## 23. The fee/tax check could not fail on uploaded data
+
+**What failed.** A payout file with deliberately broken arithmetic
+reconciled cleanly.
+
+**Root cause.** The mapper derived `net = gross − fee − tax − refund`
+when building settlement records. The `fee_tax_arithmetic` check then
+verified that same subtraction — a tautology. The check could not fail on
+uploaded data no matter what the file said.
+
+**Impact.** One of the five deterministic financial checks was silently
+inert for the entire upload path, which is the product's main path.
+
+**Fix.** A stated net amount is read from the file and kept; the
+derivation is a fallback for files that do not carry one. `net_amount` is
+now a recognised canonical field.
+
+**Regression test.** `test_a_stated_net_is_kept_rather_than_recomputed`.
+
+---
+
+## 24. Reference contradiction rejected every genuine bank match
+
+**What failed.** The truncated-bank-narration case — the one the semantic
+tier exists for — never reached the model. It was dismissed before that.
+
+**Root cause.** The contradiction rule fired between an invoice number
+(`INV-2057`) and a bank UTR (`UTR774120`). Both are digit runs, they
+disagree, so the rule concluded the records were different transactions.
+
+But they are not disagreeing identifiers — they are identifiers from
+different numbering systems. A bank UTR has no relationship to a merchant
+invoice number and never will. Their disagreement carries no information,
+and treating it as negative evidence rejects every bank-statement match
+on principle.
+
+**Fix.** Contradiction now requires *comparable* identifiers, with digit
+width as the proxy: a counter issued by one system produces identifiers
+of consistent length. When two identifier sets are incomparable the pair
+carries no identifier evidence either way, so amount and date can admit
+it and the model judges it.
+
+**Why this one mattered most.** It is the difference between a product
+that reconciles gateway exports and one that reconciles bank statements.
+Verified live afterwards: `NEFT INWARD CLDPLTFRM RENEWAL NORTHWND`
+matched to `Annual cloud platform renewal - Northwind Retail` (SAME,
+0.95), while an unrelated credit at an identical amount was refused
+(DIFFERENT, 0.95).
+
+---
+
+## 25. Drilling into a run rendered a blank page
+
+**What failed.** After starting a reconciliation, the app showed the nav
+bar and nothing else. Nothing threw, no console error, no failed request.
+
+**Root cause.** The run drill-in had been lifted into `App` and folded
+into the page-transition key. `AnimatePresence mode="wait"` waits for the
+exiting child before mounting the next one, and the exiting subtree had
+already been replaced underneath it, so the exit never completed and the
+entry never began.
+
+**Impact.** The primary product flow ended in a blank screen. Every
+backend test passed; the API had produced a correct, complete run.
+
+**Fix.** `Runs` owns its own list / create / detail navigation, and the
+page transition keys on the view alone. A drill-in is not a top-level
+view change and should not have been modelled as one.
+
+**How it was found.** The browser suite, on a screenshot. This is the
+fourth defect in this project that only a real browser caught.
+
+---
+
+## 26. Two dropped files created two runs
+
+**What failed.** Latent, found by reading the code after the blank-page
+fix. `NewRun` held its run in React state, and `ensureRun` checked that
+state before creating one. Two files dropped in quick succession would
+both read the pre-update value, and each would create its own run —
+splitting the sources across two runs that could never reconcile with
+each other.
+
+**Fix.** A ref, which updates synchronously.
+
+---
+
+## 27. Aggregation detection cost a third of a large run
+
+**What failed.** The 50,000-record throughput run went from 12.99s to
+19.14s after aggregation detection was added.
+
+**Root cause.** The pass scanned every unmatched record for every
+settlement: O(settlements × unmatched), roughly 48,000 × 8,000 on a large
+batch.
+
+**Fix.** Skipped entirely above `max_aggregation_candidates` rather than
+throttled. The performance argument is real, but the second reason is
+better: among thousands of unmatched records a "unique" combination
+summing to a lump sum is almost certainly a coincidence, so the answer
+would be untrustworthy even if it were free. Aggregation detection is
+meaningful at the scale a bank statement actually arrives at. 50k back to
+15.74s.
+
+---
+
+## 28. A dataset bug that looked like an engine bug
+
+**What failed.** The new evaluation dataset showed a 1.0% false
+auto-reconciliation rate — the one metric that must stay at zero.
+
+**Root cause.** Not the engine. The `corrupted_reference` category
+transposes two digits of a reference, and transposing two *identical*
+digits is a no-op. Those references were byte-identical to the real one,
+so they reconciled correctly while being labelled as requiring review.
+
+**Fix.** The generator now finds a pair that actually differs. Rate back
+to 0.0%.
+
+**Worth recording** because the first instinct was to look at the
+admissibility rules. The dataset is as capable of being wrong as the code
+is, and a metric moving in the wrong direction is not by itself evidence
+about the engine.
+
+---
+
 ## Open, not fixed
 
 **One payment split across several settlements is not representable.**
