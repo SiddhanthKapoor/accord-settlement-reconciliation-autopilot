@@ -337,6 +337,13 @@ class RecordView:
         return side if isinstance(side, dict) else {}
 
     @property
+    def ledger_source_filename(self) -> Optional[str]:
+        """Which uploaded file this ledger row came from, when known."""
+        side = self.provenance.get("ledger") if isinstance(self.provenance, dict) else None
+        name = side.get("filename") if isinstance(side, dict) else None
+        return str(name) if name else None
+
+    @property
     def matched_source_type(self) -> Optional[str]:
         kind = self.matched_source.get("source_type")
         return str(kind).upper() if kind else None
@@ -849,16 +856,33 @@ def _bank_stage(view: RecordView, roles: SourceRoles) -> TraceStage:
 
 
 def _books_stage(view: RecordView, roles: SourceRoles) -> TraceStage:
+    """Was this order booked in the accounting ledger?
+
+    Accord cannot answer that, and the reason is architectural rather than
+    a gap in the data. Orders and accounting exports are both *ledger*
+    sources: they pool into one side and are reconciled against the
+    settlement side, not against each other. Answering "is this order in
+    the books" would require matching a ledger row to another ledger row,
+    which is a different pass than the one this engine runs.
+
+    An earlier version blamed missing per-file provenance. That reason was
+    conservative but wrong — provenance exists now, and the stage still
+    cannot be evaluated. Naming the wrong obstacle invites someone to
+    "fix" it and find the stage no better off.
+    """
     if not roles.has_books:
         return _not_evaluated(
             "BOOKS",
             "No accounting export was included in this run, so the books side was not checked.",
         )
     if roles.has_orders:
+        origin = view.ledger_source_filename
+        came_from = f" This row came from {origin}." if origin else ""
         return _not_evaluated(
             "BOOKS",
-            "Both an orders file and an accounting export were included, and mapped ledger rows carry no "
-            "per-file provenance, so this row cannot be attributed to the books on its own.",
+            "Orders and accounting exports are both ledger-side sources, so Accord reconciles them "
+            "against settlements rather than against each other. Whether this order also appears as an "
+            f"accounting entry was not checked.{came_from}",
         )
     return TraceStage(
         stage="BOOKS",
