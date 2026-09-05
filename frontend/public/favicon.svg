@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#192839"/>
+  <!-- Same reconciliation waveform as the in-app brand mark: two ledgers
+       meeting at a peak. -->
+  <path d="M6 16h5.5l2.5-7 4.5 14 2.5-7H26"
+        stroke="#ffffff" stroke-width="2.4" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

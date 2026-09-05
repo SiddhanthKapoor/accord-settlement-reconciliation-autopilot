@@ -53,6 +53,41 @@ export const submitReviewAction = (recordId, { batchId, action, note }) =>
     body: JSON.stringify({ batch_id: batchId, action, note }),
   });
 
+// ---- runs over uploaded data ----------------------------------------
+export const createRun = (label) =>
+  req(`${API}/runs`, { method: "POST", body: JSON.stringify({ label }) });
+
+export const listRuns = () => req(`${API}/runs`);
+
+export const getRun = (runId) => req(`${API}/runs/${runId}`);
+
+export async function uploadSource(runId, file, sourceType) {
+  // FormData sets its own multipart boundary, so the JSON content-type
+  // default must not be applied here.
+  const form = new FormData();
+  form.append("file", file);
+  form.append("source_type", sourceType);
+  const res = await fetch(`${API}/runs/${runId}/sources`, { method: "POST", body: form });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail || `${res.status} ${res.statusText}`);
+  return body;
+}
+
+export const updateMapping = (runId, sourceId, payload) =>
+  req(`${API}/runs/${runId}/sources/${sourceId}/mapping`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+export const removeSource = (runId, sourceId) =>
+  req(`${API}/runs/${runId}/sources/${sourceId}`, { method: "DELETE" });
+
+export const executeRun = (runId, label) =>
+  req(`${API}/runs/${runId}/execute`, { method: "POST", body: JSON.stringify({ label }) });
+
+export const exportRunUrl = (runId, outcome) =>
+  `${API}/runs/${runId}/export${outcome ? `?outcome=${outcome}` : ""}`;
+
 export const verifyChain = () => req(`${API}/audit/verify`);
 
 export const adminReset = () => req(`${API}/admin/reset`, { method: "POST" });

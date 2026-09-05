@@ -5,9 +5,12 @@ import AuditTrail from "./components/AuditTrail.jsx";
 import Console from "./components/Console.jsx";
 import Nav from "./components/Nav.jsx";
 import ReviewQueue from "./components/ReviewQueue.jsx";
+import Runs from "./components/Runs.jsx";
+import RunDetail from "./components/RunDetail.jsx";
 
 export default function App() {
-  const [view, setView] = useState("console");
+  const [view, setView] = useState("runs");
+  const [openRunId, setOpenRunId] = useState(null);
   const [aiBackend, setAiBackend] = useState(null);
 
   useEffect(() => {
@@ -17,9 +20,12 @@ export default function App() {
   }, []);
 
   const pages = {
-    console: <Console />,
+    runs: openRunId
+      ? <RunDetail runId={openRunId} onBack={() => setOpenRunId(null)} />
+      : <Runs onOpenRun={setOpenRunId} />,
     review: <ReviewQueue />,
     audit: <AuditTrail />,
+    console: <Console />,
   };
 
   return (
@@ -28,10 +34,17 @@ export default function App() {
         {/* First stop for a keyboard user: skip the nav rather than tab
             through it on every view change. */}
         <a className="skip-link" href="#main">Skip to main content</a>
-        <Nav active={view} onChange={setView} aiBackend={aiBackend} />
+        <Nav
+          active={view}
+          onChange={(next) => {
+            setOpenRunId(null);
+            setView(next);
+          }}
+          aiBackend={aiBackend}
+        />
         <AnimatePresence mode="wait">
           <motion.main
-            key={view}
+            key={`${view}:${openRunId || ""}`}
             id="main"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

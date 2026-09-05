@@ -1,9 +1,10 @@
 import { motion } from "motion/react";
 
 const TABS = [
-  { key: "console", label: "Console" },
+  { key: "runs", label: "Runs" },
   { key: "review", label: "Review Queue" },
   { key: "audit", label: "Audit Trail" },
+  { key: "console", label: "Evaluation" },
 ];
 
 export default function Nav({ active, onChange, aiBackend }) {
@@ -14,7 +15,7 @@ export default function Nav({ active, onChange, aiBackend }) {
           <svg className="brand-glyph" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M4 12h5l2-6 4 12 2-6h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="brand-name">Reconciliation Autopilot</span>
+          <span className="brand-name">Axiom Recon</span>
         </div>
       </div>
       <nav className="tabs" aria-label="Sections">
