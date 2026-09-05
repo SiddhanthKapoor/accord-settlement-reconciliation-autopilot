@@ -1,4 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
+import { pageTransition } from "../motion.js";
+import "../workspace.css";
 import { useEffect, useRef, useState } from "react";
 import { getDataSources, getLatestBatch, getLatestEvaluation, listBatchRecords, runBatch, streamAudit } from "../api.js";
 import RecordDetail from "./RecordDetail.jsx";
@@ -78,12 +80,13 @@ export default function Console() {
   const accuracy = evalReport?.metrics?.reconciliation_accuracy;
 
   return (
-    <div className="page">
+    <motion.div className="page" {...pageTransition}>
       <div className="page-header">
-        <h1 className="page-title">Reconciliation Console</h1>
+        <h1 className="page-title">Evaluation</h1>
         <p className="page-subtitle">
-          Deterministic matching for everything that can be resolved mathematically; Gemini only for
-          genuinely ambiguous reference matching, gated by a confidence threshold it can never override.
+          How Accord is measured, not where the work happens. This page replays a frozen, labelled
+          dataset so the engine&rsquo;s accuracy is a number someone else can reproduce. Day-to-day
+          reconciliation lives in the workspaces; nothing here touches your uploaded data.
         </p>
       </div>
 
@@ -116,26 +119,28 @@ export default function Console() {
           <div className="stat-value stat-value-warn">{countsNow.HUMAN_REVIEW ?? 0}</div>
         </div>
         <div className="stat-tile">
-          <div className="stat-label">Accuracy (held-out eval)</div>
+          <div className="stat-label">Accuracy (held-out set)</div>
           <div className="stat-value">{evalError ? "n/a" : accuracy != null ? `${(accuracy * 100).toFixed(1)}%` : "—"}</div>
           <div className="stat-note">{evalError ? "run evaluate.py first" : evalReport ? `${evalReport.record_count} records` : ""}</div>
         </div>
       </div>
 
       <div className="card" style={{ marginBottom: 22 }}>
-        <h2 className="card-title">Batch processing</h2>
+        <h2 className="card-title">Replay a labelled dataset</h2>
         <div className="batch-controls">
-          <select className="select-field" value={dataset} onChange={(e) => setDataset(e.target.value)} disabled={running}>
+          <label className="sr-only" htmlFor="eval-dataset">Dataset</label>
+          <select id="eval-dataset" className="select-field" value={dataset} onChange={(e) => setDataset(e.target.value)} disabled={running}>
             <option value="holdout">Held-out evaluation set</option>
             <option value="dev">Dev set</option>
           </select>
-          <select className="select-field" value={limit} onChange={(e) => setLimit(Number(e.target.value))} disabled={running}>
+          <label className="sr-only" htmlFor="eval-limit">Record count</label>
+          <select id="eval-limit" className="select-field" value={limit} onChange={(e) => setLimit(Number(e.target.value))} disabled={running}>
             <option value={100}>100 records</option>
             <option value={500}>500 records</option>
             <option value={1000}>1,000 records</option>
             <option value={5000}>Full set</option>
           </select>
-          <button className="btn-small" onClick={handleRun} disabled={running}>
+          <button type="button" className="btn-small" onClick={handleRun} disabled={running}>
             {running ? "Processing…" : "Run batch"}
           </button>
           {batch && <span className="tiny muted">{batch.label}</span>}
@@ -168,10 +173,10 @@ export default function Console() {
       </div>
 
       <div className="card">
-        <h2 className="card-title">Records {batch ? `(${batch.label})` : ""}</h2>
+        <h2 className="card-title">Records from the replay {batch ? `(${batch.label})` : ""}</h2>
         <div className="filter-row">
           {[null, "RECONCILED", "EXCEPTION", "HUMAN_REVIEW"].map((o) => (
-            <button key={o || "all"} className={"btn-ghost" + (outcomeFilter === o ? " active" : "")} onClick={() => handleFilter(o)}>
+            <button key={o || "all"} type="button" aria-pressed={outcomeFilter === o} className={"btn-ghost" + (outcomeFilter === o ? " active" : "")} onClick={() => handleFilter(o)}>
               {o ? o.replace("_", " ") : "All"}
             </button>
           ))}
@@ -210,7 +215,7 @@ export default function Console() {
               </tr>
             ))}
             {records.length === 0 && (
-              <tr><td colSpan={5} className="muted small" style={{ padding: "20px 8px" }}>No records yet — run a batch above.</td></tr>
+              <tr><td colSpan={5} className="muted small" style={{ padding: "20px 8px" }}>No records yet — replay a dataset above.</td></tr>
             )}
           </tbody>
         </table>
@@ -227,6 +232,6 @@ export default function Console() {
           />
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }

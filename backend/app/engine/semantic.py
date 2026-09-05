@@ -27,8 +27,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
-import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Protocol
@@ -36,6 +34,15 @@ from typing import Literal, Protocol
 from pydantic import BaseModel
 
 from app.engine import normalize
+from app.engine.providers import (
+    FallbackChain,
+    GeminiProvider,
+    GroqProvider,
+    ProviderError,
+    ProviderErrorKind,
+    build_chain,
+    retry_delay_seconds,
+)
 
 Verdict = Literal["SAME", "DIFFERENT", "AMBIGUOUS"]
 
@@ -116,70 +123,139 @@ class _VerdictSchema(BaseModel):
     reason: str
 
 
+#: Kept as a module-level name because the RetryInfo parsing it pins is
+#: the part that silently rots when the SDK's error shape changes. The
+#: implementation (and the cap that stops a 60s retryDelay from stalling a
+#: batch) lives in providers.py, where the retry actually happens.
 def _retry_delay_seconds(exc: Exception, default: float) -> float:
-    try:
-        details = exc.details.get("error", {}).get("details", [])  # type: ignore[attr-defined]
-        for d in details:
-            if d.get("@type", "").endswith("RetryInfo"):
-                return float(str(d.get("retryDelay", "")).rstrip("s") or default)
-    except Exception:
-        pass
-    return default
+    return retry_delay_seconds(exc, default, cap=float("inf"))
 
 
-class GeminiSemanticVerifier:
-    def __init__(self, model: str | None = None) -> None:
-        from google import genai
+#: The wire contract for a verdict. Same three fields the pydantic
+#: `_VerdictSchema` describes, expressed as JSON Schema because that is
+#: what both providers' structured-output modes take.
+VERDICT_JSON_SCHEMA: dict = {
+    "type": "object",
+    "properties": {
+        "relationship": {"type": "string", "enum": ["SAME", "DIFFERENT", "AMBIGUOUS"]},
+        "confidence": {"type": "number"},
+        "reason": {"type": "string"},
+    },
+    "required": ["relationship", "confidence", "reason"],
+    "additionalProperties": False,
+}
 
-        self._client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-        self._model = model or os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+
+def build_comparison_payload(comparison: CandidateComparison) -> dict:
+    """Exactly what the model is shown — no more, and unchanged by the
+    provider that happens to serve the call."""
+    return {
+        "merchant": {
+            "reference": comparison.merchant.reference,
+            "description": comparison.merchant.description,
+            "amount_minor": comparison.merchant.amount_minor,
+            "date": comparison.merchant.date.isoformat(),
+        },
+        "candidate": {
+            "reference": comparison.candidate.reference,
+            "description": comparison.candidate.description,
+            "amount_minor": comparison.candidate.amount_minor,
+            "date": comparison.candidate.date.isoformat(),
+        },
+        "deterministic_signals": {
+            "amount_exact_match": comparison.amount_exact_match,
+            "amount_delta_minor": comparison.amount_delta_minor,
+            "days_apart": comparison.days_apart,
+            "shared_reference_core": comparison.shared_reference_core,
+            "weighted_text_similarity": comparison.text_similarity,
+        },
+    }
+
+
+class ChainSemanticVerifier:
+    """The semantic verifier, sitting on a provider chain rather than one SDK.
+
+    Two things this deliberately does not do:
+
+    It does not swallow a chain failure. If no provider can answer, the
+    ProviderError propagates — matching.resolve_fuzzy_or_semantic catches
+    it, classifies the record PROVIDER_ERROR and routes it to
+    HUMAN_REVIEW. Manufacturing an AMBIGUOUS verdict here would look
+    tidier and would be a lie about what the system knows.
+
+    It does not report a generic backend. `backend` names the provider and
+    model that actually produced the verdict, so a run served by the
+    fallback is visibly a run served by the fallback — in the UI, in the
+    audit trail, and in the evaluation report.
+    """
+
+    def __init__(self, chain: FallbackChain) -> None:
+        self._chain = chain
+        self._models = {p.name: p.model for p in chain.providers}
+
+    @property
+    def chain(self) -> FallbackChain:
+        return self._chain
+
+    @property
+    def status(self) -> str:
+        return self._chain.status
 
     def compare(self, comparison: CandidateComparison) -> SemanticVerdictResult:
-        from google.genai import errors as genai_errors
-        from google.genai import types
+        payload = build_comparison_payload(comparison)
+        result, provider_name = self._chain.complete_json(
+            system=_PROMPT_PREAMBLE,
+            user=f"Input:\n{json.dumps(payload)}",
+            schema=VERDICT_JSON_SCHEMA,
+            timeout_s=30.0,
+        )
+        model = self._models.get(provider_name)
+        backend = f"{provider_name}:{model}" if model else provider_name
+        return self._to_result(result, provider_name, backend)
 
-        payload = {
-            "merchant": {
-                "reference": comparison.merchant.reference,
-                "description": comparison.merchant.description,
-                "amount_minor": comparison.merchant.amount_minor,
-                "date": comparison.merchant.date.isoformat(),
-            },
-            "candidate": {
-                "reference": comparison.candidate.reference,
-                "description": comparison.candidate.description,
-                "amount_minor": comparison.candidate.amount_minor,
-                "date": comparison.candidate.date.isoformat(),
-            },
-            "deterministic_signals": {
-                "amount_exact_match": comparison.amount_exact_match,
-                "amount_delta_minor": comparison.amount_delta_minor,
-                "days_apart": comparison.days_apart,
-                "shared_reference_core": comparison.shared_reference_core,
-                "weighted_text_similarity": comparison.text_similarity,
-            },
-        }
-        contents = f"{_PROMPT_PREAMBLE}\n\nInput:\n{json.dumps(payload)}"
-        config = types.GenerateContentConfig(
-            response_mime_type="application/json", response_schema=_VerdictSchema, temperature=0.0
+    @staticmethod
+    def _to_result(payload: dict, provider_name: str, backend: str) -> SemanticVerdictResult:
+        """Validate before trusting. Structured output is enforced provider-side,
+        but a verdict that drives money movement is not the place to assume
+        that held."""
+        try:
+            parsed = _VerdictSchema(
+                relationship=payload["relationship"],
+                confidence=payload["confidence"],
+                reason=payload.get("reason", ""),
+            )
+        except Exception as exc:  # noqa: BLE001 — KeyError, ValidationError, TypeError all mean the same thing here
+            raise ProviderError(
+                ProviderErrorKind.PROVIDER_ERROR, provider_name,
+                f"verdict did not match the expected schema ({type(exc).__name__}: {exc}); "
+                f"keys present: {sorted(payload)}",
+            ) from exc
+        return SemanticVerdictResult(
+            verdict=parsed.relationship,
+            confidence=float(parsed.confidence),
+            rationale=parsed.reason,
+            backend=backend,
         )
 
-        last_error: Exception | None = None
-        for attempt in range(2):
-            try:
-                response = self._client.models.generate_content(model=self._model, contents=contents, config=config)
-                parsed: _VerdictSchema = response.parsed
-                return SemanticVerdictResult(
-                    verdict=parsed.relationship, confidence=float(parsed.confidence),
-                    rationale=parsed.reason, backend=f"gemini:{self._model}",
-                )
-            except genai_errors.ClientError as exc:
-                last_error = exc
-                if exc.code == 429 and attempt == 0:
-                    time.sleep(_retry_delay_seconds(exc, default=3.0))
-                    continue
-                raise
-        raise last_error  # pragma: no cover
+
+class GeminiSemanticVerifier(ChainSemanticVerifier):
+    """Gemini-only verifier — a one-provider chain.
+
+    Retained under its original name because the benchmark scripts
+    (benchmark_matching.py, benchmark_settlement_presence.py) compare
+    backends head-to-head and need to pin one provider rather than get
+    whichever the chain fell through to.
+    """
+
+    def __init__(self, model: str | None = None) -> None:
+        super().__init__(FallbackChain([GeminiProvider(model=model)]))
+
+
+class GroqSemanticVerifier(ChainSemanticVerifier):
+    """Groq-only verifier — the mirror of the above, for the same reason."""
+
+    def __init__(self, model: str | None = None) -> None:
+        super().__init__(FallbackChain([GroqProvider(model=model)]))
 
 
 class HeuristicSemanticVerifier:
@@ -215,7 +291,29 @@ class HeuristicSemanticVerifier:
         return SemanticVerdictResult(verdict=verdict, confidence=confidence, rationale=rationale, backend="heuristic-fallback")
 
 
+#: Set to 1/true to force the offline heuristic even with keys present.
+#: The evaluation harness needs a deterministic, network-free mode — a
+#: number produced by a run that silently reached the network is not
+#: reproducible, and an accuracy figure that cannot be reproduced is not
+#: a measurement.
+AI_DISABLED_ENV = "ACCORD_AI_DISABLED"
+
+
+def ai_disabled() -> bool:
+    return os.environ.get(AI_DISABLED_ENV, "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def get_semantic_verifier() -> SemanticVerifier:
-    if os.environ.get("GEMINI_API_KEY"):
-        return GeminiSemanticVerifier()
+    """The verifier this deployment can actually back.
+
+    Any configured key gives the chain; no key gives the labeled offline
+    heuristic. There is no in-between state where the system pretends to
+    have a model it cannot call.
+    """
+    if ai_disabled():
+        return HeuristicSemanticVerifier()
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY"):
+        chain = build_chain()
+        if chain.providers:
+            return ChainSemanticVerifier(chain)
     return HeuristicSemanticVerifier()

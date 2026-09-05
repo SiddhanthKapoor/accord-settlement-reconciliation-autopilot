@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
+import { pageTransition } from "../motion.js";
+import "../workspace.css";
 import { getAuditLog, streamAudit, verifyChain } from "../api.js";
 
 export default function AuditTrail() {
@@ -54,7 +56,7 @@ export default function AuditTrail() {
   }
 
   return (
-    <div className="page">
+    <motion.div className="page" {...pageTransition}>
       <div className="page-header">
         <h1 className="page-title">Audit Trail</h1>
         <p className="page-subtitle">
@@ -66,7 +68,7 @@ export default function AuditTrail() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 className="card-title" style={{ marginBottom: 0 }}>Chain integrity</h2>
-          <button className="btn-small" onClick={handleVerify} disabled={verifying}>
+          <button type="button" className="btn-small" onClick={handleVerify} disabled={verifying}>
             {verifying ? "Verifying…" : "Verify chain integrity"}
           </button>
         </div>
@@ -133,12 +135,12 @@ export default function AuditTrail() {
                 </Fragment>
               ))}
               {events.length === 0 && (
-                <tr><td colSpan={5} className="muted small" style={{ padding: "20px 8px" }}>No events yet — run a batch from the Console tab.</td></tr>
+                <tr><td colSpan={5} className="muted small" style={{ padding: "20px 8px" }}>No events yet — the ledger fills as soon as a workspace reconciles.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

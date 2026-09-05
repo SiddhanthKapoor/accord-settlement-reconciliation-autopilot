@@ -1,0 +1,161 @@
+{
+  "generator": "generate_demo_workspace.py",
+  "seed": 4620,
+  "as_of": "2026-04-15T00:00:00+00:00",
+  "pending_cutoff": "2026-04-13T00:00:00+00:00",
+  "ledger_record_count": 54,
+  "settlement_record_count": 72,
+  "aggregation": {
+    "AGG_A": {
+      "members": [
+        "BR-4471",
+        "BR-4472",
+        "BR-4473"
+      ],
+      "bank_ref": "UTR881318",
+      "total_minor": 7956500
+    },
+    "AGG_B": {
+      "members": [
+        "INV-3010",
+        "INV-3011",
+        "INV-3012"
+      ],
+      "bank_ref": "UTR774008",
+      "total_minor": 5999978
+    }
+  },
+  "scenarios": {
+    "BR-4471": {
+      "tag": "S4a aggregated settlement",
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT"
+    },
+    "BR-4472": {
+      "tag": "S4a aggregated settlement",
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT"
+    },
+    "BR-4473": {
+      "tag": "S4a aggregated settlement",
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT"
+    },
+    "BR-4481": {
+      "tag": "S6 fee/tax arithmetic",
+      "expected": "EXCEPTION / FEE_TAX_INCONSISTENT"
+    },
+    "ORD-7021": {
+      "tag": "S2a semantic bank narration",
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW below threshold"
+    },
+    "ORD-7031": {
+      "tag": "S3 identical-amount trap",
+      "expected": "EXCEPTION \u2014 refused, never auto-matched"
+    },
+    "ORD-7032": {
+      "tag": "S3 the trap's twin",
+      "expected": "RECONCILED on its own exact reference"
+    },
+    "ORD-7034": {
+      "tag": "S5b missing",
+      "expected": "EXCEPTION / MISSING_SETTLEMENT"
+    },
+    "ORD-7036": {
+      "tag": "S7 refund offset",
+      "expected": "RECONCILED"
+    },
+    "ORD-7037": {
+      "tag": "S7b chargeback not booked",
+      "expected": "EXCEPTION / REFUND_MISMATCH"
+    },
+    "ORD-7038": {
+      "tag": "S9 currency mismatch",
+      "expected": "EXCEPTION / CURRENCY_MISMATCH"
+    },
+    "ORD-7040": {
+      "tag": "S11 truncated reference",
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW"
+    },
+    "ORD-7104": {
+      "tag": "S8 same payment in two sources",
+      "expected": "HUMAN_REVIEW / DUPLICATE_REFERENCE"
+    },
+    "SH-88211": {
+      "tag": "S10 ambiguous for the model too",
+      "expected": "HUMAN_REVIEW"
+    },
+    "ZB-6104": {
+      "tag": "S2b semantic marketplace payout",
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW below threshold"
+    },
+    "ZB-6107": {
+      "tag": "S5a pending",
+      "expected": "EXCEPTION / PENDING_SETTLEMENT"
+    }
+  },
+  "files": [
+    {
+      "filename": "bank_hdfc_current_apr2026.xlsx",
+      "bytes": 5503,
+      "sha256": "208fd61f201c75552e766fe41cfea9b97ed490ac649952f751d771f6f1cbb081"
+    },
+    {
+      "filename": "bank_hdfc_current_mar2026.csv",
+      "bytes": 883,
+      "sha256": "019a35779091a74b19b957cdddc7a5539ba2e9927f1ebdcac22c7e5543712385"
+    },
+    {
+      "filename": "bank_icici_escrow_mar2026 (1).xlsx",
+      "bytes": 5397,
+      "sha256": "069bd4f1c955cc8885f31c45e129dda6ef6c325b0df4735e41d8a53f8a5b8620"
+    },
+    {
+      "filename": "bank_icici_escrow_mar2026.xlsx",
+      "bytes": 5397,
+      "sha256": "069bd4f1c955cc8885f31c45e129dda6ef6c325b0df4735e41d8a53f8a5b8620"
+    },
+    {
+      "filename": "cashfree_settlements_mar.csv",
+      "bytes": 3412,
+      "sha256": "25cedac69e6c84b826c7be6c5f4a0df221b601710f64a28af9d982c58dfbf5e0"
+    },
+    {
+      "filename": "invoices_internal_export.csv",
+      "bytes": 3463,
+      "sha256": "39782661efa5b391015bd34b9fd5386f4b9c810e8eaeb0d89055dceadabe95fa"
+    },
+    {
+      "filename": "kartway_marketplace_payout.csv",
+      "bytes": 571,
+      "sha256": "f3d98be44c0cc117e0fd9691c5fb67dd74e2026d9e65b678f5d882ecc7843537"
+    },
+    {
+      "filename": "orders_shopify_export.csv",
+      "bytes": 2456,
+      "sha256": "7c903de63dc3256aeaded8af3878f4f24ef6daf741a7064e12fd419bd309859a"
+    },
+    {
+      "filename": "payu_settlements_mar.csv",
+      "bytes": 733,
+      "sha256": "118ea3f22d2acba3882f9591c08277b52d0cfb503cbc19859324d294972c02fe"
+    },
+    {
+      "filename": "razorpay_settlements_mar_apr.csv",
+      "bytes": 4687,
+      "sha256": "9f4567d6b71fa5e200e038aad7e15291911b6bf1325a4c2fb1ec2a9f7a9916fb"
+    },
+    {
+      "filename": "refunds_chargebacks_mar2026.csv",
+      "bytes": 443,
+      "sha256": "dfaaf2a45432e95350b221e011990c1e993a0d3ea503e13d0ebcc52de2fd8333"
+    },
+    {
+      "filename": "tally_sales_register.csv",
+      "bytes": 774,
+      "sha256": "92e4332e31d2c84865a3400021bbd4f6dfcaedf472d4ba772e64657409a644be"
+    },
+    {
+      "filename": "zoho_books_invoices.csv",
+      "bytes": 684,
+      "sha256": "6435516d75da44ee06e1bc1401856bdb8f1ab9213b0b87e8b1755580433b6539"
+    }
+  ]
+}

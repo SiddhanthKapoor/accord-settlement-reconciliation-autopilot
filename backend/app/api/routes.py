@@ -203,11 +203,18 @@ class ReviewActionRequest(BaseModel):
 
 
 def _hydrate(record: dict) -> dict:
+    # Actions are computed BEFORE the raw columns are popped. Reversing
+    # these two lines is not cosmetic: `available_actions` reads
+    # `considered_json` to decide whether a candidate exists, so popping
+    # first made `has_candidate` permanently false and silently withheld
+    # "approve match" and "reject candidate" from every record that had
+    # candidates but no confirmed match — which is precisely the record a
+    # review queue exists to resolve.
+    record["available_actions"] = store.available_actions(record)
     record["merchant"] = json.loads(record.pop("merchant_json"))
     record["candidates"] = json.loads(record.pop("candidates_json"))
     record["checks"] = json.loads(record.pop("checks_json"))
     record["considered_candidates"] = json.loads(record.pop("considered_json") or "[]")
-    record["available_actions"] = store.available_actions(record)
     return record
 
 

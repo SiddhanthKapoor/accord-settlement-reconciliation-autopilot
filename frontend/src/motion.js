@@ -11,6 +11,8 @@
  * do not re-implement that check.
  */
 
+import { useEffect as _useEffect, useRef as _useRef, useState as _useState } from "react";
+
 // Easing curves. `standard` for most things, `exit` slightly faster
 // because leaving should feel lighter than arriving.
 export const EASE = [0.22, 0.61, 0.36, 1];
@@ -96,3 +98,65 @@ export const pressable = {
 export const countUp = {
   transition: { duration: DURATION.slow, ease: EASE },
 };
+
+/** A stage arriving in a money-flow chain — sideways, because the flow is. */
+export const flowStageIn = {
+  initial: { opacity: 0, x: -8 },
+  animate: { opacity: 1, x: 0 },
+  transition: { duration: DURATION.base, ease: EASE },
+};
+
+/** A hop in a vertical trace: drops in from above, like the money did. */
+export const traceStepIn = {
+  initial: { opacity: 0, y: -6 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: DURATION.fast, ease: EASE },
+};
+
+/** Left-anchored slide-over (the investigator opens over the record panel). */
+export const slideOverWide = {
+  initial: { x: 560, opacity: 0 },
+  animate: { x: 0, opacity: 1 },
+  exit: { x: 560, opacity: 0 },
+  transition: { duration: DURATION.base, ease: EASE },
+};
+
+/**
+ * A number that counts toward its value.
+ *
+ * Deliberately not a spring: an operator reading ₹1,240,332 wants it to
+ * settle, not to overshoot and come back. Honours the OS reduced-motion
+ * setting directly — `MotionConfig` cannot reach a plain rAF loop.
+ */
+export function useCountUp(value, duration = 520) {
+  const target = Number.isFinite(value) ? value : 0;
+  const [shown, setShown] = _useState(target);
+  const fromRef = _useRef(target);
+
+  _useEffect(() => {
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const from = fromRef.current;
+    if (reduced || from === target || duration <= 0) {
+      fromRef.current = target;
+      setShown(target);
+      return undefined;
+    }
+    let raf = 0;
+    const started = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - started) / duration);
+      // easeOutCubic — fast start, calm landing.
+      const eased = 1 - Math.pow(1 - t, 3);
+      setShown(from + (target - from) * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+
+  return shown;
+}

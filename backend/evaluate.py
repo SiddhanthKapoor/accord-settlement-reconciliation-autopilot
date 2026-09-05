@@ -201,16 +201,32 @@ def main() -> int:
     # Stamping it at freeze time instead let a freeze point at code that no
     # longer reproduced its own report — caught by verify_evaluation_v1.py
     # --rerun, which is what that check is for.
+    # A commit alone is not provenance. A run against a dirty tree did NOT
+    # execute that commit's code, and a report claiming otherwise is the
+    # same class of error as stamping the commit at freeze time — the thing
+    # the comment above was already written about. So the dirty state is
+    # recorded, and freeze_evaluation.py refuses a dirty report outright.
+    repo = Path(__file__).resolve().parent
     try:
         code_commit = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parent,
-            text=True, stderr=subprocess.DEVNULL,
+            ["git", "rev-parse", "HEAD"], cwd=repo, text=True, stderr=subprocess.DEVNULL,
         ).strip()
+        dirty_files = subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=repo, text=True, stderr=subprocess.DEVNULL,
+        ).strip()
+        working_tree_dirty = bool(dirty_files)
     except Exception:  # noqa: BLE001 — a report outside a checkout is still valid
         code_commit = None
+        working_tree_dirty = None
+
+    if working_tree_dirty:
+        print("\n[warning] the working tree was dirty when this ran, so this report does NOT\n"
+              "          describe commit {}. It cannot be frozen until the code is\n"
+              "          committed and the evaluation re-run.".format((code_commit or "?")[:12]))
 
     report = {
         "code_commit": code_commit,
+        "working_tree_dirty": working_tree_dirty,
         "dataset_version": manifest["dataset_version"],
         "dataset_split": args.dataset,
         "seed": manifest["seed"],

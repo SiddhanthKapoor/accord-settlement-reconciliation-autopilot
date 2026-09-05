@@ -228,3 +228,66 @@ def test_a_matching_dispute_can_still_be_approved(client):
     if not disputes:
         pytest.skip("no matching disputes in this batch")
     assert "APPROVE_MATCH" in {a["action"] for a in disputes[0]["available_actions"]}
+
+
+# ---------------------------------------------------------------------------
+# Regression: the API layer must not destroy the input the action rules read.
+#
+# `_hydrate` popped `considered_json` and then asked `available_actions` to
+# decide, from that same record, whether a candidate existed. It always
+# answered no, so "approve match" and "reject candidate" were silently
+# withheld from exactly the records a review queue exists to resolve —
+# ones with credible candidates and no confirmed match.
+#
+# Every existing test passed throughout, because the bug removed options
+# rather than adding unsafe ones. It was found by driving the product in a
+# browser. This pins the ordering so it cannot come back.
+# ---------------------------------------------------------------------------
+
+def test_a_record_with_candidates_is_offered_the_candidate_actions(client):
+    batch = _run_batch(client)
+    items = client.get("/review/queue", params={"batch_id": batch["batch_id"], "limit": 100}).json()["items"]
+
+    with_candidates = [
+        i for i in items
+        if i.get("matched_payment_id") or i.get("considered_candidates")
+    ]
+    assert with_candidates, "expected at least one queued record carrying a candidate"
+
+    for item in with_candidates:
+        offered = {a["action"] for a in item["available_actions"]}
+        assert "REJECT_MATCH" in offered, (
+            f"{item['record_id']} has a candidate but was not offered REJECT_MATCH — "
+            "available_actions is being asked to decide from a record whose "
+            "candidate data has already been stripped"
+        )
+
+
+def test_the_hydrated_record_still_carries_what_the_action_rules_needed(client):
+    """The narrower statement of the same bug: hydration must not leave the
+    record unable to justify the actions attached to it."""
+    batch = _run_batch(client)
+    items = client.get("/review/queue", params={"batch_id": batch["batch_id"], "limit": 100}).json()["items"]
+
+    for item in items:
+        offered = {a["action"] for a in item["available_actions"]}
+        if "APPROVE_MATCH" in offered or "REJECT_MATCH" in offered:
+            assert item.get("matched_payment_id") or item.get("considered_candidates"), (
+                f"{item['record_id']} was offered a candidate action but carries no candidate"
+            )
+
+
+def test_money_disputes_are_still_never_approvable(client):
+    """The safety half of the same code path, re-asserted after reordering:
+    a record whose amount or currency is known to be wrong must not be
+    offered 'approve match and reconcile', candidate or not."""
+    batch = _run_batch(client)
+    items = client.get("/review/queue", params={"batch_id": batch["batch_id"], "limit": 100}).json()["items"]
+
+    money_disputes = {"AMOUNT_MISMATCH", "CURRENCY_MISMATCH", "FEE_TAX_INCONSISTENT", "REFUND_MISMATCH"}
+    for item in items:
+        if item.get("exception_type") in money_disputes:
+            offered = {a["action"] for a in item["available_actions"]}
+            assert "APPROVE_MATCH" not in offered, (
+                f"{item['record_id']} is a {item['exception_type']} and must never be approvable"
+            )

@@ -1,0 +1,23 @@
+payment_id,order_id,settlement_id,amount,currency,fee,tax,net_amount,refund_amount,status,method,created_at,settlement_date,description,notes
+pay_M3ELQ2805XVDND,INV-3001,setl_XGVSVRRK9JBU2B,1250000,INR,25000,4500,1220500,0,settled,netbanking,1772447400,1772622000,Settlement for INV-3001 Northwind Store cloud platform,auto settlement setl_XGVSVRRK9JBU2B
+pay_Z2R1QFRPBFB2PG,INV-3002,setl_XGVSVRRK9JBU2B,430050,INR,8601,1548,419901,0,settled,card,1772447400,1772622000,Settlement for INV-3002 KalyanTech headphone order,auto settlement setl_XGVSVRRK9JBU2B
+pay_E963K9KTDTP0ZX,INV-3003,setl_2Y41CF7LR962DP,89900,INR,1798,324,87778,0,settled,netbanking,1772533800,1772708400,Settlement for INV-3003 Sunrise Shop starter plan,auto settlement setl_2Y41CF7LR962DP
+pay_B1MD4005XFB2SG,INV-3004,setl_2Y41CF7LR962DP,2445000,INR,48900,8802,2387298,0,settled,card,1772533800,1772708400,Settlement for INV-3004 Meridian Apps onboarding,auto settlement setl_2Y41CF7LR962DP
+pay_PK94YBPBLGB7X9,INV-3005,setl_104R75QBKQ41JZ,175000,INR,3500,630,170870,0,settled,netbanking,1772620200,1772794800,Settlement for INV-3005 Anand Traders priority support,auto settlement setl_104R75QBKQ41JZ
+pay_6TXJ60ZBGZYU4E,INV-3006,setl_104R75QBKQ41JZ,630000,INR,12600,2268,615132,0,settled,card,1772620200,1772794800,Settlement for INV-3006 Bluepeak team seats,auto settlement setl_104R75QBKQ41JZ
+pay_KDXC561E3DBHNT,INV-3007,setl_R93PJW177KKJTX,1540000,INR,30800,5544,1503656,0,settled,netbanking,1772706600,1772881200,Settlement for INV-3007 Vantage data export,auto settlement setl_R93PJW177KKJTX
+pay_YFPPNLGCNFWKR4,INV-3008,setl_R93PJW177KKJTX,220000,INR,4400,792,214808,0,settled,netbanking,1772706600,1772881200,Settlement for INV-3008 Harbourline widget bundle,auto settlement setl_R93PJW177KKJTX
+pay_64GX1N3P791M9D,INV-3009,setl_9UUGQ4BRFMXLHG,875000,INR,17500,3150,854350,0,settled,netbanking,1772793000,1773054000,Settlement for INV-3009 Northwind Store consulting,auto settlement setl_9UUGQ4BRFMXLHG
+pay_1YDYV1MBHQ4Q6J,INV-3010,setl_X93ZEJ9F72DMJW,3315000,INR,66300,11934,3236766,0,settled,card,1773052200,1773226800,Settlement for INV-3010 KalyanTech licence renewal,auto settlement setl_X93ZEJ9F72DMJW
+pay_KUD1X9CTF69J1M,INV-3011,setl_X93ZEJ9F72DMJW,1840000,INR,36800,6624,1796576,0,settled,netbanking,1773052200,1773226800,Settlement for INV-3011 Sunrise Shop data migration,auto settlement setl_X93ZEJ9F72DMJW
+pay_74Y1Y832FC6VB5,INV-3012,setl_X93ZEJ9F72DMJW,990000,INR,19800,3564,966636,0,settled,card,1773052200,1773226800,Settlement for INV-3012 Meridian Apps priority support,auto settlement setl_X93ZEJ9F72DMJW
+pay_MCN6T03MH0PGNH,INV-3018,setl_TTBPV0K65J2FFL,1425000,INR,28500,5130,1391370,0,settled,card,1773397800,1773658800,Settlement for INV-3018 KalyanTech consulting block,auto settlement setl_TTBPV0K65J2FFL
+pay_HQDV8VWNUV1USW,INV-3019,setl_TTBPV0K65J2FFL,268000,INR,5360,965,261675,0,settled,netbanking,1773397800,1773658800,Settlement for INV-3019 Sunrise Shop priority support,auto settlement setl_TTBPV0K65J2FFL
+pay_441HCL8NB986WX,INV-3020,setl_L0A0ZXSPZSJ8CE,4630000,INR,92600,16668,4520732,0,settled,netbanking,1773657000,1773831600,Settlement for INV-3020 Meridian Apps onboarding,auto settlement setl_L0A0ZXSPZSJ8CE
+pay_CE0CJ8J2PF6FZ5,ZB-6101,setl_L0A0ZXSPZSJ8CE,654000,INR,13080,2354,638566,0,settled,card,1773657000,1773831600,Settlement for ZB-6101 Vantage analytics tier 2,auto settlement setl_L0A0ZXSPZSJ8CE
+pay_U8YN9MUU9FN4LT,ZB-6102,setl_RL1AT89645VE05,238000,INR,4760,857,232383,0,settled,netbanking,1773829800,1774004400,Settlement for ZB-6102 Bluepeak support retainer,auto settlement setl_RL1AT89645VE05
+pay_JFLWDDPW1G6H13,INV-3065,setl_1G2QQ0FKV1FMHD,1100000,INR,22000,3960,824040,250000,partially_refunded,netbanking,1774002600,1774177200,Settlement for INV-3065 Anand Traders widget bundle premium,auto settlement setl_1G2QQ0FKV1FMHD
+pay_PRU83NKPBZR0VT,INV-3072,setl_YJP65SNZGDKMHB,1680000,INR,33600,6048,1220352,420000,partially_refunded,card,1774261800,1774436400,Settlement for INV-3072 KalyanTech analytics seat pack,auto settlement setl_YJP65SNZGDKMHB
+pay_0HZ2ASSEFA8F0R,INV-3068,setl_EBBVHLC7ZVVK34,120000,INR,2400,432,117168,0,settled,card,1774521000,1774695600,Settlement for INV-3068 Meridian Apps licence fee,auto settlement setl_EBBVHLC7ZVVK34
+pay_HCVW34BKXYTBBA,INV-3050,setl_D0U2LE3BCE2Y4S,2499900,INR,49998,9000,2440902,0,settled,card,1774693800,1774868400,Settlement for INV-3050 Northwind Store onboarding phase 2,auto settlement setl_D0U2LE3BCE2Y4S
+pay_5N7ULLF99ZXTLV,INV-3077,setl_NPEQQG9ZUAWVR4,926000,INR,18520,3334,904146,0,settled,netbanking,1775125800,1775300400,Settlement for INV-3077 Harbourline cold chain add-on,auto settlement setl_NPEQQG9ZUAWVR4

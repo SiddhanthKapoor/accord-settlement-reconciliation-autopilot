@@ -323,3 +323,81 @@ applied, and none of them is calibrated against a real merchant's risk
 tolerance. They are reasonable starting points chosen against development
 data, and they are configuration rather than code so that a merchant can
 move them without touching the engine.
+
+---
+
+## Two providers, and neither of them is the safety net
+
+The model layer now tries Gemini first and Groq second. The reason is not
+redundancy for its own sake — it is that a rate limit is not a financial
+decision, and for one day of this project's life it was being treated as
+one.
+
+A 100% provider outage was measured on a held-out run: 204 of 204 calls
+failed, accuracy fell from 82.5% to 76.8%, and false auto-reconciliation
+stayed at 0.0%. Every category that deterministic logic owns was
+untouched; only the two semantic categories degraded, and they degraded
+*to human review*. That is the system behaving correctly, and it is worth
+more as evidence than a second provider is.
+
+So the fallback chain exists to recover **recall**, not safety. The
+ordering is deliberate:
+
+1. Primary provider answers → use it.
+2. Primary fails on rate limit, quota, timeout or provider error →
+   secondary answers.
+3. Both fail → the record goes to a human, with the failure recorded as a
+   provider error rather than as a match verdict.
+
+The third branch is not a degraded mode to be engineered away. It is the
+floor, and the first two branches are conveniences sitting on top of it.
+
+**The alternative** was calling both providers and comparing, or calling
+the cheaper one first. Both rejected: the first doubles cost and creates
+a tie-break problem with no principled answer, and the second optimises
+the wrong variable — a wrong verdict is expensive in a way that a token
+is not.
+
+Failure classification is deliberately granular — `AUTH_FAILURE`,
+`MODEL_NOT_FOUND`, `RATE_LIMIT`, `QUOTA_EXHAUSTED`, `TIMEOUT`,
+`CONFIGURATION_ERROR`, `PROVIDER_ERROR`. Collapsing these was how a
+misconfigured key and an exhausted quota came to look identical in the
+logs, which cost real debugging time on this project. A quota problem
+means wait; an auth problem means fix the config; they should never
+render the same.
+
+---
+
+## Fifty files, one reconciliation
+
+The upload screen used to present four fixed boxes: orders, accounting,
+gateway, bank. That was never an engine constraint — `combine()` has
+always folded an arbitrary number of mapped sources into the two
+canonical roles. The four boxes were a UI decision that had quietly
+become a product claim.
+
+A real finance team does not have four files. They have last month's and
+this month's ICICI statement, an HDFC account, three gateways because
+different products settled through different processors, a Shopify
+export, a Tally dump, and a chargeback report someone emailed them. The
+product either accepts that or it is a demo.
+
+So: one drop zone, many files, and classification happens *after* upload
+rather than being demanded before it. The user should not have to know
+what Accord calls a file in order to give it one.
+
+**What this deliberately does not become** is an all-pairs comparison. N
+files compared row-by-row against every other file is quadratic in the
+worst thing to be quadratic in, and it would also be wrong — an order
+export and an invoice export are the same side of the reconciliation, not
+two sides of one. Files are classified into a role, roles pool into two
+sides, and the existing bounded candidate retrieval does the rest. The
+money-flow map is a view over provenance, not a second matching engine.
+
+**The honest limit:** because the two sides are pooled, Accord does not
+perform chained stage-by-stage matching — it does not separately prove
+order→gateway and then gateway→bank as two independent hops. What it
+does is reconcile the ledger side against the settlement side and then
+report *where in the chain the evidence ran out*. That is a genuinely
+useful answer and it is not the same as a five-stage graph traversal, so
+the product should not draw one as though it were.

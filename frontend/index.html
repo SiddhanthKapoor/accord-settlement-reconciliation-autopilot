@@ -3,9 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Axiom Recon — multi-source reconciliation</title>
-    <meta name="description" content="AI that closes the gap between payments, settlements and books." />
+
+    <title>Accord — AI that explains why the books don't close.</title>
+    <meta
+      name="description"
+      content="Accord reconciles payments, settlements, bank statements and your ledger, then investigates each record that did not close. Deterministic math decides first; a model is consulted only where the ambiguity is genuinely semantic, and it can never book money."
+    />
+    <meta name="theme-color" content="#0B121C" />
+
+    <!-- PNG first for the platforms that prefer a raster mark; the existing
+         SVG stays as a fallback for anything that would rather scale it. -->
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Paths are root-relative: there is no canonical domain for this build
+         yet, and inventing one would put a dead URL in the card. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Accord" />
+    <meta property="og:title" content="Accord — AI that explains why the books don't close." />
+    <meta
+      property="og:description"
+      content="Multi-source reconciliation that investigates what didn't close. Deterministic math first, AI only for genuine semantic ambiguity, every decision in a hash-chained audit ledger."
+    />
+    <meta property="og:image" content="/brand/accord-hero.jpg" />
+    <meta property="og:image:width" content="1600" />
+    <meta property="og:image:height" content="900" />
+    <meta property="og:image:alt" content="Accord — multi-source reconciliation" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Accord — AI that explains why the books don't close." />
+    <meta
+      name="twitter:description"
+      content="Multi-source reconciliation that investigates what didn't close. Deterministic math first, AI only for genuine semantic ambiguity, every decision in a hash-chained audit ledger."
+    />
+    <meta name="twitter:image" content="/brand/accord-hero.jpg" />
+    <meta name="twitter:image:alt" content="Accord — multi-source reconciliation" />
   </head>
   <body>
     <div id="root"></div>

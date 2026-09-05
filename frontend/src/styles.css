@@ -1,12 +1,25 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
-  /* pulled from Razorpay's own production stylesheet, not guessed */
-  --ink: #080d29;
-  --navy: #192839;
-  --text: #192839;
+  /* Accord brand. The navies are sampled from the logo mark. */
+  --ink: #16202e;
+  --ink-deep: #0b121c;
+  --navy: #22323f;
+  --text: #16202e;
   --muted: #40566d;
   --faint: #768ea7;
+
+  /* Emerald is the brand colour, but it is only legible as *text* on a dark
+     ground: #00C389 on white is about 2:1. So the bright value is reserved
+     for dark surfaces and for graphic fills, and --accord-ink is the value
+     used wherever emerald has to carry words on a light background
+     (6.5:1 on white). Interactive text stays blue, which clears AA
+     comfortably at every size. */
+  --accord: #00c389;
+  --accord-d: #059669;
+  --accord-ink: #046b50;
+  --accord-soft: #e8f9f2;
+  --accord-border: #a8e6cf;
 
   --accent: #305eff;
   --accent-dark: #2950da;
@@ -77,25 +90,42 @@ button { font-family: inherit; }
   display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 60px;
 }
 .topnav-left { display: flex; align-items: center; gap: 14px; }
-.brand-mark { display: flex; align-items: center; gap: 9px; }
-.brand-glyph { width: 22px; height: 22px; color: var(--navy); flex-shrink: 0; }
+.brand-mark { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+.accord-logo-img { display: block; flex-shrink: 0; object-fit: contain; }
 .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink); letter-spacing: -0.01em; }
 .tabs { display: flex; gap: 2px; }
 .tab {
-  position: relative; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+  position: relative; display: inline-flex; align-items: center; padding: 7px 14px;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; text-decoration: none;
   color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit;
+  white-space: nowrap;
 }
 .tab:hover { color: var(--ink); }
 .tab-active { color: var(--ink); font-weight: 600; }
 .tab-indicator { position: absolute; inset: 0; background: var(--surface-sunk); border-radius: var(--radius-sm); z-index: 0; }
 .tab-label { position: relative; z-index: 1; }
 
-.topnav-right { display: flex; align-items: center; gap: 8px; }
+.topnav-right { display: flex; align-items: center; gap: 10px; }
 .status-chip {
   display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted);
   background: var(--surface); border: 1px solid var(--border); padding: 5px 11px; border-radius: var(--radius-sm);
 }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pass); }
+
+/* Live AI provider status. The shape differs per state as well as the
+   colour, so it survives greyscale and colour blindness; and the chip is
+   simply absent when the health endpoint cannot be reached, rather than
+   asserting a state we have not confirmed. */
+.ai-chip {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  font-size: 11.5px; font-weight: 600; padding: 5px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--muted);
+}
+.ai-chip svg { flex: none; }
+.ai-chip-ok { color: var(--accord-ink); background: var(--accord-soft); border-color: var(--accord-border); }
+.ai-chip-warn { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-border); }
+.ai-chip-off { color: var(--muted); background: var(--surface-sunk); border-color: var(--border); }
 
 .page { flex: 1; padding: 28px 32px 60px; max-width: 1320px; width: 100%; margin: 0 auto; }
 .page-header { margin-bottom: 22px; }
@@ -126,7 +156,10 @@ button { font-family: inherit; }
 
 /* ---------------------------------------------------------------- stats row */
 
-.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+/* auto-fit rather than a hard 5 columns: the runs page shows four tiles and
+   the evaluation console shows five, and a fixed count left a dead grey cell
+   hanging off the end of the row on the shorter one. */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .stat-tile { padding: 16px 18px; background: var(--surface); }
 .stat-label { font-size: 10.5px; text-transform: uppercase; color: var(--faint); letter-spacing: 0.05em; font-weight: 600; }
 .stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--ink); margin-top: 6px; letter-spacing: -0.02em; }
@@ -239,11 +272,22 @@ button { font-family: inherit; }
 
   /* The status chips are fixed-width and sit in a non-wrapping flex row,
      so on a phone they pushed the header ~190px past the viewport and
-     took the whole page's horizontal scroll with them. The backend
-     status belongs on a desktop header, not a 390px one. */
-  .topnav { padding: 0 16px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; }
-  .topnav-right { display: none; }
+     took the whole page's horizontal scroll with them. The provider
+     status belongs on a desktop header, not a 390px one — but the "New
+     run" action does not, so only the chip is dropped. */
+  .topnav { padding: 0 16px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px 10px; }
+  .ai-chip { display: none; }
   .brand-text { font-size: 14px; }
+
+  /* Four tabs do not fit at 375px. They scroll horizontally inside their
+     own row rather than dragging the document sideways with them. */
+  .tabs {
+    order: 3; width: 100%;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; padding-bottom: 6px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .topnav-right { margin-left: auto; }
 }
 
 /* Provenance banner — states plainly whether what's on screen came from
@@ -504,4 +548,338 @@ summary:focus-visible,
 @media (max-width: 720px) {
   .toolbar-right { width: 100%; }
   .toolbar-right .select-field { flex: 1; min-width: 0; }
+}
+
+/* ==================================================================== */
+/* ACCORD — buttons, landing page, 404                                  */
+/* ==================================================================== */
+
+/* ---- Buttons ------------------------------------------------------- */
+
+/* One primary button for the whole product, and it works on both grounds.
+   Emerald carries dark text at 8.3:1, which is the only way this brand
+   colour is legible as a control; the darker emerald border gives the
+   button a 3.8:1 boundary against white, since the fill alone is only
+   2.3:1 and would leave the control edge invisible. */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; white-space: nowrap; cursor: pointer;
+  background: var(--accord); color: var(--ink-deep);
+  border: 1px solid var(--accord-d); border-radius: var(--radius-pill);
+  padding: 9px 18px; font-size: 13px; font-weight: 700; font-family: inherit;
+  text-decoration: none; letter-spacing: -0.005em;
+}
+.btn-primary:hover { background: var(--accord-d); border-color: var(--accord-d); color: var(--ink-deep); }
+.btn-primary.is-current { box-shadow: 0 0 0 3px rgba(0, 195, 137, 0.22); }
+.btn-sm { padding: 7px 14px; font-size: 12.5px; }
+.btn-lg { padding: 13px 26px; font-size: 15px; border-radius: var(--radius-pill); }
+
+.btn-quiet {
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; background: transparent; color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  padding: 9px 18px; font-size: 13px; font-weight: 600; font-family: inherit;
+  text-decoration: none;
+}
+.btn-quiet:hover { border-color: var(--ink); }
+
+/* ---- Landing shell ------------------------------------------------- */
+
+.landing { background: var(--surface); }
+
+/* The mark is dark navy on transparent, so it needs a light bar to sit on;
+   a translucent dark header would erase half the logo. Light also matches
+   the rest of the page — only the hero and the closing band are dark. */
+.landing-nav {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.landing-nav-scrolled {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom-color: var(--border);
+  box-shadow: 0 1px 12px rgba(11, 18, 28, 0.05);
+}
+.landing-nav-inner {
+  max-width: 1180px; margin: 0 auto; padding: 0 28px; height: 66px;
+  display: flex; align-items: center; gap: 20px;
+}
+.landing-brand { text-decoration: none; color: inherit; flex: none; }
+.accord-wordmark { display: inline-flex; align-items: center; gap: 10px; }
+.accord-wordmark-text {
+  font-family: var(--font-display); font-weight: 700; font-size: 19px;
+  color: var(--ink); letter-spacing: -0.02em;
+}
+.landing-nav-links { display: flex; gap: 26px; margin-left: 20px; }
+.landing-nav-links a {
+  color: var(--muted); font-size: 13.5px; font-weight: 500; text-decoration: none;
+}
+.landing-nav-links a:hover { color: var(--ink); }
+.landing-nav-cta-wrap { margin-left: auto; display: inline-flex; }
+
+/* ---- Hero ---------------------------------------------------------- */
+
+/* The section owns a dark ground colour of its own, so if the photograph
+   fails to load, is slow, or is blocked, the hero is still dark navy with
+   light text and still clears AA. The image is never load-bearing. */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--ink-deep);
+  isolation: isolate;
+}
+.hero-image {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: 72% center;
+  z-index: 0;
+}
+/* Two stacked gradients. The photograph is nearly black on its left third,
+   where the copy sits, and the streams converge on the right, so the scrim
+   is heaviest on the left and lifts toward the right to leave the artwork
+   visible. Effective opacity behind the text is ~0.95, which puts white
+   type well past 15:1 regardless of what the image is doing underneath. */
+.hero-scrim {
+  position: absolute; inset: 0; z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(11, 18, 28, 0.95) 0%, rgba(11, 18, 28, 0.9) 44%, rgba(11, 18, 28, 0.44) 74%, rgba(11, 18, 28, 0.2) 100%),
+    linear-gradient(180deg, rgba(11, 18, 28, 0.5) 0%, rgba(11, 18, 28, 0.24) 42%, rgba(11, 18, 28, 0.82) 100%);
+}
+.hero-inner {
+  position: relative; z-index: 2;
+  max-width: 1180px; margin: 0 auto; padding: 112px 28px 120px;
+}
+.hero-eyebrow {
+  margin: 0 0 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--accord);
+}
+.hero-heading {
+  margin: 0; max-width: 17ch;
+  font-family: var(--font-display); font-weight: 700; color: #ffffff;
+  font-size: clamp(34px, 6vw, 60px); line-height: 1.04; letter-spacing: -0.035em;
+}
+.hero-rule {
+  width: 88px; height: 3px; margin: 26px 0 24px; transform-origin: left center;
+  background: linear-gradient(90deg, var(--accord), rgba(0, 195, 137, 0));
+  border-radius: 2px;
+}
+.hero-sub {
+  margin: 0; max-width: 60ch;
+  font-size: clamp(15px, 1.6vw, 18px); line-height: 1.62; color: #ccd8e4;
+}
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.hero .btn-quiet {
+  color: #ffffff; border-color: rgba(255, 255, 255, 0.42); background: rgba(255, 255, 255, 0.04);
+}
+.hero .btn-quiet:hover { border-color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+.hero-foot {
+  margin: 30px 0 0; max-width: 56ch;
+  font-size: 13px; line-height: 1.6; color: #9fb0c2;
+  padding-left: 14px; border-left: 2px solid rgba(0, 195, 137, 0.55);
+}
+
+/* A blue focus ring is invisible on near-black. Dark sections get a white
+   one, which is 15:1 against their ground. */
+.hero :focus-visible,
+.closing-band :focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+
+/* ---- Light sections ------------------------------------------------ */
+
+.section { padding: 92px 0; background: var(--surface); }
+.section-alt { background: var(--surface-alt); border-block: 1px solid var(--border-subtle); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; width: 100%; }
+.wrap-narrow { max-width: 780px; }
+
+.section-eyebrow {
+  margin: 0 0 14px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--accord-ink);
+}
+.section-heading {
+  margin: 0 0 20px; font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(24px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.03em;
+  color: var(--ink); max-width: 22ch;
+}
+.section-lede {
+  margin: 0 0 18px; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.68;
+  color: var(--muted); max-width: 68ch;
+}
+.section-lede-tight { margin-bottom: 40px; }
+.section-premise .section-heading { max-width: 24ch; }
+
+/* ---- How it works -------------------------------------------------- */
+
+.steps {
+  list-style: none; margin: 40px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px;
+  background: var(--border-subtle); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius); overflow: hidden;
+}
+.step {
+  display: flex; gap: 16px; padding: 26px 26px 28px;
+  background: var(--surface);
+}
+.step-n {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  color: var(--accord-ink); flex: none; padding-top: 3px; letter-spacing: 0.04em;
+}
+.step-body { min-width: 0; }
+.step-title {
+  margin: 0 0 8px; font-family: var(--font-display); font-size: 16.5px;
+  font-weight: 700; color: var(--ink); letter-spacing: -0.015em;
+}
+.step-text { margin: 0; font-size: 14px; line-height: 1.62; color: var(--muted); }
+
+/* ---- Control model ------------------------------------------------- */
+
+.safety-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+}
+.safety-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px 22px 24px; background: var(--surface);
+  border-top: 3px solid var(--accord);
+}
+.safety-title {
+  margin: 0 0 9px; font-family: var(--font-display); font-size: 15.5px;
+  font-weight: 700; color: var(--ink); letter-spacing: -0.015em;
+}
+.safety-text { margin: 0; font-size: 13.5px; line-height: 1.62; color: var(--muted); }
+
+/* ---- Evidence ------------------------------------------------------ */
+
+.evidence-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+  margin-top: 38px;
+}
+.evidence-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 26px 24px 28px;
+}
+.evidence-figure {
+  margin: 0; font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(30px, 4vw, 42px); line-height: 1; letter-spacing: -0.04em;
+  color: var(--accord-ink);
+}
+.evidence-unit {
+  margin: 10px 0 14px; font-size: 12.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink);
+}
+.evidence-text { margin: 0; font-size: 13.5px; line-height: 1.62; color: var(--muted); }
+
+/* Stated in full, next to the figures rather than in a footnote: these are
+   measurements on a synthetic set, and the page has to say so where the
+   numbers are read. */
+.provenance-note {
+  margin-top: 26px; padding: 18px 20px;
+  border: 1px solid var(--border); border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm); background: var(--surface);
+  display: flex; gap: 18px; flex-wrap: wrap;
+}
+.provenance-note-tag {
+  margin: 0; font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--warn); white-space: nowrap; padding-top: 2px;
+}
+.provenance-note-text {
+  margin: 0; flex: 1; min-width: 260px; font-size: 13px; line-height: 1.62; color: var(--muted);
+}
+.provenance-note-text code { font-size: 12px; color: var(--ink); }
+
+/* ---- Closing band -------------------------------------------------- */
+
+.closing-band {
+  background:
+    radial-gradient(900px 380px at 76% 46%, rgba(0, 195, 137, 0.2), transparent 70%),
+    var(--ink-deep);
+  padding: 86px 0;
+}
+.closing-inner { text-align: center; }
+.closing-heading {
+  margin: 0 0 14px; font-family: var(--font-display); font-weight: 700; color: #ffffff;
+  font-size: clamp(24px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.03em;
+}
+.closing-text {
+  margin: 0 auto 28px; max-width: 54ch;
+  font-size: 15.5px; line-height: 1.62; color: #ccd8e4;
+}
+
+/* ---- Footer -------------------------------------------------------- */
+
+.site-footer { background: var(--surface); border-top: 1px solid var(--border); padding: 44px 0 34px; }
+.site-footer-inner {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 28px; flex-wrap: wrap;
+}
+.site-footer-brand { display: flex; gap: 12px; align-items: flex-start; }
+.site-footer-name {
+  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 16px;
+  color: var(--ink); letter-spacing: -0.02em;
+}
+.site-footer-tag { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+.site-footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+.site-footer-links a { font-size: 13.5px; color: var(--muted); text-decoration: none; font-weight: 500; }
+.site-footer-links a:hover { color: var(--ink); text-decoration: underline; }
+.site-footer-legal { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--border-subtle); }
+.site-footer-legal p { margin: 0; font-size: 12px; color: var(--muted); max-width: 74ch; }
+
+/* ---- 404 ----------------------------------------------------------- */
+
+.notfound {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--surface-alt); padding: 40px 24px;
+}
+.notfound-inner { max-width: 520px; text-align: center; }
+.notfound-inner .accord-logo-img { margin: 0 auto 22px; }
+.notfound-code {
+  margin: 0 0 10px; font-family: var(--mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.16em; color: var(--accord-ink);
+}
+.notfound-heading {
+  margin: 0 0 12px; font-family: var(--font-display); font-size: clamp(24px, 4vw, 32px);
+  font-weight: 700; letter-spacing: -0.03em; color: var(--ink);
+}
+.notfound-text { margin: 0 0 28px; font-size: 15px; line-height: 1.62; color: var(--muted); }
+.notfound-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ---- Responsive ---------------------------------------------------- */
+
+@media (max-width: 980px) {
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .safety-grid, .evidence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .landing-nav-inner { height: 60px; padding: 0 18px; gap: 12px; }
+  /* Anchor links are a convenience duplicated by the page order itself;
+     the brand link and the workspace CTA both survive. */
+  .landing-nav-links { display: none; }
+  .landing-nav-cta-wrap { margin-left: auto; }
+
+  .hero-inner { padding: 72px 18px 80px; }
+  .hero-image { object-position: 78% center; }
+  .hero-heading { max-width: none; }
+
+  .section { padding: 58px 0; }
+  .wrap { padding: 0 18px; }
+  .section-heading { max-width: none; }
+  .safety-grid, .evidence-grid { grid-template-columns: minmax(0, 1fr); }
+  .step { padding: 22px 20px; }
+  .closing-band { padding: 62px 0; }
+  .site-footer-inner { flex-direction: column; gap: 22px; }
+}
+
+/* Long unbroken tokens (run ids, hashes, file names) are the usual cause of
+   a phone-width page scrolling sideways. */
+@media (max-width: 420px) {
+  .hero-heading { font-size: 30px; letter-spacing: -0.03em; }
+  .hero-actions .btn-lg { width: 100%; }
+  .notfound-actions .btn-lg { width: 100%; }
+}
+
+/* The landing nav is sticky, so an in-page anchor would otherwise drop the
+   section heading underneath it. Smooth scrolling is opt-out for anyone who
+   has asked for reduced motion. */
+.section[id], .hero { scroll-margin-top: 84px; }
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }

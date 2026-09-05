@@ -1,0 +1,4 @@
+settlement-id,settlement-start-date,settlement-end-date,payout-date,transaction-type,order-id,product-sales,selling-fees,total,currency,description
+KWYSETL20260324,16-Mar-2026,22-Mar-2026,24-Mar-2026,Order Payout,KWY-88213,28950.00,-1500.00,27450.00,INR,Seller services payout for week 12
+KWYSETL20260331,23-Mar-2026,29-Mar-2026,31-Mar-2026,Order Payout,KWY-88226,20230.00,-1050.00,19180.00,INR,Seller services payout for week 13
+KWYSETL20260407,30-Mar-2026,05-Apr-2026,07-Apr-2026,Order Payout,KWY-88231,23880.00,-1240.00,22640.00,INR,Seller services payout for week 14

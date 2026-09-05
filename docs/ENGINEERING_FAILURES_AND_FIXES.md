@@ -811,3 +811,123 @@ semantic layer.
 **Every accuracy number is synthetic.** No real merchant data has been
 processed. See `docs/RAZORPAY_INTEGRATION.md` for exactly why, and what
 was verified rather than assumed.
+
+---
+
+## 29. The investigator crashed on every record it existed to explain
+
+`find_split` referenced a bare `policy` that was never bound in its scope —
+the surrounding functions read `context.policy`. A plain `NameError`.
+
+It survived 31 offline tests because none of them reached the split
+hypothesis: the fixtures that produce an unmatched record with unclaimed
+settlements in the window all resolved earlier, on an aggregation or a
+pending window. The path was covered by the *feature* and not by any test.
+
+It surfaced within seconds of pointing the real 13-file demo workspace at
+it — the first genuine exception record hit the branch and returned a 500.
+The hero feature was broken for exactly the records it was built for, and
+no unit test could see it.
+
+**The lesson is not "write more tests."** It is that a feature whose whole
+job is to run on the residue must be exercised against a real residue, not
+against fixtures chosen to demonstrate each branch in isolation.
+
+---
+
+## 30. "AI unavailable" on a system where AI was working perfectly
+
+The investigator initialised `ai_status = AI_UNAVAILABLE` and only
+corrected it in a branch guarded by `self._chain is not None`. But the
+chain is built lazily, on first consult. So a record settled by arithmetic
+— no model call needed, the product working exactly as designed — reported
+`AI_UNAVAILABLE`, and the UI would have told the operator the system was
+degraded on precisely the records where it was healthiest.
+
+The author's own comment said *"so 'not used' is never confused with 'not
+working'"*. The intent was right; the lazy initialisation defeated it.
+
+The fix is a fourth status, `AI_NOT_CONSULTED`, rather than probing a
+provider to fill in a label. Spending quota to answer a question nobody
+asked would have been a worse fix than the bug.
+
+**Two facts, two names.** "We did not need to ask" and "we asked and nobody
+answered" collapse into one string only if you never imagine an operator
+reading it.
+
+---
+
+## 31. A limitation that had already been fixed by someone else
+
+The trace reported `BANK: NOT_EVALUATED` with the explanation that mapped
+rows carry no per-file provenance, so a bank credit could not be attributed
+to a record individually. That was true when it was written and false by
+the time it shipped — provenance had landed in the ingestion layer in the
+same cycle.
+
+The result was a system that refused to state something it could now prove.
+`BANK: FOUND — matched ICICI_January.csv row 4182` is the single most
+useful line on the panel, and it was being suppressed by a stale docstring.
+
+Worth noting because the failure mode is unusual: **an honesty constraint
+that outlived its reason becomes its own kind of inaccuracy.** The trace
+now attributes per record and keeps the disclaimer only where provenance is
+genuinely absent.
+
+---
+
+## 32. One configuration error, logged 204 times
+
+A dead API key fails identically on every record. The provider layer logged
+it per call, so a 1,000-record evaluation buried its own output under 204
+copies of one line.
+
+More output, less information — the run's actual result had scrolled away.
+Now logged once per distinct problem with a recoverable count.
+
+---
+
+## 33. Running two evaluations at once invalidated both
+
+Mine. With time to fill while a 1,000-record AI evaluation ran, I started a
+second one against the fallback provider, reasoning that they used
+different providers and so would not contend.
+
+They contended on rate limits. The first run came back with 50% provider
+failures and the second with 82%, and I briefly attributed a false
+auto-reconciliation to the fallback provider's model on that basis. The
+clean sequential re-run showed the same finding under the *primary*
+provider, so the attribution was wrong.
+
+**A measurement taken while you are also perturbing the thing you measure
+is not a fast measurement. It is not a measurement.** The correction cost
+more time than the parallelism saved, and briefly put a wrong claim about a
+named third-party model into a report.
+
+---
+
+## 34. The first non-zero false auto-reconciliation
+
+For most of this project the headline safety metric read 0.0%, and the
+temptation was to treat that as a property of the system rather than of the
+runs that had been done.
+
+A clean run on the shipped commit produced **0.2%** — one record in the
+`same_amount_different_txn` trap category, where the model returned SAME
+above the 0.85 confidence gate on two unrelated transactions sharing an
+amount. An earlier frozen run of the same dataset produced 0.0% on that
+category, so the honest statement is a range: with the model enabled, the
+false auto-reconciliation rate is **0.0%–0.2%**, not a reliable zero.
+
+There was an obvious way to make it go away: raise
+`ai_confidence_threshold` from 0.85 and re-run. It would have worked, and
+it would have been indefensible — a safety threshold tuned until a holdout
+number looked better is a threshold that no longer means anything, and the
+protocol forbidding it exists for exactly this moment.
+
+So it is reported instead, and the distinction that matters is stated
+alongside it: the deterministic configuration's 0.0% is *structural* — with
+no model in the loop, no model verdict can admit a match. The AI
+configuration buys +5.2 accuracy points and gives up the structural
+guarantee for a policy-gated one. That is a real trade, and a merchant
+deciding where to set the threshold deserves to see it as one.

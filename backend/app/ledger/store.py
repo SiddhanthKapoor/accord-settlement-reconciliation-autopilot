@@ -72,17 +72,67 @@ def get_latest_batch() -> Optional[dict]:
 def save_source(
     source_id: str, batch_id: str, filename: str, source_type: str, role: str,
     row_count: int, mapping: dict, detection: dict, raw_csv: str,
+    content_hash: Optional[str] = None,
 ) -> None:
     conn = get_conn()
     conn.execute(
         """INSERT OR REPLACE INTO run_sources
            (source_id, batch_id, filename, source_type, role, row_count, accepted_count,
-            rejected_count, mapping_json, detection_json, raw_csv, uploaded_at)
-           VALUES (?,?,?,?,?,?,0,0,?,?,?,?)""",
+            rejected_count, mapping_json, detection_json, raw_csv, uploaded_at, content_hash)
+           VALUES (?,?,?,?,?,?,0,0,?,?,?,?,?)""",
         (source_id, batch_id, filename, source_type, role, row_count,
          json.dumps(mapping), json.dumps(detection, default=str), raw_csv,
-         datetime.now(timezone.utc).isoformat()),
+         datetime.now(timezone.utc).isoformat(), content_hash),
     )
+
+
+def find_source_by_hash(batch_id: str, content_hash: str) -> Optional[dict]:
+    """The first source in this run with identical bytes, if any.
+
+    A duplicate upload is reported, not blocked: the same statement sent
+    twice is a real thing that happens in a month-end close, and knowing
+    it happened matters more than being spared the row.
+    """
+    conn = get_conn()
+    row = conn.execute(
+        """SELECT source_id, filename, uploaded_at FROM run_sources
+           WHERE batch_id=? AND content_hash=? ORDER BY uploaded_at ASC LIMIT 1""",
+        (batch_id, content_hash),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def count_sources(batch_id: str) -> int:
+    conn = get_conn()
+    row = conn.execute("SELECT COUNT(*) AS n FROM run_sources WHERE batch_id=?", (batch_id,)).fetchone()
+    return int(row["n"]) if row else 0
+
+
+def workspace_bytes(batch_id: str) -> int:
+    """Bytes of source text already held for this run, so a workspace-wide
+    cap can be enforced rather than only a per-file one."""
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT COALESCE(SUM(LENGTH(raw_csv)), 0) AS n FROM run_sources WHERE batch_id=?", (batch_id,)
+    ).fetchone()
+    return int(row["n"]) if row else 0
+
+
+def save_run_plan(batch_id: str, plan: dict) -> None:
+    conn = get_conn()
+    conn.execute("UPDATE batches SET plan_json=? WHERE batch_id=?",
+                 (json.dumps(plan, default=str), batch_id))
+
+
+def get_run_plan(batch_id: str) -> dict:
+    conn = get_conn()
+    row = conn.execute("SELECT plan_json FROM batches WHERE batch_id=?", (batch_id,)).fetchone()
+    if not row or not row["plan_json"]:
+        return {}
+    try:
+        return json.loads(row["plan_json"])
+    except (TypeError, ValueError):
+        return {}
 
 
 def update_source_mapping(source_id: str, mapping: dict, source_type: str, role: str) -> None:
@@ -136,6 +186,7 @@ def delete_source(source_id: str) -> None:
 def save_record(
     batch_id: str, seq: int, record: ReconciliationRecord, result: ReconciliationResult,
     candidates: list[RazorpaySettlementRecord],
+    provenance: Optional[dict] = None,
 ) -> None:
     conn = get_conn()
     conn.execute(
@@ -144,8 +195,8 @@ def save_record(
             matched_payment_id, ground_truth_case, ground_truth_label, outcome, reason, checks_json,
             ai_invoked, ai_confidence, ai_backend, policy_threshold, latency_ms, processed_at,
             classification, exception_type, severity, explanation, recommended_action, considered_json,
-            review_state)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+            provenance_json, review_state)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
                    COALESCE((SELECT review_state FROM records WHERE batch_id=? AND record_id=?), 'OPEN'))""",
         (
             record.record_id, batch_id, seq,
@@ -170,6 +221,7 @@ def save_record(
             result.explanation,
             result.recommended_action,
             json.dumps([c.model_dump(mode="json") for c in result.considered_candidates]),
+            json.dumps(provenance, default=str) if provenance else None,
             # A re-run must not silently reopen something a reviewer already
             # actioned; the existing review state is preserved when present.
             batch_id, record.record_id,
@@ -339,6 +391,22 @@ def list_records(batch_id: str, *, outcome: Optional[str] = None, limit: int = 2
             "SELECT * FROM records WHERE batch_id=? ORDER BY seq_in_batch ASC LIMIT ? OFFSET ?",
             (batch_id, limit, offset),
         ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_record_provenance(batch_id: str, limit: int = 200_000) -> list[dict]:
+    """Just the provenance column, for the money-flow map.
+
+    The plan view needs to know which file each record came from and
+    nothing else; pulling whole records (merchant, candidates, checks,
+    considered) to read one column would make opening the plan on a
+    large run cost more than the run.
+    """
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT record_id, outcome, matched_payment_id, provenance_json FROM records WHERE batch_id=? LIMIT ?",
+        (batch_id, limit),
+    ).fetchall()
     return [dict(r) for r in rows]
 
 

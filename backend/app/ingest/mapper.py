@@ -46,6 +46,13 @@ class MappedSource:
     ledger_records: list[MerchantRecord] = field(default_factory=list)
     settlement_records: list[RazorpaySettlementRecord] = field(default_factory=list)
     rejected: list[dict] = field(default_factory=list)
+    filename: str = ""
+    # Index-aligned with the record lists above: one entry per accepted
+    # record saying which file and which line of it produced it. Kept
+    # alongside rather than inside the records because the domain models
+    # are the engine's contract and must not grow ingestion metadata.
+    ledger_provenance: list[dict] = field(default_factory=list)
+    settlement_provenance: list[dict] = field(default_factory=list)
 
     @property
     def accepted_count(self) -> int:
@@ -74,6 +81,8 @@ def map_rows(
     amount_scale: str = "major",
     debit_column: str | None = None,
     credit_column: str | None = None,
+    filename: str = "",
+    header_offset: int = 1,
 ) -> MappedSource:
     """Map every row, keeping the failures.
 
@@ -83,9 +92,21 @@ def map_rows(
     the sign is recorded as a refund, which is what a negative line
     actually represents on the settlement side.
     """
-    mapped = MappedSource(source_id=source_id, source_type=source_type, role=source_type.role)
+    mapped = MappedSource(source_id=source_id, source_type=source_type, role=source_type.role,
+                          filename=filename)
 
     for index, row in enumerate(rows, start=1):
+        # `row` is the data row, ignoring the header; `file_row` is the
+        # line number a person would count to in the file itself, which
+        # is what a reviewer needs to go and look at it.
+        origin = {
+            "source_id": source_id,
+            "filename": filename,
+            "source_type": source_type.value,
+            "role": mapped.role,
+            "row": index,
+            "file_row": index + header_offset,
+        }
         try:
             if debit_column and credit_column:
                 # Split money-in / money-out columns: exactly one is
@@ -131,6 +152,7 @@ def map_rows(
                     refund_amount_minor=min(refund_amount, amount_minor),
                     description=description,
                 ))
+                mapped.ledger_provenance.append(origin)
             else:
                 fee = _to_minor(parse_amount(_value(row, mapping, "fee")), amount_scale) or 0
                 tax = _to_minor(parse_amount(_value(row, mapping, "tax")), amount_scale) or 0
@@ -161,9 +183,12 @@ def map_rows(
                     status=status,
                     description=description,
                 ))
+                mapped.settlement_provenance.append(origin)
         except Exception as exc:  # noqa: BLE001 — every malformed row degrades the same way
             mapped.rejected.append({
                 "row": index,
+                "file_row": index + header_offset,
+                "filename": filename,
                 "error": f"{type(exc).__name__}: {exc}",
                 "raw": {k: v for k, v in list(row.items())[:6]},
             })
@@ -191,3 +216,21 @@ def combine(sources: list[MappedSource]) -> tuple[list[MerchantRecord], list[Raz
             rejected.append({**row, "source_id": source.source_id,
                              "source_type": source.source_type.value})
     return ledger, settlements, rejected
+
+
+def combine_provenance(sources: list[MappedSource]) -> tuple[list[dict], list[dict]]:
+    """Provenance for `combine`'s two lists, in the same order.
+
+    Kept as a separate call rather than a fourth return value from
+    `combine`, whose signature is depended on elsewhere. The alignment is
+    not incidental — both functions iterate `sources` in order and
+    extend in order — and `test_multifile.py` asserts it holds, because a
+    provenance list that has silently drifted by one would attribute
+    every record to the wrong line of the wrong file.
+    """
+    ledger: list[dict] = []
+    settlements: list[dict] = []
+    for source in sources:
+        ledger.extend(source.ledger_provenance)
+        settlements.extend(source.settlement_provenance)
+    return ledger, settlements

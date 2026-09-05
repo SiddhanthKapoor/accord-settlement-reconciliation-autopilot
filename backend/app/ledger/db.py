@@ -42,7 +42,11 @@ CREATE TABLE IF NOT EXISTS batches (
     processed_records INTEGER NOT NULL DEFAULT 0,
     started_at TEXT NOT NULL,
     completed_at TEXT,
-    status TEXT NOT NULL DEFAULT 'RUNNING'
+    status TEXT NOT NULL DEFAULT 'RUNNING',
+    -- The user's confirmed money-flow plan for an uploaded run: which
+    -- file plays which role, and which pairwise relationships they
+    -- accepted. Null for evaluation batches, which have no plan.
+    plan_json TEXT
 );
 
 -- A record_id identifies a merchant order, not a decision about one. The
@@ -78,6 +82,10 @@ CREATE TABLE IF NOT EXISTS records (
     recommended_action TEXT,
     considered_json TEXT,
     review_state TEXT NOT NULL DEFAULT 'OPEN',
+    -- Which uploaded file and which row in it this record came from, on
+    -- both sides. Without it a reviewer looking at an exception has no
+    -- way back to the line of the statement that caused it.
+    provenance_json TEXT,
     PRIMARY KEY (batch_id, record_id)
 );
 CREATE INDEX IF NOT EXISTS idx_records_batch ON records(batch_id);
@@ -102,7 +110,10 @@ CREATE TABLE IF NOT EXISTS run_sources (
     mapping_json TEXT NOT NULL,
     detection_json TEXT NOT NULL,
     raw_csv TEXT NOT NULL,
-    uploaded_at TEXT NOT NULL
+    uploaded_at TEXT NOT NULL,
+    -- SHA-256 of the uploaded bytes. The same file arriving twice in one
+    -- workspace is a finding worth surfacing, not something to reject.
+    content_hash TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_run_sources_batch ON run_sources(batch_id);
 
@@ -122,10 +133,30 @@ CREATE INDEX IF NOT EXISTS idx_audit_txn ON audit_log(transaction_id);
 """
 
 
+# Columns added after the first release. Applied with ALTER TABLE, which
+# is additive: an existing database keeps every row it has. Dropping and
+# recreating to pick up a new column would delete a user's uploads.
+_ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
+    ("batches", "plan_json", "TEXT"),
+    ("records", "provenance_json", "TEXT"),
+    ("run_sources", "content_hash", "TEXT"),
+)
+
+
+def _add_missing_columns(conn: sqlite3.Connection) -> None:
+    for table, column, decl in _ADDED_COLUMNS:
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if not existing:
+            continue                                  # table not created yet
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+
 def init_db() -> None:
     conn = get_conn()
     _migrate_records_primary_key(conn)
     conn.executescript(SCHEMA)
+    _add_missing_columns(conn)
 
 
 def _migrate_records_primary_key(conn: sqlite3.Connection) -> None:

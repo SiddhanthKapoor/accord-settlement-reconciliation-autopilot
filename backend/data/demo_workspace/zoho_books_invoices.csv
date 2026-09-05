@@ -1,0 +1,6 @@
+Invoice Date,Invoice Number,Status,Customer Name,Currency,Total,Balance,Item Name,Notes
+2026-03-16,ZB-6101,Paid,Vantage Analytics Pvt Ltd,INR,6540.00,0.00,Analytics tier 2,Monthly subscription analytics tier 2
+2026-03-18,ZB-6102,Paid,Bluepeak Services Pvt Ltd,INR,2380.00,0.00,Support retainer,Monthly support retainer
+2026-03-20,ZB-6104,Paid,Kartway Seller Services,INR,27450.00,0.00,Marketplace channel,Marketplace channel settlement week 12
+2026-03-31,ZB-6106,Paid,Harbourline Foods Pvt Ltd,INR,4990.00,0.00,Cold storage audit,Cold storage compliance audit
+2026-04-14,ZB-6107,Sent,Harbourline Foods Pvt Ltd,INR,15750.00,15750.00,Quarterly retainer,Quarterly retainer April to June

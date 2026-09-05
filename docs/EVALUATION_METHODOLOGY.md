@@ -527,3 +527,80 @@ growth. Flat throughput as the population grows is the real evidence.
 - **The synthetic dataset is saturated.** V3 scores 100% with zero model calls. It no longer measures anything above the current engine's level, and a V4 on the same generator would be uninformative. A harder generator is the next thing this evaluation needs, and it must be built before rather than after the next engine change.
 - **The ambiguous-matching benchmark is adversarial by construction.** Its variation mix is not a claim about real-world frequency.
 - **`product_alias` scores 0% in every configuration.** Investigated rather than chased: that variation asserts two records are the same payment while their references name different transactions, so matching them would require matching on amount and date alone.
+
+---
+
+## The shipped-build evaluation (Accord)
+
+Same dataset, same seed, same 1,000-record held-out split as "The final
+evaluation" above — deliberately, so the two are comparable. What changed
+is the code: a provider fallback chain, the exception investigator,
+multi-file ingestion and per-source provenance.
+
+**No new dataset was generated for this run.** Producing a fresh dataset
+alongside a code change makes it impossible to say which of the two moved a
+number, and this project has already made that mistake once (see V2 in this
+document).
+
+### Protocol
+
+Four configurations, each run **once** on the shipped commit:
+
+| | Configuration | How it was produced |
+|---|---|---|
+| **A** | Deterministic only | `ACCORD_AI_DISABLED=1` — the offline heuristic, no model call |
+| **B** | Gemini primary, Groq secondary | Both keys valid |
+| **D** | Groq only | Primary key invalidated, forcing every call through the fallback |
+| **C** | Total outage | Both keys invalidated |
+
+C and D invalidate keys rather than mocking the provider, so the failure
+paths exercised are the real ones — real HTTP responses, real classification
+into `AUTH_FAILURE`, real fallthrough.
+
+### Results
+
+| Config | Accuracy | False auto-recon | Exc. precision | Exc. recall | Human review | Provider failures |
+|---|---:|---:|---:|---:|---:|---:|
+| A | 82.5% | **0.0%** | 72.6% | 98.4% | 7.1% | — |
+| B | **87.7%** | **0.2%** | 87.9% | 88.7% | 9.9% | 77/204 (38%) |
+| D | 78.9% | 0.0% | 87.6% | 80.0% | 19.4% | 181/204 (89%) |
+| C | 76.8% | 0.0% | 87.6% | 77.7% | 21.6% | 204/204 (100%) |
+
+### Config A reproduces the frozen baseline exactly
+
+Every accuracy and safety metric is bit-identical to
+`evaluations/final/report_deterministic.json`: accuracy 0.8250, false
+auto-reconciliation 0.0000, exception precision 0.7262, recall 0.9839,
+human review 0.0710, AI invocation 0.2040. Only throughput differs, which is
+wall-clock.
+
+This is the load-bearing check of the whole cycle. It says the ingestion
+seam, the provider layer and the investigator were added **around** the
+engine rather than inside it.
+
+### The finding, and what was not done about it
+
+Configuration B produced **one** false auto-reconciliation, in
+`same_amount_different_txn` — the model returned SAME above the 0.85 gate
+on two unrelated transactions sharing an amount. An earlier frozen run on
+the same dataset produced 0.0% in that category.
+
+So the honest claim is a range, not a constant: **with the model enabled,
+false auto-reconciliation is 0.0%–0.2% across measured runs.** The
+deterministic configuration's 0.0% is structural rather than observed.
+
+`ai_confidence_threshold` was **not** raised in response, and configuration
+B was **not** re-run to look for a better draw. Both would be tuning after
+seeing the holdout, which is the one thing this protocol exists to prevent.
+
+### Rate limiting is disclosed, not hidden
+
+B and D ran against free-tier keys and lost 38% and 89% of model calls to
+rate limits. Those failures reduce **recall**, not safety — every one routed
+to human review, which is why D's human-review rate is 19.4% against B's
+9.9%.
+
+It also means B's 87.7% is a *floor* for the AI configuration rather than
+its ceiling: 77 records that could have been resolved were not. That is
+stated rather than corrected for, because correcting for it would mean
+estimating a number instead of measuring one.

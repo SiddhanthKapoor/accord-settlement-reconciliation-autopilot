@@ -1,0 +1,4 @@
+Refund Id,Original Payment Id,Order Ref,Refund Date,Amount,Type,Reason,Status,Currency
+RFD-9001,pay_JFLWDDPW1G6H13,INV-3065,"Mar 22, 2026","(2,500.00)",REFUND,Partial return - damaged item,processed,INR
+RFD-9002,pay_PRU83NKPBZR0VT,INV-3072,"Mar 27, 2026","(4,200.00)",CHARGEBACK,Cardholder dispute - goods not received,processed,INR
+RFD-9003,pay_KWY88226,KWY-88226,"Apr 02, 2026","(1,145.00)",CHARGEBACK,Marketplace A-to-Z claim,processed,INR
