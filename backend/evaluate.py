@@ -31,7 +31,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from app.domain.models import (  # noqa: E402
-    GroundTruth, MerchantRecord, PolicyConfig, RazorpaySettlementRecord, ReconciliationOutcome, ReconciliationRecord,
+    GroundTruth, MatchClassification, MerchantRecord, PolicyConfig, RazorpaySettlementRecord,
+    ReconciliationOutcome, ReconciliationRecord,
 )
 from app.engine.batch import process_batch  # noqa: E402
 from app.engine.semantic import get_semantic_verifier  # noqa: E402
@@ -105,6 +106,13 @@ def compute_metrics(records: list[ReconciliationRecord], results) -> dict:
 
     ai_invoked_count = sum(1 for r in results if r.ai_invoked)
     ai_calls_total = sum(r.ai_calls for r in results)
+    # A timed-out or failed model call degrades to HUMAN_REVIEW, which
+    # scores as a miss. Counted so a throttled run is visibly throttled
+    # rather than being read as the model performing badly — a benchmark
+    # run once reported 78.8% that was almost entirely provider failures.
+    provider_errors = sum(
+        1 for r in results if r.classification is MatchClassification.PROVIDER_ERROR
+    )
 
     return {
         "record_count": n,
@@ -120,6 +128,8 @@ def compute_metrics(records: list[ReconciliationRecord], results) -> dict:
         "pct_exception": outcome_counts["EXCEPTION"] / n if n else 0.0,
         "ai_invocation_rate": ai_invoked_count / n if n else 0.0,
         "ai_calls_total": ai_calls_total,
+        "provider_errors": provider_errors,
+        "provider_error_rate_of_ai_records": (provider_errors / ai_invoked_count) if ai_invoked_count else 0.0,
         "ai_calls_per_1000_records": (ai_calls_total / n * 1000) if n else 0.0,
         "p50_latency_ms": percentile(latencies, 0.50),
         "p95_latency_ms": percentile(latencies, 0.95),
@@ -158,6 +168,7 @@ def main() -> int:
     throughput = len(records) / wall_seconds if wall_seconds > 0 else 0.0
 
     metrics = compute_metrics(records, results)
+    ai_invoked_count = sum(1 for r in results if r.ai_invoked)
     metrics["throughput_records_per_sec"] = throughput
     metrics["wall_clock_seconds"] = wall_seconds
 
@@ -172,6 +183,11 @@ def main() -> int:
     print(f"{'Flagged as exception':<38} {metrics['pct_exception']:.1%}")
     print(f"{'AI invocation rate':<38} {metrics['ai_invocation_rate']:.1%}")
     print(f"{'Model calls per 1,000 records':<38} {metrics['ai_calls_per_1000_records']:.0f}")
+    if metrics["provider_errors"]:
+        print(f"{'Provider failures':<38} {metrics['provider_errors']} of {ai_invoked_count} "
+              f"AI-invoked records ({metrics['provider_error_rate_of_ai_records']:.0%})")
+        print("  ^ timed-out or failed calls degrade to HUMAN_REVIEW and score as misses;")
+        print("    a throttled run understates the model rather than measuring it")
     print(f"{'Throughput':<38} {throughput:.1f} records/sec")
     print(f"{'p50 latency':<38} {metrics['p50_latency_ms']:.2f} ms")
     print(f"{'p95 latency':<38} {metrics['p95_latency_ms']:.2f} ms")
