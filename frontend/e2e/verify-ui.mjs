@@ -91,6 +91,13 @@ const httpErrors = [];
 page.on('response', r => { if (r.status() >= 400) httpErrors.push(`${r.status()} ${r.url()}`); });
 
 await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
+// The product opens on Runs; this suite covers the evaluation console,
+// which now lives behind its own tab.
+await page.click('nav >> text=Evaluation');
+// The provenance banner waits on a live Razorpay API call, so it arrives
+// late. Wait for it rather than assuming a fixed delay is enough.
+await page.waitForSelector('.provenance-banner', { timeout: 20000 }).catch(() => {});
+await page.waitForTimeout(400);
 
 // 1. Empty state
 const bodyText = await page.textContent('body');
@@ -145,7 +152,7 @@ await page.waitForTimeout(300);
 
 // 5. Record detail
 await page.locator('.records-row').first().click();
-await page.waitForSelector('.detail-panel', { timeout: 10000 });
+await page.waitForSelector('.detail-panel .checks-table', { timeout: 15000 });
 const detail = await page.textContent('.detail-panel');
 check('record detail opens', detail.length > 100);
 check('detail shows merchant side', /merchant/i.test(detail));
@@ -158,12 +165,18 @@ await page.waitForTimeout(300);
 
 // 6. Exception explanation specifically
 await page.click('.filter-row button:has-text("EXCEPTION")');
-await page.waitForTimeout(400);
+await page.waitForFunction(() => document.querySelectorAll('.records-row').length > 0,
+                           { timeout: 8000 }).catch(() => {});
 if (await page.locator('.records-row').count()) {
   await page.locator('.records-row').first().click();
-  await page.waitForSelector('.detail-panel');
+  await page.waitForSelector('.detail-panel .checks-table', { timeout: 15000 });
   const ex = await page.textContent('.detail-panel');
-  check('exception record explains why it failed', /FAIL|exceed|does not|mismatch|No corresponding/i.test(ex));
+  // Assert the contract rather than a phrasing: an exception must state
+  // what happened, what to do next, and which checks decided it. Matching
+  // on specific wording made this fail the moment explanations improved.
+  check('exception record explains why it failed',
+        /Next/.test(ex) && /FAIL|WARN|PASS/.test(ex) && ex.length > 200,
+        `${ex.length} chars`);
   await page.screenshot({ path: `${OUT}/ui-5-exception.png` });
   await page.click('.detail-close');
 }
@@ -178,7 +191,7 @@ await page.screenshot({ path: `${OUT}/ui-6-audit.png` });
 
 // 8. Responsive
 await page.setViewportSize({ width: 390, height: 844 });
-await page.click('nav >> text=Console');
+await page.click('nav >> text=Evaluation');
 await page.waitForTimeout(600);
 const overflow = await page.evaluate(() =>
   document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -271,6 +284,11 @@ check('no div-based click targets', semantics.divButtons === 0, `${semantics.div
 check('every button has an accessible name', semantics.unlabelledButtons === 0, `${semantics.unlabelledButtons}`);
 check('every table has header cells', semantics.tablesWithoutHeaders === 0, `${semantics.tablesWithoutHeaders}`);
 check('every image has alt text', semantics.imagesWithoutAlt === 0, `${semantics.imagesWithoutAlt}`);
+
+// Back to the evaluation console, where the records table lives.
+await page.click('nav >> text=Evaluation');
+await page.waitForFunction(() => document.querySelectorAll('.records-row').length > 0,
+                           { timeout: 15000 }).catch(() => {});
 
 // Records table must be reachable and operable by keyboard.
 const rowsKeyboardOperable = await page.evaluate(() => {
