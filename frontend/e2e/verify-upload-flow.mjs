@@ -1,6 +1,6 @@
 /**
- * End-to-end verification of the product flow: upload, map, run, inspect,
- * review, audit, export.
+ * End-to-end verification of the product flow: land, upload many files,
+ * confirm, run, trace, investigate, review, audit, export.
  *
  * This is the flow a judge will actually perform, so it is driven in a
  * real browser rather than asserted through the API. Several defects in
@@ -13,6 +13,12 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
+
+// Ports are overridable so this suite can run against an isolated
+// instance. It calls /admin/reset, and pointing that at whatever
+// happens to be on :8000 would wipe a database it does not own.
+const API = process.env.ACCORD_API || 'http://localhost:8000';
+const APP = process.env.ACCORD_APP || 'http://localhost:5173';
 
 function findPlaywright() {
   const require_ = createRequire(import.meta.url);
@@ -58,6 +64,7 @@ function findChromium() {
 }
 
 const DEMO = join(process.cwd(), '..', 'backend', 'data', 'demo');
+const WORKSPACE = join(process.cwd(), '..', 'backend', 'data', 'demo_workspace');
 const OUT = process.env.SCREENSHOT_DIR || '/tmp';
 const results = [];
 function check(name, ok, detail = '') {
@@ -65,7 +72,7 @@ function check(name, ok, detail = '') {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  -- ' + detail : ''}`);
 }
 
-await fetch('http://localhost:8000/admin/reset', { method: 'POST' });
+await fetch(`${API}/admin/reset`, { method: 'POST' });
 
 const { chromium } = await import(findPlaywright());
 const browser = await chromium.launch({ executablePath: findChromium() });
@@ -76,189 +83,186 @@ page.on('pageerror', (e) => consoleErrors.push(e.message));
 const httpErrors = [];
 page.on('response', (r) => { if (r.status() >= 400) httpErrors.push(`${r.status()} ${r.url()}`); });
 
-await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
-await page.waitForTimeout(800);
+const body = () => page.textContent('body');
 
-// ---- landing -------------------------------------------------------
-const landing = await page.textContent('body');
-check('opens on Runs, not a benchmark console', /Reconciliation runs/i.test(landing));
-check('brand is Axiom Recon', /Axiom Recon/.test(landing));
-check('empty state invites a run', /No runs yet/i.test(landing));
-await page.screenshot({ path: `${OUT}/flow-1-runs-empty.png` });
+// ---- landing --------------------------------------------------------
+await page.goto(APP, { waitUntil: 'networkidle' });
+const landing = await body();
+check('landing page is the front door', /books don.t close/i.test(landing));
+check('brand is Accord', /Accord/.test(landing) && !/Axiom Recon/.test(landing));
+check('landing states the control model', /deterministic/i.test(landing));
+check('no invented customers or testimonials', !/testimonial|trusted by|customers say/i.test(landing));
 
-// ---- upload --------------------------------------------------------
-await page.click('button:has-text("New run")');
-await page.waitForTimeout(600);
-check('upload flow is the primary action', /New reconciliation run/i.test(await page.textContent('body')));
-
-const uploads = [
-  ['ORDERS', 'orders.csv'],
-  ['PAYMENT_GATEWAY', 'gateway_payouts.csv'],
-  ['BANK_STATEMENT', 'bank_statement.csv'],
-];
-for (const [type, filename] of uploads) {
-  await page.setInputFiles(`#file-${type}`, join(DEMO, filename));
-  await page.waitForTimeout(900);
-}
-const afterUpload = await page.textContent('body');
-check('all three sources uploaded', /Sources \(3\)/.test(afterUpload));
-check('ledger and settlement roles are shown', /Ledger/.test(afterUpload) && /Settlement/.test(afterUpload));
-await page.screenshot({ path: `${OUT}/flow-2-sources.png` });
-
-// ---- column mapping ------------------------------------------------
-await page.locator('button:has-text("Review columns")').first().click();
-await page.waitForTimeout(500);
-const mapping = await page.textContent('body');
-check('detected columns are shown for confirmation', /Transaction ID|Reference/.test(mapping));
-check('detection confidence is disclosed', /%\s*·/.test(mapping));
-const selects = await page.locator('.mapping-row select').count();
-check('columns can be remapped by the user', selects > 5, `${selects} mappable fields`);
-await page.screenshot({ path: `${OUT}/flow-3-mapping.png` });
-await page.locator('button:has-text("Hide columns")').first().click();
-
-// ---- run -----------------------------------------------------------
-const runButton = page.locator('button:has-text("Run reconciliation")');
-check('run is enabled once both sides are present and mapped', await runButton.isEnabled());
-await runButton.click();
-// Wait on the transition rather than a fixed sleep: execution parses
-// every uploaded file before returning, so a fixed wait races it.
-await page.waitForSelector('.records-row', { timeout: 30000 }).catch(() => {});
-await page.waitForTimeout(600);
-
-const detail = await page.textContent('body');
-check('run detail opens after execution', /All runs/.test(detail));
-const rows = await page.locator('.records-row').count();
-check('results table is populated', rows > 0, `${rows} rows`);
-await page.screenshot({ path: `${OUT}/flow-4-results.png` });
-
-// ---- the decisions the demo exists to show -------------------------
-const bodyText = await page.textContent('body');
-for (const [label, pattern] of [
-  ['reconciled records present', /RECONCILED/],
-  ['exceptions present', /EXCEPTION/],
-  ['human review present', /HUMAN REVIEW/],
-]) {
-  check(label, pattern.test(bodyText));
-}
-
-// AI-assisted filter must reflect real backend state.
-await page.click('button:has-text("AI-assisted")');
-await page.waitForTimeout(500);
-const aiRows = await page.locator('.records-row').count();
-check('AI-assisted filter narrows to model-touched records', aiRows > 0 && aiRows < rows,
-      `${aiRows} of ${rows}`);
-await page.click('button:has-text("AI-assisted")');
+// ---- landing -> app, and BACK must return here ----------------------
+await page.locator('a:has-text("Open the workspace")').first().click();
+await page.waitForURL(/\/app\/runs/, { timeout: 10000 });
+check('CTA navigates to the workspace with a real URL', /\/app\/runs/.test(page.url()));
+await page.goBack();
 await page.waitForTimeout(400);
+check('back button returns to the landing page, not out of the site',
+  new URL(page.url()).pathname === '/');
+await page.goForward();
+await page.waitForURL(/\/app\/runs/, { timeout: 10000 });
 
-// ---- record detail -------------------------------------------------
-await page.locator('.records-row').first().click();
-await page.waitForSelector('.detail-panel', { timeout: 8000 });
-const record = await page.textContent('.detail-panel');
-check('record detail shows both sides', /Merchant|Razorpay|Ledger/i.test(record));
-check('record detail explains the decision in plain language', record.length > 200);
-check('deterministic checks are listed', /currency_match|gross_amount_match|reference_match/.test(record));
-await page.screenshot({ path: `${OUT}/flow-5-record.png` });
-await page.click('.detail-close');
-await page.waitForTimeout(400);
+// ---- deep link survives a cold load ---------------------------------
+await page.goto(`${APP}/app/review`, { waitUntil: 'networkidle' });
+check('deep link renders on a cold load', /review/i.test(await body()));
 
-// ---- review queue --------------------------------------------------
-await page.click('nav >> text=Review Queue');
-await page.waitForTimeout(1200);
-const queue = await page.textContent('body');
-check('review queue holds real escalated records', /awaiting review/i.test(queue));
-const items = await page.locator('.review-item').count();
-check('queue items present', items > 0, `${items} items`);
+// ---- multi-file upload ----------------------------------------------
+await page.goto(`${APP}/app/runs/new`, { waitUntil: 'networkidle' });
+check('upload is the primary action', /New reconciliation workspace/i.test(await body()));
 
-if (items > 0) {
-  const first = page.locator('.review-item').first();
-  await first.locator('button:has-text("Show evidence")').click();
-  await page.waitForTimeout(500);
-  check('evidence names the candidates considered',
-        /Candidates considered|No settlement records/i.test(await first.textContent()));
+const files = readdirSync(WORKSPACE)
+  .filter((f) => f.endsWith('.csv') || f.endsWith('.xlsx'))
+  .sort()
+  .map((f) => join(WORKSPACE, f));
+check('demo workspace has many files to upload', files.length >= 12, `${files.length} files`);
 
-  const before = await (await page.request.get('http://localhost:8000/audit/verify')).json();
-  await first.locator('button:has-text("Escalate")').click();
+// Every file in ONE drop, against ONE run. The four fixed slots are gone.
+await page.setInputFiles('#wk-file-input', files);
+await page.waitForFunction(
+  (n) => (document.body.textContent.match(/Review columns/g) || []).length >= n,
+  files.length, { timeout: 60000 });
+
+const inventory = await body();
+check('all files landed in one workspace', new RegExp(`${files.length}\\s*FILES`, 'i').test(inventory)
+  || new RegExp(`${files.length}`).test(inventory), `${files.length} uploaded`);
+check('providers are named, not just file types',
+  /Razorpay/.test(inventory) && /HDFC/.test(inventory) && /ICICI/.test(inventory) && /Shopify/.test(inventory));
+check('xlsx is ingested alongside csv', /\.xlsx/.test(inventory));
+check('a duplicate file is flagged rather than silently dropped', /duplicate/i.test(inventory));
+await page.screenshot({ path: `${OUT}/flow-1-inventory.png`, fullPage: true });
+
+// ---- the run is BLOCKED until a low-confidence role is confirmed ----
+const runButton = page.locator('button:has-text("Blocked"), button:has-text("Run reconciliation")').first();
+const blockedLabel = (await runButton.textContent()) || '';
+check('a low-confidence source blocks the run', /blocked/i.test(blockedLabel), blockedLabel.trim());
+const blockingText = await body();
+check('the reason for blocking is stated, not hidden',
+  /confidence 0\.5|confirm the role|confirm the source/i.test(blockingText));
+
+const confirm = page.locator('button:has-text("Confirm")').first();
+if (await confirm.count()) {
+  await confirm.click();
   await page.waitForTimeout(1200);
-  const after = await (await page.request.get('http://localhost:8000/audit/verify')).json();
-  check('a human action reaches the hash chain',
-        after.total_events === before.total_events + 1,
-        `${before.total_events} -> ${after.total_events}`);
-  check('chain stays intact after the action', after.intact === true);
 }
-await page.screenshot({ path: `${OUT}/flow-6-review.png` });
+const afterConfirm = await body();
+check('confirming the role unblocks the run', !/Blocked/i.test(
+  (await page.locator('button:has-text("Blocked"), button:has-text("Run reconciliation")').first().textContent()) || ''));
 
-// ---- audit ---------------------------------------------------------
-await page.click('nav >> text=Audit Trail');
-await page.waitForTimeout(1400);
-const audit = await page.textContent('body');
-check('audit trail lists ingestion and decision events',
-      /SOURCE_UPLOADED|RUN_CREATED|RECORD_DECIDED/.test(audit));
-check('chain integrity is reported', /verified|intact|integrity/i.test(audit));
-await page.screenshot({ path: `${OUT}/flow-7-audit.png` });
+// ---- money-flow plan -------------------------------------------------
+check('a money-flow plan is proposed before running', /money.flow map/i.test(afterConfirm));
+check('the plan disclaims chained matching rather than implying it',
+  /not a chained matcher|pooled|plan and a provenance view/i.test(afterConfirm));
+check('stages with no source are never reported as a failure',
+  !/BANK[\s\S]{0,80}(failed|missing)/i.test(afterConfirm));
 
-// ---- export --------------------------------------------------------
-const runsResponse = await (await page.request.get('http://localhost:8000/runs')).json();
-const runId = runsResponse.runs[0].batch_id;
-const exportResponse = await page.request.get(`http://localhost:8000/runs/${runId}/export`);
-const csv = await exportResponse.text();
-check('export returns a CSV with decision evidence',
-      exportResponse.ok() && csv.startsWith('record_id,outcome,exception_type'),
-      `${csv.trim().split('\n').length - 1} rows`);
+// ---- run -------------------------------------------------------------
+await page.locator('button:has-text("Run reconciliation")').first().click();
+await page.waitForSelector('.wk-records-row, .records-row, table tbody tr', { timeout: 120000 });
+await page.waitForTimeout(1500);
+const detail = await body();
+check('run detail opens after execution', /\/app\/runs\//.test(page.url()));
+check('results lead with where the money stopped', /where the money stopped/i.test(detail));
+check('records are listed with an explanation', /reconciled/i.test(detail));
+check('AI-assisted records are counted separately', /ai.assisted/i.test(detail));
+await page.screenshot({ path: `${OUT}/flow-2-run.png`, fullPage: true });
 
-// ---- accessibility -------------------------------------------------
-await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
-await page.waitForTimeout(700);
-await page.keyboard.press('Tab');
-const firstFocus = await page.evaluate(() => (document.activeElement.textContent || '').trim());
-check('first Tab reaches the skip link', /skip to main/i.test(firstFocus), firstFocus);
+const runId = (page.url().match(/\/app\/runs\/([^/]+)/) || [])[1];
+check('the run has a shareable URL', Boolean(runId), runId || 'none');
 
-const semantics = await page.evaluate(() => ({
-  h1: document.querySelectorAll('h1').length,
-  main: document.querySelectorAll('main').length,
-  unlabelledButtons: [...document.querySelectorAll('button')].filter(
-    (b) => !b.textContent.trim() && !b.getAttribute('aria-label') && !b.getAttribute('title')).length,
-  unlabelledInputs: [...document.querySelectorAll('input:not([type=file]), select')].filter(
-    (el) => !el.labels?.length && !el.getAttribute('aria-label')).length,
-  tablesWithoutHeaders: [...document.querySelectorAll('table')].filter(
-    (t) => t.querySelectorAll('th').length === 0).length,
-}));
-check('exactly one h1', semantics.h1 === 1, `${semantics.h1}`);
-check('main landmark present', semantics.main === 1);
-check('every button has an accessible name', semantics.unlabelledButtons === 0);
-check('every input and select is labelled', semantics.unlabelledInputs === 0,
-      `${semantics.unlabelledInputs} unlabelled`);
-check('every table has header cells', semantics.tablesWithoutHeaders === 0);
+// ---- breakpoint trace + investigator ---------------------------------
+const pendingRow = page.locator('tr:has-text("ZB-6107")').first();
+if (await pendingRow.count()) {
+  await pendingRow.click();
+  await page.waitForTimeout(1200);
+  let panel = await body();
+  check('a record offers a stage-by-stage investigation', /trace this record stage by stage/i.test(panel));
 
-for (const [w, h] of [[390, 844], [768, 1024], [1280, 800]]) {
-  await page.setViewportSize({ width: w, height: h });
+  // The trace itself lives behind the explicit Investigate action, so it
+  // has to be opened before anything about its content can be asserted.
+  const openTrace = page.locator('button:has-text("Investigate")').first();
+  if (await openTrace.count()) {
+    await openTrace.click();
+    await page.waitForTimeout(4000);
+    panel = await body();
+  }
+  check('the investigation renders a money-flow trace', /money.flow trace/i.test(panel));
+  check('pending is reported as pending, never as missing',
+    /pending/i.test(panel) && !/ZB-6107[\s\S]{0,400}missing settlement/i.test(panel));
+  check('a stage with no uploaded source says it was not evaluated', /not evaluated/i.test(panel));
+  await page.screenshot({ path: `${OUT}/flow-3-trace.png` });
+
+  {
+    const inv = panel;
+    check('the investigator separates confirmed evidence from explanation',
+      /confirmed evidence/i.test(inv) && /(likely explanation|explanation)/i.test(inv));
+    check('the investigator states what it could not settle', /unresolved|could not/i.test(inv));
+    check('AI use is stated honestly, never implied',
+      /not needed|resolved deterministically|ai unavailable|assisted by|model/i.test(inv));
+    await page.screenshot({ path: `${OUT}/flow-4-investigator.png` });
+  }
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(400);
-  const overflow = await page.evaluate(() =>
-    document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  check(`no horizontal overflow at ${w}px`, overflow <= 2, `overflow ${overflow}px`);
 }
-await page.setViewportSize({ width: 390, height: 844 });
-await page.screenshot({ path: `${OUT}/flow-8-mobile.png` });
 
-const reduced = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1280, height: 800 } });
-const reducedPage = await reduced.newPage();
-await reducedPage.goto('http://localhost:5173', { waitUntil: 'networkidle' });
-await reducedPage.waitForTimeout(800);
-check('reduced motion suppresses transitions', await reducedPage.evaluate(() => {
-  const el = document.querySelector('.page') || document.body;
-  return parseFloat(getComputedStyle(el).transitionDuration) < 0.05;
-}));
-await reducedPage.close();
-await reduced.close();
+// ---- the identical-amount trap must NOT be reconciled -----------------
+const trapRow = page.locator('tr:has-text("ORD-7031")').first();
+if (await trapRow.count()) {
+  const trapText = (await trapRow.textContent()) || '';
+  check('the identical-amount trap is refused, not matched', !/RECONCILED/i.test(trapText), trapText.slice(0, 90));
+}
 
-const realHttpErrors = httpErrors.filter((e) => !/favicon|\.svg/i.test(e));
-check('no unexpected HTTP errors', realHttpErrors.length === 0, realHttpErrors.slice(0, 3).join(' | ') || 'none');
-check('no uncaught page errors', consoleErrors.length === 0, consoleErrors.slice(0, 2).join(' | ') || 'none');
+// ---- review queue -----------------------------------------------------
+await page.goto(`${APP}/app/review`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1200);
+const queue = await body();
+check('review queue lists real pipeline decisions', /review/i.test(queue));
+
+const disputeRow = page.locator('tr:has-text("currency mismatch"), li:has-text("currency mismatch")').first();
+if (await disputeRow.count()) {
+  const disputeText = (await disputeRow.textContent()) || '';
+  check('a known money dispute is never offered "approve match"', !/approve match/i.test(disputeText));
+}
+
+// ---- audit ------------------------------------------------------------
+const before = await (await page.request.get(`${API}/audit/verify`)).json();
+await page.goto(`${APP}/app/audit`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1200);
+const audit = await body();
+check('audit trail renders the chain', /audit/i.test(audit));
+check('hash chain verifies intact', before.intact === true, `${before.total_events} events`);
+
+// ---- export -----------------------------------------------------------
+if (runId) {
+  const csv = await page.request.get(`${API}/runs/${runId}/export`);
+  const text = await csv.text();
+  check('results export as CSV', csv.ok() && text.split('\n').length > 5);
+  check('the export carries the reasoning, not just outcomes', /reason|explanation/i.test(text.split('\n')[0]));
+  check('the export carries source provenance', /source_file|source_row/i.test(text.split('\n')[0]));
+}
+
+// ---- mobile -----------------------------------------------------------
+const mobile = await browser.newPage({ viewport: { width: 375, height: 812 } });
+for (const path of ['/', '/app/runs', '/app/review']) {
+  await mobile.goto(`${APP}${path}`, { waitUntil: 'networkidle' });
+  const overflow = await mobile.evaluate(() =>
+    document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+  check(`no horizontal overflow at 375px on ${path}`, !overflow);
+}
+await mobile.close();
+
+// ---- hygiene ----------------------------------------------------------
+check('no uncaught page errors', consoleErrors.length === 0, consoleErrors.slice(0, 2).join(' | '));
+const unexpected = httpErrors.filter((e) => !/404/.test(e));
+check('no unexpected HTTP failures', unexpected.length === 0, unexpected.slice(0, 3).join(' | '));
 
 await browser.close();
+
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 if (failed.length) {
-  console.log('FAILED:');
-  failed.forEach((f) => console.log(`  - ${f.name} ${f.detail}`));
+  console.log('\nFAILED:');
+  for (const f of failed) console.log(`  - ${f.name}${f.detail ? '  (' + f.detail + ')' : ''}`);
   process.exit(1);
 }

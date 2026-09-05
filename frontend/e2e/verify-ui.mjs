@@ -25,6 +25,12 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 
+// Ports are overridable so this suite can run against an isolated
+// instance. It calls /admin/reset, and pointing that at whatever
+// happens to be on :8000 would wipe a database it does not own.
+const API = process.env.ACCORD_API || 'http://localhost:8000';
+const APP = process.env.ACCORD_APP || 'http://localhost:5173';
+
 function findPlaywright() {
   const require_ = createRequire(import.meta.url);
   try {
@@ -79,7 +85,7 @@ function check(name, ok, detail = '') {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  -- ' + detail : ''}`);
 }
 
-await fetch('http://localhost:8000/admin/reset', { method: 'POST' });
+await fetch(`${API}/admin/reset`, { method: 'POST' });
 
 const browser = await chromium.launch({ executablePath: EXECUTABLE });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -90,7 +96,7 @@ page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message));
 const httpErrors = [];
 page.on('response', r => { if (r.status() >= 400) httpErrors.push(`${r.status()} ${r.url()}`); });
 
-await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
+await page.goto(APP, { waitUntil: 'networkidle' });
 // The product opens on Runs; this suite covers the evaluation console,
 // which now lives behind its own tab.
 await page.click('nav >> text=Evaluation');
@@ -152,15 +158,15 @@ await page.waitForTimeout(300);
 
 // 5. Record detail
 await page.locator('.records-row').first().click();
-await page.waitForSelector('.detail-panel .checks-table', { timeout: 15000 });
-const detail = await page.textContent('.detail-panel');
+await page.waitForSelector('.wk-panel-body .checks-table', { timeout: 15000 });
+const detail = await page.textContent('.wk-panel-body');
 check('record detail opens', detail.length > 100);
 check('detail shows merchant side', /merchant/i.test(detail));
 check('detail shows deterministic checks', /currency_match|gross_amount_match|reference_match/.test(detail));
 check('detail shows policy threshold', /threshold|0\.85/i.test(detail));
 check('detail shows audit history', /audit/i.test(detail));
 await page.screenshot({ path: `${OUT}/ui-4-detail.png` });
-await page.click('.detail-close');
+await page.click('.wk-panel-close');
 await page.waitForTimeout(300);
 
 // 6. Exception explanation specifically
@@ -169,8 +175,8 @@ await page.waitForFunction(() => document.querySelectorAll('.records-row').lengt
                            { timeout: 8000 }).catch(() => {});
 if (await page.locator('.records-row').count()) {
   await page.locator('.records-row').first().click();
-  await page.waitForSelector('.detail-panel .checks-table', { timeout: 15000 });
-  const ex = await page.textContent('.detail-panel');
+  await page.waitForSelector('.wk-panel-body .checks-table', { timeout: 15000 });
+  const ex = await page.textContent('.wk-panel-body');
   // Assert the contract rather than a phrasing: an exception must state
   // what happened, what to do next, and which checks decided it. Matching
   // on specific wording made this fail the moment explanations improved.
@@ -178,7 +184,7 @@ if (await page.locator('.records-row').count()) {
         /Next/.test(ex) && /FAIL|WARN|PASS/.test(ex) && ex.length > 200,
         `${ex.length} chars`);
   await page.screenshot({ path: `${OUT}/ui-5-exception.png` });
-  await page.click('.detail-close');
+  await page.click('.wk-panel-close');
 }
 
 // 7. Audit trail + chain integrity
@@ -226,10 +232,10 @@ if (queueItems > 0) {
         /Candidates considered|No settlement records were retrieved/i.test(evidence));
 
   // Perform an action and confirm it reaches the ledger.
-  const beforeChain = await (await page.request.get('http://localhost:8000/audit/verify')).json();
+  const beforeChain = await (await page.request.get(`${API}/audit/verify`)).json();
   await first.locator('button:has-text("Escalate")').click();
   await page.waitForTimeout(1200);
-  const afterChain = await (await page.request.get('http://localhost:8000/audit/verify')).json();
+  const afterChain = await (await page.request.get(`${API}/audit/verify`)).json();
   check('a human action is written to the audit ledger',
         afterChain.total_events === beforeChain.total_events + 1,
         `${beforeChain.total_events} -> ${afterChain.total_events}`);
@@ -242,7 +248,7 @@ if (queueItems > 0) {
 // ---------------------------------------------------------------------
 // Reload so focus starts at the top of the document; testing tab order
 // mid-session only measures where focus happened to already be.
-await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
+await page.goto(APP, { waitUntil: 'networkidle' });
 await page.waitForTimeout(800);
 
 // Skip link is the first thing a keyboard user reaches.
@@ -313,7 +319,7 @@ await page.setViewportSize({ width: 1440, height: 900 });
 // to do without checking.
 const reduced = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1280, height: 800 } });
 const reducedPage = await reduced.newPage();
-await reducedPage.goto('http://localhost:5173', { waitUntil: 'networkidle' });
+await reducedPage.goto(APP, { waitUntil: 'networkidle' });
 await reducedPage.waitForTimeout(900);
 const reducedOk = await reducedPage.evaluate(() => {
   const el = document.querySelector('.page') || document.body;

@@ -8,7 +8,9 @@ export default defineConfig({
     host: "127.0.0.1",
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8000",
+        // Overridable so the browser suite can drive an isolated backend
+        // instead of whatever happens to be on :8000.
+        target: process.env.ACCORD_API || "http://127.0.0.1:8000",
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },

@@ -8,11 +8,18 @@ database server's operational surface area.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import threading
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "reconciliation.db"
+# Overridable so a test or a throwaway instance can run against its own
+# file. Without this, every backend on the machine shares one database
+# and the browser suite's /admin/reset wipes whatever else is using it.
+DB_PATH = Path(
+    os.environ.get("ACCORD_DB")
+    or Path(__file__).resolve().parent.parent.parent / "data" / "reconciliation.db"
+)
 
 _local = threading.local()
 
