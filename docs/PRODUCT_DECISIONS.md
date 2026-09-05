@@ -40,15 +40,22 @@ mainly a scope argument: the narrower the model's question, the more
 meaningful its confidence, and the smaller the surface where a wrong
 answer can do damage.
 
-**On the uncomfortable finding this produces:** once identity evidence
-was used properly, the deterministic tiers began resolving the synthetic
-dataset's ambiguous cases on their own, and AI invocation fell to 0% on
-the development split. On that data, the model is not needed. Its value
-shows on the ambiguous-matching benchmark, where references share nothing
-and wording differs — abbreviations, aliases, gateway noise. That is
-reported as measured rather than smoothed over, because "the AI turned
-out to be unnecessary on our own test data" is exactly the kind of thing
-a panel should hear from us rather than discover.
+**This produced an uncomfortable finding, and then a corrected one.**
+Once identity evidence was used properly, the deterministic tiers
+resolved the *old* dataset's ambiguous cases on their own and AI
+invocation fell to 0%. On that data the model was genuinely unnecessary —
+which was a fact about the dataset, not about reconciliation. The
+generator had embedded the order number in both the reference and the
+description, so an identifier always survived.
+
+The current dataset withholds identity evidence for 16% of records the
+way real data does: truncated bank narration, a reference in a different
+numbering system, a trading name instead of a legal entity. AI invocation
+is around 20%, and the two categories that need it score zero
+deterministically. The lesson kept from the earlier finding is that "the
+model turned out to be unnecessary on our own test data" is the kind of
+thing a panel should hear from us rather than discover — so it is
+recorded here rather than quietly overwritten.
 
 ---
 

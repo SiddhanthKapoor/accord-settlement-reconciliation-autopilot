@@ -221,6 +221,16 @@ def detect_aggregated_settlements(
     if len(unmatched_by_id) < 2:
         return {}
 
+    # Above this, the pass is skipped entirely rather than throttled.
+    # Two reasons, and the second is the real one: it would cost
+    # O(settlements x unmatched) — measured at ~6s on a 50k batch, which
+    # is half the run — and among thousands of unmatched records a
+    # "unique" decomposition summing to a lump sum is almost certainly a
+    # coincidence rather than the actual grouping. Aggregation detection
+    # is meaningful on the scale a bank statement actually arrives at.
+    if len(unmatched_by_id) > policy.max_aggregation_candidates:
+        return {}
+
     claimed = {res.matched_payment_id for res in results if res.matched_payment_id}
     merchant_by_id = {r.record_id: r.merchant for r in records}
     tolerance = policy.amount_tolerance_minor
