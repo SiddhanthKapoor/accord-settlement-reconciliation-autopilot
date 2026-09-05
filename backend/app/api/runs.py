@@ -21,6 +21,7 @@ import json
 import threading
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -60,6 +61,17 @@ PREVIEW_ROWS = 200
 # `source_type` may be omitted entirely or sent as this sentinel; either
 # means "work it out from the file".
 AUTO = "AUTO"
+
+# The sample workspace: a folder of month-end exports kept in the repo so
+# the product can be tried without finding files first. Read from disk at
+# request time — never a hardcoded list, so the folder is the source of
+# truth and can grow or shrink without this module knowing.
+DEMO_WORKSPACE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "demo_workspace"
+
+# Sidecar files that sit alongside the exports and are not exports. A
+# leading `_` or `.` is the convention for them here; the extensions are
+# the metadata formats that would otherwise be read as a one-column CSV.
+NON_TABULAR_SUFFIXES = frozenset({".json", ".md", ".py", ".yaml", ".yml", ".toml", ".lock"})
 
 
 class CreateRunRequest(BaseModel):
@@ -112,9 +124,140 @@ def create_run(body: CreateRunRequest):
     return {"run_id": batch_id, "label": label, "status": "DRAFT", "sources": []}
 
 
+def sample_workspace_files(directory: Path | None = None) -> list[Path]:
+    """Every export in the sample workspace, in a stable order.
+
+    Listed from the filesystem on each call. The folder is generated and
+    regenerated independently of this code, so anything cached here — a
+    file list, a count, a set of expected providers — would be a claim
+    about data that had already changed.
+    """
+    directory = directory or DEMO_WORKSPACE_DIR
+    if not directory.is_dir():
+        return []
+    return sorted(
+        path for path in directory.iterdir()
+        if path.is_file()
+        and not path.name.startswith(("_", "."))
+        and path.suffix.lower() not in NON_TABULAR_SUFFIXES
+    )
+
+
+def _source_summary(result: dict) -> dict:
+    """The per-file answer, in the same fields an upload reports.
+
+    Deliberately the ingest result rather than a re-description of it:
+    the classification, the confidence, and whether it has to be
+    confirmed are the values `_ingest_file` produced, not values computed
+    a second time for this endpoint. The bulky part of `detection`
+    (sample rows, per-column guesses, evidence) is left out and stays
+    available on GET /runs/{run_id} and the plan.
+    """
+    detection = result.get("detection") or {}
+    return {
+        "source_id": result["source_id"],
+        "filename": result["filename"],
+        "source_type": result["source_type"],
+        "role": result["role"],
+        "row_count": detection.get("row_count"),
+        "detected_source_type": result.get("detected_source_type"),
+        "detection_confidence": result.get("detection_confidence"),
+        "provider": result.get("provider"),
+        "needs_confirmation": bool(result.get("needs_confirmation")),
+        "role_confirmed": bool(result.get("role_confirmed")),
+        "duplicate_of": result.get("duplicate_of"),
+        "duplicate_of_filename": result.get("duplicate_of_filename"),
+        "unmapped_required": detection.get("unmapped_required") or [],
+        "needs_user_input": bool(result.get("needs_user_input")),
+        "format": result.get("format"),
+        "truncated": bool(result.get("truncated")),
+        "stage": result.get("stage"),
+        "stage_label": result.get("stage_label"),
+        "suggested_role": result.get("suggested_role"),
+    }
+
+
+@router.post("/runs/sample")
+def create_sample_run(body: CreateRunRequest | None = None):
+    """Load the sample workspace as a run — one click, nothing to upload.
+
+    Every file goes through the same path an upload takes: read the
+    bytes, detect the schema, classify the source, save it. Nothing is
+    pre-labelled and nothing is injected past the classifier, so what
+    this returns is what the classifier actually made of those files. A
+    file it is not confident about comes back `needs_confirmation` and
+    blocks execution exactly as an uploaded one would — the sample is a
+    shortcut past finding files, not past the parts that ask.
+    """
+    files = sample_workspace_files()
+    if not files:
+        raise HTTPException(
+            404,
+            f"no sample workspace on disk at {DEMO_WORKSPACE_DIR.name}/ — "
+            "generate it with data/generate_demo_workspace.py",
+        )
+
+    label = (body.label if body else None) or (
+        f"Sample workspace {datetime.now(timezone.utc).strftime('%d %b %H:%M')}"
+    )
+    created = create_run(CreateRunRequest(label=label))
+    run_id = created["run_id"]
+
+    results: list[dict] = []
+    errors: list[dict] = []
+    used = 0
+
+    for path in files:
+        if len(results) >= MAX_SOURCES_PER_RUN:
+            errors.append({"ok": False, "filename": path.name, "status": 400,
+                           "error": f"over the {MAX_SOURCES_PER_RUN}-file limit for one workspace"})
+            continue
+        try:
+            raw = path.read_bytes()
+            if used + len(raw) > MAX_WORKSPACE_BYTES:
+                raise _FileRejected(
+                    413,
+                    f"this workspace would exceed its total size limit of "
+                    f"{MAX_WORKSPACE_BYTES // (1024 * 1024)}MB",
+                )
+            # `None` for the declared type is what an upload sends when it
+            # wants the file classified rather than asserted.
+            results.append(_ingest_file(run_id, path.name, raw, None))
+            used += len(raw)
+        except _FileRejected as exc:
+            errors.append({"ok": False, "filename": path.name, "status": exc.status, "error": exc.detail})
+        except OSError as exc:
+            errors.append({"ok": False, "filename": path.name, "status": 400,
+                           "error": f"could not be read from disk: {type(exc).__name__}: {exc}"})
+
+    sources = [_source_summary(r) for r in results]
+    return {
+        **created,
+        "sources": sources,
+        "source_count": len(sources),
+        # Rows ingested across every source, both sides. This is what was
+        # read out of the files, not what a reconciliation will produce —
+        # that number does not exist until the run is executed.
+        "record_count": sum(int(s["row_count"] or 0) for s in sources),
+        "errors": errors,
+        "file_count": store.count_sources(run_id),
+        "max_files": MAX_SOURCES_PER_RUN,
+        "needs_confirmation": [s["filename"] for s in sources if s["needs_confirmation"]],
+        "duplicates": [
+            {"filename": s["filename"], "duplicate_of_filename": s["duplicate_of_filename"]}
+            for s in sources if s["duplicate_of"]
+        ],
+        "workspace": DEMO_WORKSPACE_DIR.name,
+    }
+
+
 @router.get("/runs")
-def list_runs(limit: int = 20):
-    return {"runs": store.list_batches(limit=limit)}
+def list_runs(limit: int = 20, include_drafts: bool = False):
+    # Drafts are hidden by default. A workspace someone created and never
+    # executed is not a failed run, and a list dominated by them makes the
+    # product look like it keeps breaking — but they are still real, so
+    # `include_drafts=true` returns them rather than the data disappearing.
+    return {"runs": store.list_batches(limit=limit, include_drafts=include_drafts)}
 
 
 @router.get("/runs/{run_id}")
@@ -499,6 +642,261 @@ def update_plan(run_id: str, body: PlanRequest):
     return flow.build_plan(store.get_batch(run_id), sources, saved_plan=plan_state, records=records)
 
 
+# ---------------------------------------------------------------------------
+# Execution progress
+# ---------------------------------------------------------------------------
+
+# The phases the executor writes as it crosses them. `DECIDING` is one
+# phase on purpose: deterministic matching and AI investigation are
+# interleaved inside a single pass over the records — the model is
+# consulted mid-record, when that record's evidence turns out to be
+# ambiguous — so presenting them as two sequential passes would be a
+# picture of a pipeline this system does not have.
+PHASE_INSPECTING = "INSPECTING"
+PHASE_NORMALISING = "NORMALISING"
+PHASE_DECIDING = "DECIDING"
+PHASE_REVIEW = "REVIEW"
+PHASE_COMPLETE = "COMPLETE"
+
+# key, label, and the fixed part of the description.
+PIPELINE_STAGES: tuple[tuple[str, str, str], ...] = (
+    ("INSPECTING", "Inspect sources",
+     "Each file is read, its columns detected and its type classified."),
+    ("NORMALISING", "Normalise records",
+     "Rows from every source are folded into canonical ledger and settlement records."),
+    ("DETERMINISTIC", "Deterministic matching",
+     "Every record is decided on exact and corroborated evidence first."),
+    ("INVESTIGATING", "AI investigation",
+     "Consulted only where the evidence is ambiguous. Runs inside the matching pass, "
+     "record by record — not as a separate stage afterwards."),
+    ("REVIEW", "Human review",
+     "Whatever could not be resolved is held for a person."),
+)
+
+_PENDING, _ACTIVE, _DONE = "PENDING", "ACTIVE", "DONE"
+
+# Which stage rows are PENDING / ACTIVE / DONE in each real phase. Three
+# rows are ACTIVE together in DECIDING because three things are genuinely
+# advancing together there: records are being decided, some of them are
+# being investigated as they are decided, and the ones that resolve to
+# neither are landing in review as it happens.
+_STAGE_STATES: dict[str, tuple[str, ...]] = {
+    "": (_PENDING, _PENDING, _PENDING, _PENDING, _PENDING),
+    PHASE_INSPECTING: (_ACTIVE, _PENDING, _PENDING, _PENDING, _PENDING),
+    PHASE_NORMALISING: (_DONE, _ACTIVE, _PENDING, _PENDING, _PENDING),
+    PHASE_DECIDING: (_DONE, _DONE, _ACTIVE, _ACTIVE, _ACTIVE),
+    PHASE_REVIEW: (_DONE, _DONE, _DONE, _DONE, _ACTIVE),
+    PHASE_COMPLETE: (_DONE, _DONE, _DONE, _DONE, _DONE),
+}
+
+
+def _derive_phase(batch: dict, recorded: dict) -> str:
+    """Where the run is, preferring what the executor recorded.
+
+    The recorded phase is the truthful one — it was written by the code
+    that was doing the work. It can be absent for two honest reasons: the
+    run has never been executed, or it is a dataset-driven batch from
+    `/batch/run`, which does not go through this executor at all. Both
+    degrade to what the batch row itself can prove.
+    """
+    phase = str(recorded.get("phase") or "")
+    if phase in _STAGE_STATES and phase:
+        # A run whose thread died mid-flight would sit in DECIDING for
+        # ever; the batch row is the authority on completion.
+        if batch.get("status") == "COMPLETED":
+            return PHASE_COMPLETE
+        return phase
+
+    if batch.get("status") == "COMPLETED":
+        return PHASE_COMPLETE
+    total = int(batch.get("total_records") or 0)
+    processed = int(batch.get("processed_records") or 0)
+    if total <= 0 and processed <= 0:
+        return ""                                   # nothing has run
+    if total > 0 and processed >= total:
+        return PHASE_REVIEW
+    return PHASE_DECIDING
+
+
+def _investigating_detail(tier: int, model: int, heuristic: int, unanswered: int) -> str:
+    """What actually served the ambiguous records, said plainly.
+
+    The stage is called "AI investigation" and its count is the number of
+    records a model answered. When the offline verifier served them
+    instead, that count is zero and this sentence has to be the thing
+    that stops the row reading as "nothing happened" — and, more
+    importantly, stops the run reading as model-assisted when it was not.
+    """
+    if not tier:
+        return "No record needed more than deterministic evidence."
+
+    parts: list[str] = []
+    if model:
+        parts.append(f"{model} record(s) were ambiguous enough to consult the model.")
+    if heuristic:
+        parts.append(
+            f"{heuristic} record(s) reached the ambiguity tier and were resolved by the offline "
+            "classifier — no model was called."
+            if not model else
+            f"{heuristic} more were resolved by the offline classifier, with no model call."
+        )
+    if unanswered:
+        parts.append(
+            f"{unanswered} reached a provider that did not answer and went to human review."
+        )
+    return " ".join(parts)
+
+
+def _progress_payload(batch: dict) -> dict:
+    """The pipeline's real position, assembled from stored state only.
+
+    Every number here is either a column the executor wrote or a count
+    taken from the rows themselves at the moment of the request. Where a
+    number is genuinely not yet knowable — how many records a run will
+    have before its sources are mapped, how many will need investigating
+    before they are decided — the answer is `null`, because a plausible
+    stand-in on a progress display is indistinguishable from a real
+    measurement and would be trusted like one.
+    """
+    run_id = batch["batch_id"]
+    recorded = store.get_run_progress(run_id)
+    counts = store.run_progress_counts(run_id)
+    phase = _derive_phase(batch, recorded)
+    states = _STAGE_STATES[phase]
+    started = bool(phase)
+
+    processed = int(batch.get("processed_records") or 0)
+    sized = int(batch.get("total_records") or 0) > 0
+    total = int(batch["total_records"]) if sized else None
+
+    # Reaching the semantic tier is not the same thing as calling a
+    # model. When no provider is configured the offline heuristic serves
+    # that tier, and reporting those as "AI consulted" would tell a
+    # viewer a model was used when none was. So `ai_consulted` counts
+    # only records a real provider answered, and the tier total is
+    # reported separately under its own name.
+    ai_consulted = counts["ai_consulted"]
+    heuristic_consulted = counts["heuristic_consulted"]
+    semantic_tier = counts["semantic_tier_invoked"]
+    # Reached the tier, and nothing answered — every provider in the
+    # chain failed and the record went to human review.
+    unanswered = max(semantic_tier - ai_consulted - heuristic_consulted, 0)
+    if not semantic_tier:
+        semantic_backend = None
+    elif ai_consulted and heuristic_consulted:
+        semantic_backend = "mixed"
+    elif ai_consulted:
+        semantic_backend = "model"
+    elif heuristic_consulted:
+        semantic_backend = "heuristic"
+    else:
+        semantic_backend = None                 # reached, answered by nothing
+    unresolved = counts["unresolved"]
+
+    sources_total = recorded.get("sources_total")
+    sources_done = recorded.get("sources_done")
+    ledger = recorded.get("ledger_records")
+    settlements = recorded.get("settlement_records")
+    canonical = None if ledger is None or settlements is None else ledger + settlements
+
+    details = {
+        "INSPECTING": (
+            f"{sources_done} of {sources_total} sources read, mapped and classified."
+            if sources_done is not None and sources_total else None
+        ),
+        "NORMALISING": (
+            f"{ledger} ledger and {settlements} settlement records built from those files."
+            if canonical is not None else None
+        ),
+        "DETERMINISTIC": (
+            f"{processed} of {total} records decided." if total is not None else None
+        ),
+        "INVESTIGATING": _investigating_detail(
+            semantic_tier, ai_consulted, heuristic_consulted, unanswered
+        ) if states[3] != _PENDING else None,
+        "REVIEW": (
+            f"{unresolved} record(s) could not be resolved automatically."
+            if states[4] != _PENDING else None
+        ),
+    }
+    # A stage that has not started has not measured anything, so it
+    # reports nothing rather than a zero that reads like a result.
+    values: dict[str, tuple[int | None, int | None]] = {
+        "INSPECTING": (sources_done, sources_total),
+        "NORMALISING": (canonical, None),
+        "DETERMINISTIC": (processed, total),
+        "INVESTIGATING": (ai_consulted, None),
+        "REVIEW": (unresolved, None),
+    }
+
+    stages = []
+    for (key, label, description), state in zip(PIPELINE_STAGES, states):
+        count, stage_total = values[key] if state != _PENDING else (None, None)
+        detail = details[key] if state != _PENDING else None
+        stages.append({
+            "key": key,
+            "label": label,
+            "detail": detail or description,
+            "state": state,
+            "count": count,
+            "total": stage_total,
+        })
+
+    # The headline. DECIDING is reported as INVESTIGATING once a model
+    # has actually been consulted on this run and as DETERMINISTIC before
+    # that — both describe the same single pass, named for what it is
+    # currently doing rather than promoted to a phase of its own. A run
+    # the offline verifier is serving never reports INVESTIGATING, because
+    # nothing is being investigated by a model.
+    if phase == PHASE_DECIDING:
+        stage = "INVESTIGATING" if ai_consulted > 0 else "DETERMINISTIC"
+    elif phase == "":
+        stage = "INSPECTING"                        # the stage that will run first
+    else:
+        stage = phase
+
+    return {
+        "run_id": run_id,
+        "stage": stage,
+        "stages": stages,
+        "processed": processed,
+        "total": total,
+        # Records a real provider answered. Never includes work the
+        # offline verifier did — see `semantic_tier_invoked` for the
+        # total that reached the ambiguity tier at all, and
+        # `semantic_backend` for what served it.
+        "ai_consulted": ai_consulted,
+        "semantic_tier_invoked": semantic_tier,
+        "heuristic_consulted": heuristic_consulted,
+        "semantic_backend": semantic_backend,
+        "unresolved": unresolved,
+        # `batches.status` is deliberately not echoed here: a run is
+        # created with status RUNNING before it has any sources, so it
+        # would say "running" about a workspace nobody has executed.
+        # These two are the ones that are true.
+        "started": started,
+        "complete": phase == PHASE_COMPLETE,
+        "updated_at": recorded.get("updated_at"),
+        # Set only if the execution thread stopped on an error. Null is
+        # the normal case; a run that failed says so instead of sitting
+        # at a stage for ever.
+        "error": recorded.get("error"),
+    }
+
+
+@router.get("/runs/{run_id}/progress")
+def get_run_progress(run_id: str):
+    """Where this run actually is.
+
+    Cheap enough to poll: one row from `batches` and one aggregate over
+    that batch's records.
+    """
+    batch = store.get_batch(run_id)
+    if not batch:
+        raise HTTPException(404, "run not found")
+    return _progress_payload(batch)
+
+
 @router.post("/runs/{run_id}/execute")
 def execute_run(run_id: str, body: ExecuteRequest):
     """Map every source, then reconcile.
@@ -534,6 +932,16 @@ def execute_run(run_id: str, body: ExecuteRequest):
             + ", ".join(unconfirmed),
         )
 
+    # From here on the executor records where it is, at each boundary it
+    # genuinely crosses. Nothing below writes a phase it is not in.
+    store.save_run_progress(run_id, {
+        "phase": PHASE_INSPECTING,
+        "sources_total": len(sources),
+        "sources_done": 0,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+
     mapped = []
     for source in sources:
         _, rows = parse_csv(source["raw_csv"])
@@ -547,13 +955,25 @@ def execute_run(run_id: str, body: ExecuteRequest):
         )
         store.record_source_outcome(source["source_id"], result.accepted_count, len(result.rejected))
         mapped.append(result)
+        store.update_run_progress(run_id, sources_done=len(mapped))
 
     ledger, settlements, rejected = combine(mapped)
     ledger_provenance, settlement_provenance = combine_provenance(mapped)
+    store.update_run_progress(
+        run_id, phase=PHASE_NORMALISING, ledger_records=len(ledger),
+        settlement_records=len(settlements), rejected_rows=len(rejected),
+    )
+    # A run that cannot produce two sides stops here. The refusal is
+    # recorded on the run so a progress view shows a run that stopped and
+    # why, rather than one that appears to still be working.
     if not ledger:
-        raise HTTPException(400, "no ledger-side records — add an orders or accounting source")
+        detail = "no ledger-side records — add an orders or accounting source"
+        store.update_run_progress(run_id, error=detail)
+        raise HTTPException(400, detail)
     if not settlements:
-        raise HTTPException(400, "no settlement-side records — add a gateway or bank source")
+        detail = "no settlement-side records — add a gateway or bank source"
+        store.update_run_progress(run_id, error=detail)
+        raise HTTPException(400, detail)
 
     records = [ReconciliationRecord(record_id=r.order_id, merchant=r) for r in ledger]
 
@@ -596,6 +1016,13 @@ def execute_run(run_id: str, body: ExecuteRequest):
                          "outcome": result.outcome.value, "reason": result.reason,
                          "ai_invoked": result.ai_invoked},
             )
+            # The last per-record callback is the end of the matching
+            # pass. What follows inside process_batch is the cross-record
+            # integrity work — duplicate claims and aggregated
+            # settlements — which only routes records to human review, so
+            # the run is genuinely in its review phase from here.
+            if i + 1 >= total:
+                store.update_run_progress(run_id, phase=PHASE_REVIEW)
 
         def on_revision(i, record, result):
             store.save_record(run_id, i, record, result, index.exact_candidates(record.merchant),
@@ -607,14 +1034,25 @@ def execute_run(run_id: str, body: ExecuteRequest):
                          "outcome": result.outcome.value, "reason": result.reason},
             )
 
-        process_batch(records, settlements, policy=policy, semantic_verifier=verifier,
-                      on_record=on_record, on_revision=on_revision)
+        try:
+            process_batch(records, settlements, policy=policy, semantic_verifier=verifier,
+                          on_record=on_record, on_revision=on_revision)
+        except Exception as exc:  # noqa: BLE001 — a thread that dies silently leaves the run "in progress" for ever
+            store.update_run_progress(run_id, error=f"{type(exc).__name__}: {exc}")
+            audit.append_event(
+                transaction_id=run_id, event_type="BATCH_FAILED", prior_state="RUNNING",
+                new_state="RUNNING",
+                payload={"batch_id": run_id, "error": f"{type(exc).__name__}: {exc}"},
+            )
+            raise
         store.mark_batch_complete(run_id)
+        store.update_run_progress(run_id, phase=PHASE_COMPLETE)
         audit.append_event(
             transaction_id=run_id, event_type="BATCH_COMPLETED", prior_state="RUNNING",
             new_state="COMPLETED", payload={"batch_id": run_id, "total": len(records)},
         )
 
+    store.update_run_progress(run_id, phase=PHASE_DECIDING)
     threading.Thread(target=_run, daemon=True).start()
     return {
         "run_id": run_id, "total_records": len(records), "label": label,

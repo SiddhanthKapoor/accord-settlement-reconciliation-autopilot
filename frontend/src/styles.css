@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
-
 :root {
   /* Accord brand. The navies are sampled from the logo mark. */
   --ink: #16202e;
@@ -42,11 +40,32 @@
   --fail-bg: #fdeaec;
   --fail-border: #f6c1c8;
 
+  /* Landing type scale. One ratio, stated once, so a heading is never a
+     magic number picked to look right next to whatever is beside it. */
+  --t-display: clamp(42px, 6.1vw, 84px);
+  --t-h2: clamp(29px, 4vw, 53px);
+  --t-lede: clamp(17px, 1.5vw, 20px);
+  --t-body: 15px;
+  --t-note: 13px;
+  --t-micro: 11.5px;
+
   --radius: 16px;
   --radius-sm: 8px;
   --radius-pill: 999px;
-  --font-display: "Space Grotesk", "Inter Tight", sans-serif;
-  --font-body: "Inter Tight", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Three roles, three faces. --font-editorial is the landing's display
+     voice and is deliberately a real serif: at 90px a geometric sans reads
+     as a template, and this page's whole argument is that it is serious.
+     Gambetta over the usual high-contrast display serif because its stems
+     survive white-on-near-black, and because its diagonal stress and cut
+     serifs read as a printed record rather than as a hero font.
+     --font-display stays on Space Grotesk because the workspace's type is
+     built on it and the workspace is not being restyled.
+     Every fallback is a face that actually ships on the target OS, and is
+     picked for similar width, so a swap moves the line by a hair, not by
+     a wrap. */
+  --font-editorial: "Gambetta", "Iowan Old Style", "Hoefler Text", "Times New Roman", Georgia, serif;
+  --font-display: "Space Grotesk", "Switzer", -apple-system, sans-serif;
+  --font-body: "Switzer", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
 }
 
@@ -75,7 +94,15 @@ a { color: var(--accent); text-decoration: none; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
 
-.mono { font-family: var(--mono); }
+/* Figures are read down a column, not along a line, so every surface that
+   stacks them asks for tabular figures rather than trusting a per-family
+   default. Measured, not assumed: Switzer's figures are already fixed
+   width (“1111” and “0000” set to the same width), JetBrains Mono is
+   monospaced by construction, and Gambetta ships no `tnum` at all — which
+   is why the only Gambetta numerals on the page are the three display
+   figures, each alone in its own card, where proportional spacing is the
+   better setting anyway. */
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
 .tiny { font-size: 11px; }
@@ -551,7 +578,7 @@ summary:focus-visible,
 }
 
 /* ==================================================================== */
-/* ACCORD — buttons, landing page, 404                                  */
+/* ACCORD — buttons, landing page, hero figure, 404                     */
 /* ==================================================================== */
 
 /* ---- Buttons ------------------------------------------------------- */
@@ -569,9 +596,24 @@ summary:focus-visible,
   padding: 9px 18px; font-size: 13px; font-weight: 700; font-family: inherit;
   text-decoration: none; letter-spacing: -0.005em;
 }
-.btn-primary:hover { background: var(--accord-d); border-color: var(--accord-d); color: var(--ink-deep); }
+/* The hover lift lives on the control, not on a wrapper.
+   `motion` gives any element with `whileHover`/`whileTap` a `tabindex`, so
+   wrapping a link in a `motion.span` to animate it put an empty, roleless
+   tab stop in front of every CTA on the site — the keyboard user tabbed
+   twice to reach one button. A transition does the same job for free. */
+.btn-primary, .btn-quiet {
+  transition: transform 0.16s cubic-bezier(0.22, 0.61, 0.36, 1),
+              background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.btn-primary:hover, .btn-quiet:hover { transform: translateY(-2px); }
+.btn-primary:active, .btn-quiet:active { transform: translateY(0) scale(0.99); }
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary:hover, .btn-quiet:hover,
+  .btn-primary:active, .btn-quiet:active { transform: none; }
+}
+.btn-primary:hover { background: var(--accord-d); border-color: var(--accord-d); color: #ffffff; }
 .btn-primary.is-current { box-shadow: 0 0 0 3px rgba(0, 195, 137, 0.22); }
-.btn-sm { padding: 7px 14px; font-size: 12.5px; }
+.btn-sm { padding: 7px 15px; font-size: 12.5px; }
 .btn-lg { padding: 13px 26px; font-size: 15px; border-radius: var(--radius-pill); }
 
 .btn-quiet {
@@ -583,244 +625,393 @@ summary:focus-visible,
 }
 .btn-quiet:hover { border-color: var(--ink); }
 
+/* The same control on a near-black ground: white at 15:1, with a border
+   bright enough (4.6:1) that the control edge is still visible. */
+.btn-on-dark {
+  color: #ffffff; border-color: rgba(255, 255, 255, 0.44);
+  background: rgba(255, 255, 255, 0.04);
+}
+.btn-on-dark:hover { border-color: #ffffff; background: rgba(255, 255, 255, 0.11); }
+
 /* ---- Landing shell ------------------------------------------------- */
 
 .landing { background: var(--surface); }
+/* The page's own ground is dark. The hero fills the viewport, so this is
+   only ever seen through sub-pixel rounding or an over-scroll — which is
+   exactly when a near-white body background flashed a bar under the hero. */
+html:has(.landing), body:has(.landing) { background: var(--ink-deep); }
 
-/* The mark is dark navy on transparent, so it needs a light bar to sit on;
-   a translucent dark header would erase half the logo. Light also matches
-   the rest of the page — only the hero and the closing band are dark. */
-.landing-nav {
-  position: sticky; top: 0; z-index: 20;
-  background: rgba(255, 255, 255, 0.82);
-  -webkit-backdrop-filter: saturate(180%) blur(12px);
-  backdrop-filter: saturate(180%) blur(12px);
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+/* ---- Nav: a floating pill, part of the hero rather than a bar above it */
+
+/* The wrapper spans the page but does not catch clicks, so the hero
+   underneath stays selectable right up to the pill's edge. */
+.lnav {
+  position: fixed; inset: 14px 0 auto; z-index: 40;
+  padding: 0 32px; pointer-events: none;
 }
-.landing-nav-scrolled {
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom-color: var(--border);
-  box-shadow: 0 1px 12px rgba(11, 18, 28, 0.05);
+.lnav-pill {
+  pointer-events: auto;
+  max-width: 1180px; margin: 0 auto;
+  display: flex; align-items: center; gap: 24px;
+  padding: 8px 8px 8px 20px; border-radius: var(--radius-pill);
+  background: rgba(9, 15, 23, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  color: #ffffff;
+  transition: background-color 0.3s ease, border-color 0.3s ease,
+              box-shadow 0.3s ease, color 0.3s ease;
 }
-.landing-nav-inner {
-  max-width: 1180px; margin: 0 auto; padding: 0 28px; height: 66px;
-  display: flex; align-items: center; gap: 20px;
+/* Inverts the instant the light sections arrive underneath it, so the pill
+   is never white type on white or dark type on the hero. */
+.lnav-solid .lnav-pill {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--border);
+  box-shadow: 0 6px 28px rgba(11, 18, 28, 0.1);
+  color: var(--ink);
 }
-.landing-brand { text-decoration: none; color: inherit; flex: none; }
-.accord-wordmark { display: inline-flex; align-items: center; gap: 10px; }
-.accord-wordmark-text {
-  font-family: var(--font-display); font-weight: 700; font-size: 19px;
-  color: var(--ink); letter-spacing: -0.02em;
+.lnav-brand {
+  display: inline-flex; align-items: center; gap: 9px;
+  text-decoration: none; color: inherit; flex: none;
 }
-.landing-nav-links { display: flex; gap: 26px; margin-left: 20px; }
-.landing-nav-links a {
-  color: var(--muted); font-size: 13.5px; font-weight: 500; text-decoration: none;
+.accord-mark { display: block; flex: none; }
+.lnav-brand-text {
+  font-family: var(--font-body); font-weight: 700; font-size: 16px;
+  letter-spacing: -0.02em; color: inherit;
 }
-.landing-nav-links a:hover { color: var(--ink); }
-.landing-nav-cta-wrap { margin-left: auto; display: inline-flex; }
+.lnav-links { display: flex; gap: 28px; }
+.lnav-links a {
+  color: rgba(255, 255, 255, 0.78); font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: color 0.2s ease;
+}
+.lnav-links a:hover { color: #ffffff; }
+.lnav-solid .lnav-links a { color: var(--muted); }
+.lnav-solid .lnav-links a:hover { color: var(--ink); }
+.lnav-cta { margin-left: auto; display: inline-flex; }
+
+/* A blue ring is invisible on the translucent dark pill; a white one is
+   invisible once the pill inverts. So the ring follows the pill. */
+.lnav :focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+.lnav-solid :focus-visible { outline-color: var(--accent); }
 
 /* ---- Hero ---------------------------------------------------------- */
 
-/* The section owns a dark ground colour of its own, so if the photograph
-   fails to load, is slow, or is blocked, the hero is still dark navy with
-   light text and still clears AA. The image is never load-bearing. */
+/* The section owns a near-black ground of its own, so if the artwork fails
+   to load, is slow, or is blocked, the hero is still dark with light type
+   and still clears AA. The image is never load-bearing. */
 .hero {
-  position: relative; overflow: hidden;
+  position: relative; overflow: hidden; isolation: isolate;
   background: var(--ink-deep);
-  isolation: isolate;
+  display: flex; align-items: center;
+  /* `svh` deliberately, not `vh`: on a phone `vh` is measured against the
+     viewport with browser chrome *retracted*, so at rest the hero is short
+     by the height of the toolbar and a strip of the next section shows
+     through. `vh` first as the fallback for anything without `svh`. */
+  min-height: 100vh; min-height: 100svh;
+  padding: 138px 0 88px;
 }
-.hero-image {
+.hero-art {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: 72% center;
-  z-index: 0;
+  object-fit: cover; object-position: 58% center;
+  z-index: 0; opacity: 0.78;
 }
-/* Two stacked gradients. The photograph is nearly black on its left third,
-   where the copy sits, and the streams converge on the right, so the scrim
-   is heaviest on the left and lifts toward the right to leave the artwork
-   visible. Effective opacity behind the text is ~0.95, which puts white
-   type well past 15:1 regardless of what the image is doing underneath. */
-.hero-scrim {
+/* Three stacked layers. A wash of emerald where the streams converge, a
+   horizontal ramp that is near-opaque under the copy and lifts across the
+   figure, and a vertical ramp that darkens the top for the nav and the
+   bottom for the seam. Effective opacity behind the headline is ~0.97, so
+   white type sits past 15:1 whatever the photograph is doing under it. */
+.hero-veil {
   position: absolute; inset: 0; z-index: 1;
   background:
-    linear-gradient(90deg, rgba(11, 18, 28, 0.95) 0%, rgba(11, 18, 28, 0.9) 44%, rgba(11, 18, 28, 0.44) 74%, rgba(11, 18, 28, 0.2) 100%),
-    linear-gradient(180deg, rgba(11, 18, 28, 0.5) 0%, rgba(11, 18, 28, 0.24) 42%, rgba(11, 18, 28, 0.82) 100%);
+    radial-gradient(120% 84% at 74% 52%, rgba(0, 195, 137, 0.1), transparent 62%),
+    linear-gradient(96deg,
+      rgba(11, 18, 28, 0.96) 0%, rgba(11, 18, 28, 0.93) 30%,
+      rgba(11, 18, 28, 0.66) 52%, rgba(11, 18, 28, 0.46) 74%,
+      rgba(11, 18, 28, 0.6) 100%),
+    linear-gradient(180deg,
+      rgba(11, 18, 28, 0.66) 0%, rgba(11, 18, 28, 0.16) 32%,
+      rgba(11, 18, 28, 0.3) 74%, rgba(11, 18, 28, 0.9) 100%);
 }
-.hero-inner {
-  position: relative; z-index: 2;
-  max-width: 1180px; margin: 0 auto; padding: 112px 28px 120px;
+.hero-grid {
+  position: relative; z-index: 2; width: 100%;
+  max-width: 1240px; margin: 0 auto; padding: 0 32px;
+  display: grid; grid-template-columns: minmax(0, 0.94fr) minmax(0, 1fr);
+  gap: 64px; align-items: center;
 }
-.hero-eyebrow {
-  margin: 0 0 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.13em;
-  text-transform: uppercase; color: var(--accord);
-}
+.hero-copy { min-width: 0; }
+/* Serif, at a size a sans could not carry. Optical tracking: a face drawn
+   for text spaces itself for text, so it has to be pulled in as it grows
+   or the words fall apart into letters. -0.026em is where Gambetta settles
+   at 84px; the smaller headings below take progressively less, and nothing
+   under 30px takes any. */
 .hero-heading {
-  margin: 0; max-width: 17ch;
-  font-family: var(--font-display); font-weight: 700; color: #ffffff;
-  font-size: clamp(34px, 6vw, 60px); line-height: 1.04; letter-spacing: -0.035em;
+  margin: 0; max-width: 15ch;
+  font-family: var(--font-editorial); font-weight: 500; color: #ffffff;
+  font-size: var(--t-display); line-height: 1.0; letter-spacing: -0.026em;
 }
-.hero-rule {
-  width: 88px; height: 3px; margin: 26px 0 24px; transform-origin: left center;
-  background: linear-gradient(90deg, var(--accord), rgba(0, 195, 137, 0));
-  border-radius: 2px;
+/* The one sentence the product is not allowed to lose, and now the only
+   supporting line in the hero: the figure beside it says the rest. */
+.hero-principle {
+  margin: 30px 0 0; max-width: 42ch;
+  padding-left: 15px; border-left: 2px solid var(--accord);
+  font-size: 14px; line-height: 1.55; font-weight: 500; color: #d9ece4;
 }
-.hero-sub {
-  margin: 0; max-width: 60ch;
-  font-size: clamp(15px, 1.6vw, 18px); line-height: 1.62; color: #ccd8e4;
-}
-.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
-.hero .btn-quiet {
-  color: #ffffff; border-color: rgba(255, 255, 255, 0.42); background: rgba(255, 255, 255, 0.04);
-}
-.hero .btn-quiet:hover { border-color: #ffffff; background: rgba(255, 255, 255, 0.1); }
-.hero-foot {
-  margin: 30px 0 0; max-width: 56ch;
-  font-size: 13px; line-height: 1.6; color: #9fb0c2;
-  padding-left: 14px; border-left: 2px solid rgba(0, 195, 137, 0.55);
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; }
+.hero-visual { position: relative; min-width: 0; }
+
+.hero :focus-visible,
+.assurance :focus-visible,
+.site-footer :focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+
+/* ---- Hero figure (HeroFlow.jsx) ------------------------------------ */
+
+.hf { width: 100%; }
+.hf-svg { display: block; width: 100%; height: auto; }
+
+.hf-stream { fill: none; stroke: rgba(198, 218, 236, 0.17); stroke-width: 1; }
+.hf-axis { stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; }
+.hf-tick { stroke: rgba(255, 255, 255, 0.22); stroke-width: 1; }
+.hf-glow { fill: url(#hf-glow-grad); }
+
+.hf-plane { stroke-width: 1; }
+.hf-plane-a { fill: rgba(0, 195, 137, 0.07); stroke: rgba(0, 195, 137, 0.36); }
+.hf-plane-b { fill: rgba(0, 195, 137, 0.04); stroke: rgba(0, 195, 137, 0.19); }
+.hf-beam { stroke: #00c389; stroke-width: 1.6; stroke-linecap: round; }
+.hf-cap {
+  fill: rgba(255, 255, 255, 0.44); font-family: var(--mono);
+  font-weight: 500; letter-spacing: 0.2em;
 }
 
-/* A blue focus ring is invisible on near-black. Dark sections get a white
-   one, which is 15:1 against their ground. */
-.hero :focus-visible,
-.closing-band :focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+.hf-pill { fill: rgba(255, 255, 255, 0.04); stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; }
+.hf-file { fill: rgba(228, 239, 248, 0.74); font-family: var(--mono); letter-spacing: 0.01em; }
+.hf-dot-pale { fill: rgba(226, 238, 247, 0.72); }
+.hf-dot-amber { fill: rgba(233, 150, 84, 0.88); }
+.hf-dot-teal { fill: rgba(110, 226, 196, 0.88); }
+
+.hf-chip-pale { fill: rgba(234, 243, 251, 0.92); }
+.hf-chip-amber { fill: rgba(233, 150, 84, 0.92); }
+.hf-chip-teal { fill: rgba(110, 226, 196, 0.95); }
+
+.hf-out { fill: none; stroke-width: 1.25; }
+.hf-out-ok { stroke: rgba(0, 195, 137, 0.58); }
+.hf-out-hold { stroke: rgba(233, 168, 73, 0.5); }
+.hf-chip-ok, .hf-node-ok { fill: #00c389; }
+.hf-chip-hold, .hf-node-hold { fill: #e9a849; }
+.hf-outlabel { font-family: var(--mono); letter-spacing: 0.01em; }
+.hf-outlabel-ok { fill: rgba(130, 237, 199, 0.94); }
+.hf-outlabel-hold { fill: rgba(242, 199, 137, 0.94); }
 
 /* ---- Light sections ------------------------------------------------ */
 
-.section { padding: 92px 0; background: var(--surface); }
-.section-alt { background: var(--surface-alt); border-block: 1px solid var(--border-subtle); }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; width: 100%; }
+.section { padding: 118px 0; background: var(--surface); }
+/* The seam out of the hero: the page lightens into the first section
+   rather than cutting to white on a hard edge. */
+.section-problem { background: linear-gradient(180deg, #eef3f8 0%, var(--surface) 380px); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; width: 100%; }
 .wrap-narrow { max-width: 780px; }
 
-.section-eyebrow {
-  margin: 0 0 14px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.13em;
-  text-transform: uppercase; color: var(--accord-ink);
-}
 .section-heading {
-  margin: 0 0 20px; font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(24px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.03em;
-  color: var(--ink); max-width: 22ch;
+  margin: 0; font-family: var(--font-editorial); font-weight: 500;
+  font-size: var(--t-h2); line-height: 1.04; letter-spacing: -0.022em;
+  color: var(--ink); max-width: 18ch;
 }
-.section-lede {
-  margin: 0 0 18px; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.68;
-  color: var(--muted); max-width: 68ch;
+/* The filter defs each pixelated heading carries. Zero-sized and out of
+   flow, so they can never affect layout. */
+.pix-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---- The problem: one payment, six files --------------------------- */
+
+.frag { margin-top: 46px; }
+/* Scroll shadows, CSS only: the two white covers scroll *with* the content
+   (`local`) and sit over the two edge shadows, which are pinned to the box
+   (`scroll`). So a shadow is visible on exactly the side there is more
+   table to see, and neither appears when the table fits. Without it a
+   phone reader has no way to know four more columns exist. */
+.frag-scroll {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, var(--surface) 40%, rgba(255, 255, 255, 0)) left / 44px 100% no-repeat,
+    linear-gradient(270deg, var(--surface) 40%, rgba(255, 255, 255, 0)) right / 44px 100% no-repeat,
+    radial-gradient(farthest-side at 0 50%, rgba(11, 18, 28, 0.15), rgba(11, 18, 28, 0)) left / 16px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(11, 18, 28, 0.15), rgba(11, 18, 28, 0)) right / 16px 100% no-repeat,
+    var(--surface);
+  background-attachment: local, local, scroll, scroll, scroll;
 }
-.section-lede-tight { margin-bottom: 40px; }
-.section-premise .section-heading { max-width: 24ch; }
+.frag-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.frag-table {
+  width: 100%; min-width: 780px; border-collapse: collapse;
+  font-family: var(--mono); font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.frag-table th, .frag-table td {
+  padding: 12px 16px; text-align: left; white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.frag-table thead th {
+  font-family: var(--font-body); font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
+  background: var(--surface-alt); border-bottom-color: var(--border);
+}
+/* Captions and notes sit a size and a weight below the body they annotate.
+   They do NOT sit below it in contrast: --faint is 3.4:1 on white, which is
+   under AA at every size used on this page, so the whole landing uses
+   --muted (7.6:1) for secondary text. */
+.frag-table tbody tr:last-child th,
+.frag-table tbody tr:last-child td { border-bottom: 0; }
+.frag-file { font-weight: 600; color: var(--ink); font-size: 12px; }
+.frag-cell { color: var(--muted); font-weight: 400; }
+/* Divergence is marked by a bar as well as a tint: the distinction has to
+   survive greyscale and colour blindness, and the caption says in words
+   what the marking means. */
+.frag-cell-alt {
+  color: var(--ink); background: rgba(0, 195, 137, 0.08);
+  box-shadow: inset 2px 0 0 rgba(4, 107, 80, 0.55);
+}
+.frag-num { text-align: right; }
+.frag-caption {
+  margin: 14px 0 0; font-size: 12.5px; line-height: 1.6;
+  color: var(--muted); max-width: 76ch;
+}
 
-/* ---- How it works -------------------------------------------------- */
+/* ---- The pipeline --------------------------------------------------- */
 
-.steps {
-  list-style: none; margin: 40px 0 0; padding: 0;
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px;
-  background: var(--border-subtle); border: 1px solid var(--border-subtle);
+.stages { list-style: none; margin: 48px 0 0; padding: 0; }
+.stage {
+  display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 44px;
+  align-items: center;
+  padding: 28px 0; border-top: 1px solid var(--border-subtle);
+}
+.stage:first-child { border-top: 0; padding-top: 0; }
+/* A rule above the name, in the brand emerald, is all the ordinal the
+   list needs now that the numerals are gone: the <ol> still carries the
+   sequence for assistive tech, and five short words read as a sequence on
+   their own. */
+.stage-mark { display: flex; align-items: baseline; gap: 14px; }
+.stage-mark::before {
+  content: ""; flex: none; width: 22px; height: 2px;
+  background: var(--accord-d); transform: translateY(-0.42em);
+}
+.stage-name {
+  margin: 0; font-family: var(--font-editorial); font-weight: 500;
+  font-size: clamp(23px, 2.2vw, 31px); line-height: 1.05;
+  letter-spacing: -0.012em; color: var(--ink);
+}
+.stage-body { max-width: 56ch; }
+
+.filestrip {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 7px;
+}
+.filechip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 10px;
+}
+.filechip-dot {
+  width: 5px; height: 5px; border-radius: 1px;
+  background: var(--accord-d); flex: none;
+}
+.filechip-more {
+  color: var(--muted); font-family: var(--font-body); font-weight: 600;
+  background: transparent; border-style: dashed;
+}
+
+.stage-tags {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+/* Only the ingest stage has anything above its tags. */
+.filestrip + .stage-tags { margin-top: 20px; }
+.stage-tag {
+  font-size: 12px; font-weight: 600; color: var(--accord-ink);
+  background: var(--accord-soft); border: 1px solid var(--accord-border);
+  border-radius: var(--radius-pill); padding: 5px 13px;
+}
+
+/* ---- Assurance ------------------------------------------------------ */
+
+.assurance {
+  position: relative; overflow: hidden;
+  background: var(--ink-deep); padding: 112px 0 100px;
+}
+.assurance::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(780px 440px at 80% 8%, rgba(0, 195, 137, 0.17), transparent 66%);
+}
+.assurance > .wrap { position: relative; z-index: 1; }
+.assurance-heading {
+  margin: 0 0 52px; font-family: var(--font-editorial); font-weight: 500; color: #ffffff;
+  font-size: var(--t-h2); line-height: 1.04; letter-spacing: -0.022em;
+  max-width: 17ch;
+}
+
+.measured {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius); overflow: hidden;
 }
-.step {
-  display: flex; gap: 16px; padding: 26px 26px 28px;
-  background: var(--surface);
+.measured-card { background: rgba(255, 255, 255, 0.028); padding: 30px 26px 32px; }
+.measured-figure {
+  margin: 0; font-family: var(--font-editorial); font-weight: 500;
+  font-size: clamp(34px, 3.6vw, 50px); line-height: 1; letter-spacing: -0.018em;
+  color: var(--accord);
 }
-.step-n {
-  font-family: var(--mono); font-size: 12px; font-weight: 600;
-  color: var(--accord-ink); flex: none; padding-top: 3px; letter-spacing: 0.04em;
+.measured-unit {
+  margin: 18px 0 0; font-family: var(--font-body); font-size: var(--t-micro);
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  color: #eaf1f7; line-height: 1.5;
 }
-.step-body { min-width: 0; }
-.step-title {
-  margin: 0 0 8px; font-family: var(--font-display); font-size: 16.5px;
-  font-weight: 700; color: var(--ink); letter-spacing: -0.015em;
-}
-.step-text { margin: 0; font-size: 14px; line-height: 1.62; color: var(--muted); }
 
-/* ---- Control model ------------------------------------------------- */
-
-.safety-grid {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+/* Stated next to the figures rather than in a footnote, because that is
+   where they are read. Class-named apart from the workspace's own
+   provenance banner so the two never collide. */
+.prov-note {
+  margin-top: 26px; padding: 22px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid rgba(0, 195, 137, 0.75);
+  border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.025);
+  display: flex; gap: 22px; flex-wrap: wrap;
 }
-.safety-card {
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 22px 22px 24px; background: var(--surface);
-  border-top: 3px solid var(--accord);
-}
-.safety-title {
-  margin: 0 0 9px; font-family: var(--font-display); font-size: 15.5px;
-  font-weight: 700; color: var(--ink); letter-spacing: -0.015em;
-}
-.safety-text { margin: 0; font-size: 13.5px; line-height: 1.62; color: var(--muted); }
-
-/* ---- Evidence ------------------------------------------------------ */
-
-.evidence-grid {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
-  margin-top: 38px;
-}
-.evidence-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 26px 24px 28px;
-}
-.evidence-figure {
-  margin: 0; font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(30px, 4vw, 42px); line-height: 1; letter-spacing: -0.04em;
-  color: var(--accord-ink);
-}
-.evidence-unit {
-  margin: 10px 0 14px; font-size: 12.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink);
-}
-.evidence-text { margin: 0; font-size: 13.5px; line-height: 1.62; color: var(--muted); }
-
-/* Stated in full, next to the figures rather than in a footnote: these are
-   measurements on a synthetic set, and the page has to say so where the
-   numbers are read. */
-.provenance-note {
-  margin-top: 26px; padding: 18px 20px;
-  border: 1px solid var(--border); border-left: 3px solid var(--warn);
-  border-radius: var(--radius-sm); background: var(--surface);
-  display: flex; gap: 18px; flex-wrap: wrap;
-}
-.provenance-note-tag {
+.prov-note-tag {
   margin: 0; font-family: var(--mono); font-size: 11px; text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--warn); white-space: nowrap; padding-top: 2px;
+  letter-spacing: 0.07em; color: var(--accord); white-space: nowrap; padding-top: 2px;
 }
-.provenance-note-text {
-  margin: 0; flex: 1; min-width: 260px; font-size: 13px; line-height: 1.62; color: var(--muted);
+.prov-note-text {
+  margin: 0; flex: 1; min-width: 280px;
+  font-size: 13px; line-height: 1.7; color: #aabdcf;
 }
-.provenance-note-text code { font-size: 12px; color: var(--ink); }
+.prov-note-text code { font-size: 12px; color: #e3ecf4; }
 
-/* ---- Closing band -------------------------------------------------- */
-
-.closing-band {
-  background:
-    radial-gradient(900px 380px at 76% 46%, rgba(0, 195, 137, 0.2), transparent 70%),
-    var(--ink-deep);
-  padding: 86px 0;
-}
-.closing-inner { text-align: center; }
-.closing-heading {
-  margin: 0 0 14px; font-family: var(--font-display); font-weight: 700; color: #ffffff;
-  font-size: clamp(24px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.03em;
-}
-.closing-text {
-  margin: 0 auto 28px; max-width: 54ch;
-  font-size: 15.5px; line-height: 1.62; color: #ccd8e4;
-}
+.assurance-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 48px; }
 
 /* ---- Footer -------------------------------------------------------- */
 
-.site-footer { background: var(--surface); border-top: 1px solid var(--border); padding: 44px 0 34px; }
+/* Dark, continuous with the assurance band above it: the page ends on the
+   ground it opened on instead of dropping a white slab under a dark close. */
+.site-footer {
+  background: var(--ink-deep); border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 46px 0 40px; color: #aabdcf;
+}
 .site-footer-inner {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 28px; flex-wrap: wrap;
 }
-.site-footer-brand { display: flex; gap: 12px; align-items: flex-start; }
+.site-footer-brand { display: flex; gap: 11px; align-items: center; color: #ffffff; }
 .site-footer-name {
-  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 16px;
-  color: var(--ink); letter-spacing: -0.02em;
+  margin: 0; font-family: var(--font-body); font-weight: 700; font-size: 15px;
+  color: #ffffff; letter-spacing: -0.02em;
 }
-.site-footer-tag { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
 .site-footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
-.site-footer-links a { font-size: 13.5px; color: var(--muted); text-decoration: none; font-weight: 500; }
-.site-footer-links a:hover { color: var(--ink); text-decoration: underline; }
-.site-footer-legal { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--border-subtle); }
-.site-footer-legal p { margin: 0; font-size: 12px; color: var(--muted); max-width: 74ch; }
+.site-footer-links a { font-size: 13.5px; color: #c4d2df; text-decoration: none; font-weight: 500; }
+.site-footer-links a:hover { color: #ffffff; text-decoration: underline; }
+.site-footer-legal {
+  margin-top: 34px; padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.site-footer-legal p { margin: 0; font-size: 12px; line-height: 1.6; color: #92a6b9; max-width: 78ch; }
 
 /* ---- 404 ----------------------------------------------------------- */
 
@@ -843,43 +1034,65 @@ summary:focus-visible,
 
 /* ---- Responsive ---------------------------------------------------- */
 
-@media (max-width: 980px) {
-  .steps { grid-template-columns: minmax(0, 1fr); }
-  .safety-grid, .evidence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1080px) {
+  /* Stacked, the figure sits below a column of copy, so the padding comes
+     down to bring it nearer the fold. The hero still fills the viewport. */
+  .hero { padding: 118px 0 64px; }
+  .hero-grid { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .hero-copy { max-width: 40rem; }
+  .hero-heading { max-width: 16ch; }
+  .hero-visual { max-width: 660px; }
+  /* Stacked, the copy no longer sits in the dark left third, so the veil
+     has to be even across the width instead of ramped. */
+  .hero-veil {
+    background:
+      radial-gradient(130% 60% at 62% 74%, rgba(0, 195, 137, 0.1), transparent 66%),
+      linear-gradient(180deg,
+        rgba(11, 18, 28, 0.9) 0%, rgba(11, 18, 28, 0.86) 46%,
+        rgba(11, 18, 28, 0.6) 74%, rgba(11, 18, 28, 0.86) 100%);
+  }
+  .stage { grid-template-columns: 170px minmax(0, 1fr); gap: 32px; }
+}
+
+@media (max-width: 860px) {
+  .measured { grid-template-columns: minmax(0, 1fr); }
+  .stage { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .stage-mark { align-items: center; }
 }
 
 @media (max-width: 760px) {
-  .landing-nav-inner { height: 60px; padding: 0 18px; gap: 12px; }
-  /* Anchor links are a convenience duplicated by the page order itself;
-     the brand link and the workspace CTA both survive. */
-  .landing-nav-links { display: none; }
-  .landing-nav-cta-wrap { margin-left: auto; }
+  .lnav { inset: 10px 0 auto; padding: 0 16px; }
+  .lnav-pill { padding: 7px 7px 7px 16px; gap: 12px; }
+  /* The section links duplicate the page's own order; the brand link and
+     the workspace CTA both survive. */
+  .lnav-links { display: none; }
 
-  .hero-inner { padding: 72px 18px 80px; }
-  .hero-image { object-position: 78% center; }
+  .hero { padding: 100px 0 60px; }
+  .hero-grid { padding: 0 18px; gap: 36px; }
   .hero-heading { max-width: none; }
+  .hero-principle { max-width: none; }
 
-  .section { padding: 58px 0; }
+  .section { padding: 72px 0; }
   .wrap { padding: 0 18px; }
-  .section-heading { max-width: none; }
-  .safety-grid, .evidence-grid { grid-template-columns: minmax(0, 1fr); }
-  .step { padding: 22px 20px; }
-  .closing-band { padding: 62px 0; }
+  .section-heading, .assurance-heading { max-width: none; }
+  .section-problem { background: linear-gradient(180deg, #eef3f8 0%, var(--surface) 240px); }
+  .assurance { padding: 72px 0 68px; }
+  .measured-card { padding: 24px 20px 26px; }
   .site-footer-inner { flex-direction: column; gap: 22px; }
 }
 
-/* Long unbroken tokens (run ids, hashes, file names) are the usual cause of
-   a phone-width page scrolling sideways. */
 @media (max-width: 420px) {
-  .hero-heading { font-size: 30px; letter-spacing: -0.03em; }
-  .hero-actions .btn-lg { width: 100%; }
+  .hero-heading { font-size: 40px; letter-spacing: -0.018em; }
+  .hero-actions .btn-lg, .assurance-cta .btn-lg { width: 100%; }
   .notfound-actions .btn-lg { width: 100%; }
+  .lnav-brand-text { font-size: 16px; }
 }
 
-/* The landing nav is sticky, so an in-page anchor would otherwise drop the
-   section heading underneath it. Smooth scrolling is opt-out for anyone who
-   has asked for reduced motion. */
-.section[id], .hero { scroll-margin-top: 84px; }
-@media (prefers-reduced-motion: no-preference) {
-  html { scroll-behavior: smooth; }
+/* The nav floats over the page, so an in-page target would otherwise land
+   underneath it. Applied to every id on the landing, not only the ones we
+   happen to link to today. `scroll-margin-top` is what `scrollIntoView`
+   honours, so this is the single place the offset is defined. */
+.landing [id] { scroll-margin-top: 96px; }
+@media (max-width: 760px) {
+  .landing [id] { scroll-margin-top: 80px; }
 }

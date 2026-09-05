@@ -1,13 +1,13 @@
 Name,Email,Financial Status,Paid at,Fulfillment Status,Currency,Subtotal,Shipping,Taxes,Total,Created at,Lineitem quantity,Lineitem name,Payment Method,Notes
-SH-88201,orders@northwind-retail.example,paid,2026-03-06 09:14:22,fulfilled,INR,2949.15,120.00,410.85,3480.00,2026-03-06 09:14:22,1,Ceramic pour-over kettle 1.2L,Cashfree,Web order - ceramic pour-over kettle
-SH-88202,orders@kalyantech.example,paid,2026-03-08 11:02:47,fulfilled,INR,1067.80,0.00,192.20,1260.00,2026-03-08 11:02:47,2,Paper filter pack 100s,Cashfree,Web order - paper filter refill pack
-SH-88203,orders@sunrise-commerce.example,paid,2026-03-10 15:38:09,fulfilled,INR,5033.90,0.00,906.10,5940.00,2026-03-10 15:38:09,1,Burr grinder compact,Cashfree,Web order - compact burr grinder
-SH-88204,orders@meridian-softworks.example,paid,2026-03-12 08:51:33,fulfilled,INR,1817.80,0.00,327.20,2145.00,2026-03-12 08:51:33,3,Insulated travel tumbler,Cashfree,Web order - insulated travel tumbler
-SH-88205,orders@anand-traders.example,paid,2026-03-14 17:26:55,fulfilled,INR,7050.85,220.00,1049.15,8320.00,2026-03-14 17:26:55,1,Espresso machine entry tier,Cashfree,Web order - entry tier espresso machine
-SH-88206,orders@bluepeak.example,paid,2026-03-16 10:07:12,fulfilled,INR,838.98,0.00,151.02,990.00,2026-03-16 10:07:12,1,Cleaning tablet jar,Cashfree,Web order - cleaning tablet jar
-SH-88207,orders@vantage-analytics.example,paid,2026-03-18 13:45:26,fulfilled,INR,3961.86,0.00,713.14,4675.00,2026-03-18 13:45:26,2,Milk frothing jug set,Cashfree,Web order - milk frothing jug set
-SH-88208,orders@harbourline.example,paid,2026-03-20 19:12:40,fulfilled,INR,10881.36,300.00,1658.64,12840.00,2026-03-20 19:12:40,1,Roasting drum accessory,Cashfree,Web order - roasting drum accessory
-SH-88209,orders@northwind-retail.example,paid,2026-03-22 07:33:18,fulfilled,INR,2025.42,0.00,364.58,2390.00,2026-03-22 07:33:18,1,Scale with timer,Cashfree,Web order - brewing scale with timer
-SH-88210,orders@kalyantech.example,paid,2026-03-24 16:20:04,fulfilled,INR,5211.86,0.00,938.14,6150.00,2026-03-24 16:20:04,1,Cold brew tower,Cashfree,Web order - cold brew tower
+SH-88201,orders@northwind-retail.example,paid,2026-03-06 09:14:22,fulfilled,INR,2949.15,120.00,410.85,3480.00,2026-03-06 09:14:22,1,Ceramic pour-over kettle 1.2L,Payment Link,Web order - ceramic pour-over kettle
+SH-88202,orders@kalyantech.example,paid,2026-03-08 11:02:47,fulfilled,INR,1067.80,0.00,192.20,1260.00,2026-03-08 11:02:47,2,Paper filter pack 100s,Payment Link,Web order - paper filter refill pack
+SH-88203,orders@sunrise-commerce.example,paid,2026-03-10 15:38:09,fulfilled,INR,5033.90,0.00,906.10,5940.00,2026-03-10 15:38:09,1,Burr grinder compact,Payment Link,Web order - compact burr grinder
+SH-88204,orders@meridian-softworks.example,paid,2026-03-12 08:51:33,fulfilled,INR,1817.80,0.00,327.20,2145.00,2026-03-12 08:51:33,3,Insulated travel tumbler,Payment Link,Web order - insulated travel tumbler
+SH-88205,orders@anand-traders.example,paid,2026-03-14 17:26:55,fulfilled,INR,7050.85,220.00,1049.15,8320.00,2026-03-14 17:26:55,1,Espresso machine entry tier,Payment Link,Web order - entry tier espresso machine
+SH-88206,orders@bluepeak.example,paid,2026-03-16 10:07:12,fulfilled,INR,838.98,0.00,151.02,990.00,2026-03-16 10:07:12,1,Cleaning tablet jar,Payment Link,Web order - cleaning tablet jar
+SH-88207,orders@vantage-analytics.example,paid,2026-03-18 13:45:26,fulfilled,INR,3961.86,0.00,713.14,4675.00,2026-03-18 13:45:26,2,Milk frothing jug set,Payment Link,Web order - milk frothing jug set
+SH-88208,orders@harbourline.example,paid,2026-03-20 19:12:40,fulfilled,INR,10881.36,300.00,1658.64,12840.00,2026-03-20 19:12:40,1,Roasting drum accessory,Payment Link,Web order - roasting drum accessory
+SH-88209,orders@northwind-retail.example,paid,2026-03-22 07:33:18,fulfilled,INR,2025.42,0.00,364.58,2390.00,2026-03-22 07:33:18,1,Scale with timer,Payment Link,Web order - brewing scale with timer
+SH-88210,orders@kalyantech.example,paid,2026-03-24 16:20:04,fulfilled,INR,5211.86,0.00,938.14,6150.00,2026-03-24 16:20:04,1,Cold brew tower,Payment Link,Web order - cold brew tower
 SH-88211,,paid,2026-03-25 16:40:11,fulfilled,INR,3491.53,0.00,628.47,4120.00,2026-03-25 16:40:11,1,Assorted items,Other,Counter sale payment received
-SH-88212,orders@sunrise-commerce.example,paid,2026-03-28 12:04:59,fulfilled,INR,6190.68,0.00,1114.32,7305.00,2026-03-28 12:04:59,1,Bench grinder pro tier,Cashfree,Web order - pro tier bench grinder
+SH-88212,orders@sunrise-commerce.example,paid,2026-03-28 12:04:59,fulfilled,INR,6190.68,0.00,1114.32,7305.00,2026-03-28 12:04:59,1,Bench grinder pro tier,Payment Link,Web order - pro tier bench grinder

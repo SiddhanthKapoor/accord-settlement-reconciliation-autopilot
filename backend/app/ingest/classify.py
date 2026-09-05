@@ -196,7 +196,6 @@ VALUE_SIGNALS: tuple[tuple[str, SourceType | None, str | None, float, str], ...]
 # semantics with provider=None.
 PROVIDER_COLUMN_SIGNALS: tuple[tuple[str, str, float, str], ...] = (
     (r"^razorpay[_\s-]*(payment|order|settlement)[_\s-]*id$", "Razorpay", 1.6, "Razorpay-prefixed column names"),
-    (r"^cf[_\s-]*(payment|order|settlement)[_\s-]*id$", "Cashfree", 1.6, "Cashfree cf_* column names"),
     (r"^mihpayid$", "PayU", 1.8, "PayU's mihpayid column"),
     (r"^(payu[_\s-]*\w+|payumoneyid)$", "PayU", 1.4, "PayU column names"),
     (r"^(banktxnid|paytm[_\s-]*\w+)$", "Paytm", 1.4, "Paytm column names"),
@@ -239,7 +238,7 @@ BANK_NAME_TOKENS: dict[str, str] = {
 }
 
 PROVIDER_NAME_TOKENS: dict[str, str] = {
-    "razorpay": "Razorpay", "rzp": "Razorpay", "cashfree": "Cashfree", "payu": "PayU",
+    "razorpay": "Razorpay", "rzp": "Razorpay", "payu": "PayU",
     "paytm": "Paytm", "phonepe": "PhonePe", "ccavenue": "CCAvenue", "billdesk": "BillDesk",
     "shopify": "Shopify", "woocommerce": "WooCommerce", "woo": "WooCommerce", "amazon": "Amazon",
     "flipkart": "Flipkart", "tally": "Tally", "zoho": "Zoho Books", "quickbooks": "QuickBooks",

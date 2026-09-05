@@ -53,7 +53,14 @@ CREATE TABLE IF NOT EXISTS batches (
     -- The user's confirmed money-flow plan for an uploaded run: which
     -- file plays which role, and which pairwise relationships they
     -- accepted. Null for evaluation batches, which have no plan.
-    plan_json TEXT
+    plan_json TEXT,
+    -- Where execution actually got to, written by the executor at each
+    -- real phase boundary. Persisted rather than held in memory so a
+    -- page refreshed mid-run — or opened against a restarted process —
+    -- reads the same truth instead of an animation. Null means the run
+    -- has never been executed, which is reported as "not started" rather
+    -- than as zero progress.
+    progress_json TEXT
 );
 
 -- A record_id identifies a merchant order, not a decision about one. The
@@ -145,6 +152,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_txn ON audit_log(transaction_id);
 # recreating to pick up a new column would delete a user's uploads.
 _ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("batches", "plan_json", "TEXT"),
+    ("batches", "progress_json", "TEXT"),
     ("records", "provenance_json", "TEXT"),
     ("run_sources", "content_hash", "TEXT"),
 )

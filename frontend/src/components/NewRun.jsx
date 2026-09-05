@@ -1,13 +1,13 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import {
-  createRun, executeRun, getRunPlan, putRunPlan, removeSource, updateMapping, uploadSources,
+  createRun, createSampleRun, executeRun, getRunPlan, putRunPlan, removeSource, updateMapping,
+  uploadSources,
 } from "../api.js";
 import { DURATION, EASE, expand, riseIn } from "../motion.js";
 import FileInventory, { SOURCE_TYPES, TYPE_LABEL, blockersFor } from "./FileInventory.jsx";
 import MoneyFlow, { STAGE_LABEL, STAGE_ORDER, TYPE_STAGES, count } from "./MoneyFlow.jsx";
 import "../workspace.css";
-
 
 /**
  * Normalise an upload response.
@@ -19,8 +19,9 @@ import "../workspace.css";
  * It is never filled in with a plausible default.
  */
 function normalise(raw) {
-  const detected = raw.detected_source_type ?? null;
-  const confidence = raw.detection_confidence ?? null;
+  const detected = raw.detected_source_type ?? raw.detection?.classification?.detected_source_type ?? null;
+  const confidence =
+    raw.detection_confidence ?? raw.detection?.classification?.detection_confidence ?? null;
   const sourceType = raw.source_type || detected || "";
   const role =
     raw.role ||
@@ -35,17 +36,18 @@ function normalise(raw) {
     source_type: sourceType,
     detected_source_type: detected,
     detection_confidence: confidence,
-    provider: raw.provider ?? null,
+    provider: raw.provider ?? raw.detection?.classification?.provider ?? null,
     row_count: raw.row_count ?? raw.detection?.row_count ?? 0,
     currency: raw.currency ?? null,
-    date_range: raw.date_range ?? null,
-    amount_range: raw.amount_range ?? null,
+    date_range: raw.date_range ?? raw.detection?.classification?.date_range ?? null,
+    amount_range: raw.amount_range ?? raw.detection?.classification?.amount_range ?? null,
     suggested_role: raw.suggested_role ?? null,
     duplicate_of: raw.duplicate_of ?? null,
     duplicate_of_filename: raw.duplicate_of_filename ?? null,
     duplicate_ack: false,
     needs_confirmation: !!needsConfirmation,
-    confirmed: false,
+    confirmed: !!raw.role_confirmed,
+    confirmed_by_you: false,
     role,
     mapping: raw.mapping || {},
     detection: raw.detection || { columns: [], guesses: [], unmapped_required: [] },
@@ -55,6 +57,8 @@ function normalise(raw) {
 export default function NewRun({ onCreated, onRunStarted }) {
   const [sources, setSources] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [sampling, setSampling] = useState(false);
+  const [sampleError, setSampleError] = useState(null);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -94,11 +98,13 @@ export default function NewRun({ onCreated, onRunStarted }) {
       for (const stage of p.stages || []) {
         for (const view of stage.sources || []) byId.set(view.source_id, view);
       }
+      const dupes = new Map((p.duplicates || []).map((d) => [d.source_id, d]));
       if (byId.size > 0) {
         setSources((prev) =>
           prev.map((s) => {
             const v = byId.get(s.source_id);
             if (!v) return s;
+            const dupe = dupes.get(s.source_id);
             return {
               ...s,
               source_type: v.source_type ?? s.source_type,
@@ -111,9 +117,13 @@ export default function NewRun({ onCreated, onRunStarted }) {
               detection_confidence: v.confidence ?? s.detection_confidence,
               needs_confirmation: v.needs_confirmation ?? s.needs_confirmation,
               confirmed: v.role_confirmed ?? s.confirmed,
-              duplicate_of: v.duplicate_of ?? null,
-              duplicate_of_filename: v.duplicate_of_filename ?? s.duplicate_of_filename,
-              detection: { ...s.detection, unmapped_required: v.unmapped_required ?? s.detection.unmapped_required },
+              duplicate_of: dupe ? dupe.duplicate_of : v.duplicate_of ?? null,
+              duplicate_of_filename:
+                dupe?.duplicate_of_filename ?? v.duplicate_of_filename ?? s.duplicate_of_filename,
+              detection: {
+                ...s.detection,
+                unmapped_required: v.unmapped_required ?? s.detection.unmapped_required,
+              },
             };
           })
         );
@@ -141,7 +151,7 @@ export default function NewRun({ onCreated, onRunStarted }) {
         const needing = normalised.filter((s) => s.needs_confirmation).length;
         setNotice(
           `${normalised.length} file${normalised.length === 1 ? "" : "s"} added, ` +
-            `${count(normalised.reduce((a, s) => a + (s.row_count || 0), 0))} records read` +
+            `${count(normalised.reduce((a, s) => a + (s.row_count || 0), 0))} rows read` +
             (needing > 0 ? `. ${needing} need${needing === 1 ? "s" : ""} confirmation.` : ".")
         );
         if (errors.length > 0) {
@@ -156,6 +166,49 @@ export default function NewRun({ onCreated, onRunStarted }) {
     },
     [ensureRun, refreshPlan]
   );
+
+  /**
+   * Load the prepared workspace.
+   *
+   * One request. The backend reads the demo workspace off its own disk,
+   * classifies it there, and hands back the run with its sources — so the
+   * files never travel through the browser and nothing about them is
+   * decided here. If the route is not on this build, that is reported as
+   * what it is; no local substitute is assembled.
+   */
+  async function loadSample() {
+    if (sampling || busy) return;
+    setSampling(true);
+    setSampleError(null);
+    setError(null);
+    try {
+      let body;
+      try {
+        body = await createSampleRun();
+      } catch (e) {
+        if (e.status === 404 || e.status === 405 || e.status === 501) {
+          setSampleError(
+            "The prepared workspace is not available on this backend build. Upload files to start a run."
+          );
+          return;
+        }
+        throw e;
+      }
+
+      runRef.current = { run_id: body.run_id || body.batch_id, ...body };
+      const list = Array.isArray(body.sources) ? body.sources : [];
+      setSources(list.map(normalise));
+      setNotice(
+        `Prepared workspace loaded: ${count(body.source_count ?? list.length)} sources, ` +
+          `${count(body.record_count ?? 0)} rows.`
+      );
+      await refreshPlan();
+    } catch (e) {
+      setSampleError(e.message);
+    } finally {
+      setSampling(false);
+    }
+  }
 
   function onDrop(event) {
     event.preventDefault();
@@ -196,6 +249,10 @@ export default function NewRun({ onCreated, onRunStarted }) {
                 source_type: sourceType,
                 role,
                 confirmed: confirm ? true : s.confirmed,
+                // Distinct from `confirmed`: the server sets that flag on
+                // sources it classified itself, and the inventory must not
+                // report those back as the operator's own answer.
+                confirmed_by_you: confirm ? true : s.confirmed_by_you,
                 duplicate_ack: confirm ? true : s.duplicate_ack,
               }
             : s
@@ -230,6 +287,7 @@ export default function NewRun({ onCreated, onRunStarted }) {
             : s
         )
       );
+      await refreshPlan();
     } catch (e) {
       setError(e.message);
     }
@@ -249,7 +307,7 @@ export default function NewRun({ onCreated, onRunStarted }) {
 
   async function confirmPlan() {
     try {
-      await putRunPlan(runRef.current.run_id, { ...(plan || {}), confirmed: true });
+      await putRunPlan(runRef.current.run_id, { confirmed: true });
       setPlanConfirmed(true);
       setNotice("Money-flow map confirmed.");
     } catch (e) {
@@ -267,7 +325,6 @@ export default function NewRun({ onCreated, onRunStarted }) {
       (onCreated || onRunStarted)?.(run.run_id, result);
     } catch (e) {
       setError(e.message);
-    } finally {
       setBusy(false);
     }
   }
@@ -296,22 +353,27 @@ export default function NewRun({ onCreated, onRunStarted }) {
   }
 
   const canRun = blockers.length === 0 && !busy && (planState !== "ok" || plan?.can_execute !== false);
-  const totalRecords = plan?.total_records ?? sources.reduce((a, s) => a + (s.row_count || 0), 0);
+  const totalRows = plan?.total_records ?? sources.reduce((a, s) => a + (s.row_count || 0), 0);
   const categories = plan?.source_type_counts
     ? Object.keys(plan.source_type_counts).length
     : new Set(sources.map((s) => s.source_type).filter(Boolean)).size;
+  const ledgerFiles = plan?.role_counts?.LEDGER ?? sources.filter((s) => s.role === "LEDGER").length;
+  const settlementFiles =
+    plan?.role_counts?.SETTLEMENT ?? sources.filter((s) => s.role === "SETTLEMENT").length;
 
   const stages = buildStages(plan, sources);
+  const hasFiles = sources.length > 0;
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">New reconciliation workspace</h1>
-        <p className="page-subtitle">
-          Upload the records you already have. Accord maps the sources and traces how money moves
-          between them.
+      <header className="wk-hd">
+        <h1 className="wk-hd-title">Add your financial sources</h1>
+        <p className="wk-hd-sub">
+          Upload bank statements, gateway settlements, UPI reports, ledgers, orders, invoices and
+          other financial exports. Accord will inspect each source and reconcile the workspace as a
+          whole.
         </p>
-      </div>
+      </header>
 
       <div className="sr-only" role="status" aria-live="polite">{notice}</div>
 
@@ -321,125 +383,170 @@ export default function NewRun({ onCreated, onRunStarted }) {
         </motion.p>
       )}
 
-      <motion.div
-        {...riseIn}
-        className={`wk-dropzone${dragging ? " wk-dropzone-active" : ""}${
-          sources.length > 0 ? " wk-dropzone-compact" : ""
-        }`}
-        onDragEnter={(e) => {
-          e.preventDefault();
-          dragDepth.current += 1;
-          setDragging(true);
-        }}
-        onDragOver={(e) => e.preventDefault()}
-        onDragLeave={() => {
-          dragDepth.current = Math.max(0, dragDepth.current - 1);
-          if (dragDepth.current === 0) setDragging(false);
-        }}
-        onDrop={onDrop}
-      >
-        <svg className="wk-dropzone-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path d="M16 22V7m0 0l-6 6m6-6l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M4 21v3a3 3 0 003 3h18a3 3 0 003-3v-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <div className="wk-dropzone-title">Drop financial files here</div>
-        <div className="wk-dropzone-sub">CSV and XLSX · Upload multiple files</div>
-        <div className="wk-dropzone-cta">
-          <input
-            ref={inputRef}
-            id="wk-file-input"
-            className="wk-file-input"
-            type="file"
-            multiple
-            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={(e) => {
-              addFiles(e.target.files);
-              e.target.value = "";
-            }}
-          />
-          <label htmlFor="wk-file-input" className="wk-file-label">
-            <span aria-hidden="true">+</span> Choose files
-          </label>
-        </div>
-        <p className="wk-dropzone-note">
-          You do not have to say what each file is. Accord reads every file, classifies it, and asks
-          you only where it is not sure.
+      <div className={hasFiles ? undefined : "wk-entry"}>
+        <motion.div
+          {...riseIn}
+          className={`wk-dropzone${dragging ? " wk-dropzone-active" : ""}${
+            hasFiles ? " wk-dropzone-compact" : ""
+          }`}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            dragDepth.current += 1;
+            setDragging(true);
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          onDragLeave={() => {
+            dragDepth.current = Math.max(0, dragDepth.current - 1);
+            if (dragDepth.current === 0) setDragging(false);
+          }}
+          onDrop={onDrop}
+        >
+          <svg className="wk-dropzone-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 22V7m0 0l-6 6m6-6l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 21v3a3 3 0 003 3h18a3 3 0 003-3v-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <div>
+            <div className="wk-dropzone-title">
+              {hasFiles ? "Add more sources" : "Drop your files here"}
+            </div>
+            <div className="wk-dropzone-sub">
+              CSV and XLSX · one file or fifty · you do not have to say what any of them are
+            </div>
+          </div>
+          <div className="wk-dropzone-cta">
+            <input
+              ref={inputRef}
+              id="wk-file-input"
+              className="wk-file-input"
+              type="file"
+              multiple
+              accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={(e) => {
+                addFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <label htmlFor="wk-file-input" className="wk-file-label">
+              <span aria-hidden="true">+</span> Choose files
+            </label>
+          </div>
+          <p className="wk-dropzone-note">
+            Accord reads every file, classifies it, and asks you only where the evidence is thin.
+          </p>
+        </motion.div>
+
+        {!hasFiles && (
+          <motion.button
+            type="button"
+            className="wk-sample"
+            onClick={loadSample}
+            disabled={sampling}
+            {...riseIn}
+          >
+            <span className="wk-sample-eyebrow">No files to hand?</span>
+            <span className="wk-sample-title">Load sample workspace</span>
+            {/* Deliberately no file or record counts: the prepared
+                workspace is generated and its size changes. A number here
+                would be a claim this button cannot check. */}
+            <span className="wk-sample-sub">
+              Explore a realistic reconciliation scenario — orders, invoices, bank statements and
+              gateway payout exports from several providers, reconciled together.
+            </span>
+            <span className="wk-sample-go">
+              {sampling ? "Loading…" : "Load it"} <span aria-hidden="true">→</span>
+            </span>
+            {sampleError && <span className="wk-sample-unavailable">{sampleError}</span>}
+          </motion.button>
+        )}
+      </div>
+
+      {!hasFiles && sampleError && (
+        <p className="sr-only" role="alert">
+          {sampleError}
         </p>
-      </motion.div>
+      )}
 
       <AnimatePresence initial={false}>
-        {sources.length > 0 && (
+        {hasFiles && (
           <motion.div {...expand} style={{ overflow: "hidden" }}>
-            <section className="wk-section" aria-labelledby="wk-inventory-heading">
-              <div className="card">
-                <div className="wk-section-head">
-                  <div>
-                    <h2 className="wk-h2" id="wk-inventory-heading">Files in this workspace</h2>
-                    <p className="wk-sub">
-                      What Accord read from each file, and how confident it is about what the file is.
-                    </p>
+            <section className="wk-block" aria-labelledby="wk-inventory-heading">
+              <div className="wk-block-head">
+                <div className="wk-block-titles">
+                  <h2 className="wk-h2" id="wk-inventory-heading">
+                    Sources in this workspace
+                  </h2>
+                  <p className="wk-sub">
+                    What Accord read from each file, and how confident it is about what the file is.
+                  </p>
+                </div>
+                <div className="wk-summary">
+                  <div className="wk-summary-item">
+                    <div className="wk-summary-value">{count(sources.length)}</div>
+                    <div className="wk-summary-label">Files</div>
                   </div>
-                  <div className="wk-summary">
-                    <div className="wk-summary-item">
-                      <div className="wk-summary-value">{count(sources.length)}</div>
-                      <div className="wk-summary-label">Files</div>
-                    </div>
-                    <div className="wk-summary-item">
-                      <div className="wk-summary-value">{count(categories)}</div>
-                      <div className="wk-summary-label">Source categories</div>
-                    </div>
-                    <div className="wk-summary-item">
-                      <div className="wk-summary-value">{count(totalRecords)}</div>
-                      <div className="wk-summary-label">Records</div>
-                    </div>
+                  <div className="wk-summary-item">
+                    <div className="wk-summary-value">{count(categories)}</div>
+                    <div className="wk-summary-label">Kinds</div>
+                  </div>
+                  <div className="wk-summary-item">
+                    <div className="wk-summary-value">{count(totalRows)}</div>
+                    <div className="wk-summary-label">Rows read</div>
                   </div>
                 </div>
+              </div>
 
+              <div className="wk-surface">
                 <FileInventory
-                  sources={sources}
-                  onConfirm={confirmType}
-                  onRemove={drop}
-                  onRemap={remap}
-                  busy={busy}
+                sources={sources}
+                onConfirm={confirmType}
+                onRemove={drop}
+                onRemap={remap}
+                busy={busy}
                 />
               </div>
             </section>
 
-            <section className="wk-section" aria-labelledby="wk-plan-heading">
-              <div className="card">
-                <div className="wk-section-head">
-                  <div>
-                    <h2 className="wk-h2" id="wk-plan-heading">Proposed money-flow map</h2>
-                    <p className="wk-sub">
-                      {planState === "ok"
-                        ? "How Accord intends to follow money across the files you uploaded. Confirm it, or upload a file for a stage that is not covered."
-                        : "Derived from the file types in this workspace. This backend build does not return a stored money-flow plan, so nothing here has been confirmed server-side."}
-                    </p>
-                  </div>
-                  {planState === "ok" && (
+            <section className="wk-block" aria-labelledby="wk-plan-heading">
+              <div className="wk-block-head">
+                <div className="wk-block-titles">
+                  <h2 className="wk-h2" id="wk-plan-heading">
+                    Proposed money-flow map
+                  </h2>
+                  <p className="wk-sub">
+                    {planState === "ok"
+                      ? `Accord will reconcile ${count(ledgerFiles)} ledger-side file${
+                          ledgerFiles === 1 ? "" : "s"
+                        } against ${count(settlementFiles)} settlement-side file${
+                          settlementFiles === 1 ? "" : "s"
+                        } as two pooled populations. Confirm the map, or add a file for a stage nothing covers.`
+                      : "Derived from the file types in this workspace. This backend build does not return a stored money-flow plan, so nothing here has been confirmed server-side."}
+                  </p>
+                </div>
+                {planState === "ok" && (
+                  <div className="wk-block-actions">
                     <button type="button" className="btn-small" onClick={confirmPlan} disabled={planConfirmed}>
                       {planConfirmed ? "Map confirmed" : "Confirm map"}
                     </button>
-                  )}
-                </div>
-
-                <MoneyFlow stages={stages} ariaLabel="Proposed money flow across stages" />
-
-                {plan?.engine_note && (
-                  <p className="wk-note" style={{ marginTop: 14 }}>{plan.engine_note}</p>
-                )}
-
-                {Array.isArray(plan?.relationships) && plan.relationships.length > 0 && (
-                  <Relationships
-                    relationships={plan.relationships}
-                    truncated={plan.relationships_truncated}
-                  />
+                  </div>
                 )}
               </div>
+
+              <MoneyFlow stages={stages} ariaLabel="Proposed money flow across stages" />
+
+              {plan?.engine_note && (
+                <p className="wk-note" style={{ marginTop: 14 }}>{plan.engine_note}</p>
+              )}
+
+              {Array.isArray(plan?.relationships) && plan.relationships.length > 0 && (
+                <Relationships
+                  relationships={plan.relationships}
+                  truncated={plan.relationships_truncated}
+                />
+              )}
             </section>
 
             <div className="wk-runbar">
-              <div>
+              <div style={{ minWidth: 0 }}>
                 {blockers.length > 0 ? (
                   <div className="wk-blockers" id="wk-run-blockers">
                     {blockers.slice(0, 4).map((b, i) => (
@@ -457,8 +564,9 @@ export default function NewRun({ onCreated, onRunStarted }) {
                   </div>
                 ) : (
                   <p className="wk-run-reason">
-                    {count(sources.length)} files · {count(categories)} source categories ·{" "}
-                    {count(totalRecords)} records ready to reconcile.
+                    <strong>{count(sources.length)}</strong> files ·{" "}
+                    <strong>{count(categories)}</strong> kinds ·{" "}
+                    <strong>{count(totalRows)}</strong> rows ready to reconcile.
                   </p>
                 )}
               </div>
@@ -503,20 +611,22 @@ function Relationships({ relationships, truncated }) {
   const adjacent = relationships.filter((r) => r.strength === "ADJACENCY_ONLY");
 
   return (
-    <div style={{ marginTop: 16 }}>
-      <h3 className="wk-finding-title">
-        Relationships Accord proposes
-        <span className="wk-finding-count">
+    <div className="wk-block wk-block-sub" style={{ marginTop: 26 }}>
+      <div className="wk-block-head">
+        <div className="wk-block-titles">
+          <h3 className="wk-h3">Relationships Accord proposes</h3>
+        </div>
+        <span className="wk-count-line">
           {count(observed.length)} with shared identifiers
         </span>
-      </h3>
+      </div>
       {observed.length === 0 ? (
-        <p className="wk-sub" style={{ marginTop: 8 }}>
+        <p className="wk-sub">
           No pair of files shared an identifier value in the rows sampled. That is a sample, not
           proof they are unrelated.
         </p>
       ) : (
-        <ul className="wk-rel" style={{ marginTop: 9 }}>
+        <ul className="wk-rel">
           {observed.map((r) => (
             <RelationshipRow key={r.relationship_id} r={r} />
           ))}
@@ -560,7 +670,7 @@ function RelationshipRow({ r }) {
         </span>
       )}
       {r.basis && (
-        <span className="wk-sub" style={{ flexBasis: "100%" }}>
+        <span className="wk-sub" style={{ width: "100%", marginTop: 2 }}>
           {r.basis}
         </span>
       )}
@@ -568,16 +678,23 @@ function RelationshipRow({ r }) {
   );
 }
 
-/** The button says what is stopping it, so the reason is never buried. */
+/**
+ * The button says what is stopping it.
+ *
+ * A disabled control with no stated reason is the most common way a
+ * product loses an operator's trust — they conclude it is broken. The
+ * refusal is the product working, so it goes on the button itself.
+ */
 function blockedLabel(blockers) {
   if (blockers.length === 1) {
     const only = blockers[0];
-    if (only.includes("not mapped")) return "Blocked · map required columns";
+    if (only.includes("not mapped") || only.includes("unmapped")) return "Blocked · map required columns";
     if (only.includes("confirm")) return "Blocked · confirm the source type";
     if (only.includes("duplicate")) return "Blocked · resolve the duplicate";
     if (only.includes("ledger-side")) return "Blocked · add a ledger source";
     if (only.includes("settlement-side")) return "Blocked · add a settlement source";
     if (only.includes("at least one file")) return "Upload a file to begin";
+    return "Blocked · 1 thing to resolve";
   }
   return `Blocked · ${blockers.length} things to resolve`;
 }
@@ -604,7 +721,10 @@ function buildStages(plan, sources) {
         label: stage.label || STAGE_LABEL[stage.stage] || stage.stage,
         evaluated: !!stage.present,
         headline: count(stage.record_count ?? 0),
-        note: files.length > 0 ? files.join(", ") : "",
+        note:
+          files.length > 0
+            ? `rows from ${files.length === 1 ? files[0] : `${files.length} files`}`
+            : "",
         selectable: false,
       };
     });
@@ -618,7 +738,10 @@ function buildStages(plan, sources) {
       label: STAGE_LABEL[key],
       evaluated: covering.length > 0,
       headline: count(rows),
-      note: covering.length > 0 ? covering.map((s) => s.filename).join(", ") : "",
+      note:
+        covering.length > 0
+          ? `rows from ${covering.length === 1 ? covering[0].filename : `${covering.length} files`}`
+          : "",
     };
   });
 }
@@ -627,4 +750,3 @@ function capitalise(text) {
   const t = String(text || "");
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
-

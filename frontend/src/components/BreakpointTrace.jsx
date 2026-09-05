@@ -45,6 +45,20 @@ export function StatusMark({ status }) {
 }
 
 /**
+ * Is this evidence line a file-and-row citation?
+ *
+ * "matched bank_hdfc_current_mar2026.csv row 6" is the strongest line an
+ * operator can be handed — it is checkable against the file on their own
+ * disk — so it is drawn as the fact it is rather than as one more grey
+ * chip. Detected by shape (a spreadsheet extension plus a row number), so
+ * a widened engine that phrases it differently still lights up.
+ */
+export function isProvenance(line) {
+  const text = String(line || "");
+  return /\.(csv|xlsx|xls|tsv|json)\b/i.test(text) && /\brow\s+\d+/i.test(text);
+}
+
+/**
  * The money path for one record, top to bottom.
  *
  * `trace` comes straight from the investigator. Nothing is inferred here:
@@ -87,7 +101,9 @@ export default function BreakpointTrace({ trace, breakpointStage, breakpointKind
               {Array.isArray(step.evidence) && step.evidence.length > 0 && (
                 <ul className="wk-trace-evidence">
                   {step.evidence.map((e, j) => (
-                    <li key={j}>{e}</li>
+                    <li key={j} className={isProvenance(e) ? "wk-prov" : undefined}>
+                      {e}
+                    </li>
                   ))}
                 </ul>
               )}

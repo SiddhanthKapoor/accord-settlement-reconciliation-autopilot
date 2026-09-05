@@ -4,12 +4,54 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Accord — AI that explains why the books don't close.</title>
+    <title>Accord — when the numbers don't agree, find where the trail breaks.</title>
     <meta
       name="description"
-      content="Accord reconciles payments, settlements, bank statements and your ledger, then investigates each record that did not close. Deterministic math decides first; a model is consulted only where the ambiguity is genuinely semantic, and it can never book money."
+      content="Accord ingests payments, settlements, bank statements and ledgers together, reconciles what can be proven deterministically, investigates ambiguity with AI, and sends only unresolved evidence to human review."
     />
     <meta name="theme-color" content="#0B121C" />
+
+    <!-- Fonts as links, not as an @import inside the stylesheet. An @import
+         is a request the browser cannot even discover until it has parsed
+         our CSS, so it serialises font loading behind the whole stylesheet;
+         a preconnect per origin plus one scoped request each run in
+         parallel with it instead. Both requests carry `display=swap`, so
+         text is readable immediately in the fallback rather than invisible
+         while a face downloads.
+
+         Gambetta (Indian Type Foundry, via Fontshare) is the editorial
+         display face and carries every landing headline. It is a
+         Renaissance-rooted text serif with diagonal stress and sharp,
+         asymmetric serifs — it reads as a document of record, and its
+         stems hold their weight on the dark hero where a high-contrast
+         display serif goes weedy. Switzer, from the same foundry, is the
+         body and UI sans: a Swiss neo-grotesk with true tabular figures,
+         which is what a page full of amounts needs.
+
+         Space Grotesk is retained because the workspace's own type is
+         built on it. JetBrains Mono carries every figure, identifier and
+         file name, so a column of amounts lines up.
+
+         Gambetta is asked for as `@400,500` even though only 500 is used:
+         Fontshare's API silently drops every family listed *after* a
+         single-weight spec, so `gambetta@500&f[]=switzer@...` returns a
+         stylesheet with no Switzer in it at all and the body face falls
+         back without any error anywhere. Two weights costs nothing —
+         the browser only downloads the faces the page actually paints.
+
+         Five woff2 faces, ~20KB each, all subset to latin by the foundry. -->
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://api.fontshare.com/v2/css?f%5B%5D=gambetta@400,500&amp;f%5B%5D=switzer@400,500,600,700&amp;display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+    />
 
     <!-- SVG first and marked `any`, so a browser that can scale it does,
          at whatever density the tab actually needs. The PNGs are rendered
@@ -25,24 +67,24 @@
          yet, and inventing one would put a dead URL in the card. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Accord" />
-    <meta property="og:title" content="Accord — AI that explains why the books don't close." />
+    <meta property="og:title" content="Accord — when the numbers don't agree, find where the trail breaks." />
     <meta
       property="og:description"
-      content="Multi-source reconciliation that investigates what didn't close. Deterministic math first, AI only for genuine semantic ambiguity, every decision in a hash-chained audit ledger."
+      content="Multi-source financial reconciliation. Deterministic evidence first, AI only where ambiguity remains, and every decision in a hash-chained audit ledger."
     />
     <meta property="og:image" content="/brand/accord-hero.jpg" />
     <meta property="og:image:width" content="1600" />
     <meta property="og:image:height" content="900" />
-    <meta property="og:image:alt" content="Accord — multi-source reconciliation" />
+    <meta property="og:image:alt" content="Many financial sources converging through a reconciliation gate into one resolved view" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Accord — AI that explains why the books don't close." />
+    <meta name="twitter:title" content="Accord — when the numbers don't agree, find where the trail breaks." />
     <meta
       name="twitter:description"
-      content="Multi-source reconciliation that investigates what didn't close. Deterministic math first, AI only for genuine semantic ambiguity, every decision in a hash-chained audit ledger."
+      content="Multi-source financial reconciliation. Deterministic evidence first, AI only where ambiguity remains, and every decision in a hash-chained audit ledger."
     />
     <meta name="twitter:image" content="/brand/accord-hero.jpg" />
-    <meta name="twitter:image:alt" content="Accord — multi-source reconciliation" />
+    <meta name="twitter:image:alt" content="Many financial sources converging through a reconciliation gate into one resolved view" />
   </head>
   <body>
     <div id="root"></div>

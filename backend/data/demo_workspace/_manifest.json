@@ -1,10 +1,11 @@
 {
   "generator": "generate_demo_workspace.py",
   "seed": 4620,
+  "bulk_seed": 91744,
   "as_of": "2026-04-15T00:00:00+00:00",
   "pending_cutoff": "2026-04-13T00:00:00+00:00",
-  "ledger_record_count": 54,
-  "settlement_record_count": 72,
+  "ledger_record_count": 3504,
+  "settlement_record_count": 3553,
   "aggregation": {
     "AGG_A": {
       "members": [
@@ -23,79 +24,304 @@
       ],
       "bank_ref": "UTR774008",
       "total_minor": 5999978
+    },
+    "AGG_C": {
+      "members": [
+        "POS-300771",
+        "POS-300779"
+      ],
+      "bank_ref": "UTR9930518",
+      "total_minor": 2125500
     }
   },
+  "possibly_unmatched": [
+    "ORD-7021",
+    "ORD-7031",
+    "ORD-7034",
+    "ORD-7040",
+    "ORD-7104",
+    "BR-4471",
+    "BR-4472",
+    "BR-4473",
+    "ZB-6104",
+    "ZB-6107",
+    "SH-88211",
+    "WB-104217",
+    "WB-104931",
+    "WB-105633",
+    "WB-106402",
+    "WB-106988",
+    "WB-107455",
+    "GLX-204880",
+    "GLX-206115",
+    "GLX-207209",
+    "POS-300771",
+    "POS-300779",
+    "POS-302640",
+    "POS-303551",
+    "WB-105204",
+    "POS-300412"
+  ],
   "scenarios": {
     "BR-4471": {
       "tag": "S4a aggregated settlement",
-      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT"
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AGGREGATED_SETTLEMENT"
+      }
     },
     "BR-4472": {
       "tag": "S4a aggregated settlement",
-      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT"
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AGGREGATED_SETTLEMENT"
+      }
     },
     "BR-4473": {
       "tag": "S4a aggregated settlement",
-      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT"
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AGGREGATED_SETTLEMENT"
+      }
     },
     "BR-4481": {
       "tag": "S6 fee/tax arithmetic",
-      "expected": "EXCEPTION / FEE_TAX_INCONSISTENT"
+      "expected": "EXCEPTION / FEE_TAX_INCONSISTENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "FEE_TAX_INCONSISTENT"
+      }
+    },
+    "GLX-204880": {
+      "tag": "S17 two equally plausible candidates",
+      "expected": "HUMAN_REVIEW \u2014 ambiguous for the model too",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
+    },
+    "GLX-206115": {
+      "tag": "S20 missing settlement",
+      "expected": "EXCEPTION / MISSING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "MISSING_SETTLEMENT"
+      }
+    },
+    "GLX-207209": {
+      "tag": "S16 one reference reported twice",
+      "expected": "HUMAN_REVIEW / AMBIGUOUS_MATCH",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
     },
     "ORD-7021": {
       "tag": "S2a semantic bank narration",
-      "expected": "RECONCILED via the model, or HUMAN_REVIEW below threshold"
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW below threshold",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "MISSING_SETTLEMENT"
+      }
     },
     "ORD-7031": {
       "tag": "S3 identical-amount trap",
-      "expected": "EXCEPTION \u2014 refused, never auto-matched"
+      "expected": "EXCEPTION \u2014 refused, never auto-matched",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "MISSING_SETTLEMENT"
+      }
     },
     "ORD-7032": {
       "tag": "S3 the trap's twin",
-      "expected": "RECONCILED on its own exact reference"
+      "expected": "RECONCILED on its own exact reference",
+      "expected_offline": {
+        "outcome": "RECONCILED",
+        "exception_type": null
+      }
     },
     "ORD-7034": {
       "tag": "S5b missing",
-      "expected": "EXCEPTION / MISSING_SETTLEMENT"
+      "expected": "EXCEPTION / MISSING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "MISSING_SETTLEMENT"
+      }
     },
     "ORD-7036": {
       "tag": "S7 refund offset",
-      "expected": "RECONCILED"
+      "expected": "RECONCILED",
+      "expected_offline": {
+        "outcome": "RECONCILED",
+        "exception_type": null
+      }
     },
     "ORD-7037": {
       "tag": "S7b chargeback not booked",
-      "expected": "EXCEPTION / REFUND_MISMATCH"
+      "expected": "EXCEPTION / REFUND_MISMATCH",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "REFUND_MISMATCH"
+      }
     },
     "ORD-7038": {
       "tag": "S9 currency mismatch",
-      "expected": "EXCEPTION / CURRENCY_MISMATCH"
+      "expected": "EXCEPTION / CURRENCY_MISMATCH",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "CURRENCY_MISMATCH"
+      }
     },
     "ORD-7040": {
       "tag": "S11 truncated reference",
-      "expected": "RECONCILED via the model, or HUMAN_REVIEW"
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "LOW_CONFIDENCE_MATCH"
+      }
     },
     "ORD-7104": {
       "tag": "S8 same payment in two sources",
-      "expected": "HUMAN_REVIEW / DUPLICATE_REFERENCE"
+      "expected": "HUMAN_REVIEW / AMBIGUOUS_MATCH",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
+    },
+    "POS-300412": {
+      "tag": "S18 amount mismatch nothing explains",
+      "expected": "EXCEPTION / AMOUNT_MISMATCH",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "AMOUNT_MISMATCH"
+      }
+    },
+    "POS-300771": {
+      "tag": "S19 second aggregation",
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AGGREGATED_SETTLEMENT"
+      }
+    },
+    "POS-300779": {
+      "tag": "S19 second aggregation",
+      "expected": "HUMAN_REVIEW / AGGREGATED_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AGGREGATED_SETTLEMENT"
+      }
+    },
+    "POS-302640": {
+      "tag": "S20 missing settlement",
+      "expected": "EXCEPTION / MISSING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "MISSING_SETTLEMENT"
+      }
+    },
+    "POS-303551": {
+      "tag": "S21 pending, not due yet",
+      "expected": "EXCEPTION / PENDING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "PENDING_SETTLEMENT"
+      }
     },
     "SH-88211": {
       "tag": "S10 ambiguous for the model too",
-      "expected": "HUMAN_REVIEW"
+      "expected": "HUMAN_REVIEW",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
+    },
+    "WB-104217": {
+      "tag": "S13 semantic, second bank account",
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
+    },
+    "WB-104931": {
+      "tag": "S14 merchant alias",
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
+    },
+    "WB-105204": {
+      "tag": "S15 gateway-reformatted reference",
+      "expected": "RECONCILED / CORROBORATED, no model call",
+      "expected_offline": {
+        "outcome": "RECONCILED",
+        "exception_type": null
+      }
+    },
+    "WB-105633": {
+      "tag": "S16 one reference reported twice",
+      "expected": "HUMAN_REVIEW / AMBIGUOUS_MATCH",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
+    },
+    "WB-106402": {
+      "tag": "S20 missing settlement",
+      "expected": "EXCEPTION / MISSING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "MISSING_SETTLEMENT"
+      }
+    },
+    "WB-106988": {
+      "tag": "S21 pending, not due yet",
+      "expected": "EXCEPTION / PENDING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "PENDING_SETTLEMENT"
+      }
+    },
+    "WB-107455": {
+      "tag": "S21 pending, not due yet",
+      "expected": "EXCEPTION / PENDING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "PENDING_SETTLEMENT"
+      }
     },
     "ZB-6104": {
       "tag": "S2b semantic marketplace payout",
-      "expected": "RECONCILED via the model, or HUMAN_REVIEW below threshold"
+      "expected": "RECONCILED via the model, or HUMAN_REVIEW below threshold",
+      "expected_offline": {
+        "outcome": "HUMAN_REVIEW",
+        "exception_type": "AMBIGUOUS_MATCH"
+      }
     },
     "ZB-6107": {
       "tag": "S5a pending",
-      "expected": "EXCEPTION / PENDING_SETTLEMENT"
+      "expected": "EXCEPTION / PENDING_SETTLEMENT",
+      "expected_offline": {
+        "outcome": "EXCEPTION",
+        "exception_type": "PENDING_SETTLEMENT"
+      }
     }
   },
   "files": [
     {
+      "filename": "bank_axis_current_marapr2026.csv",
+      "bytes": 1721,
+      "sha256": "d29c96fabb59e564694e26f98fc6c800d323c412c8865316c0a3c8752bccc71e"
+    },
+    {
       "filename": "bank_hdfc_current_apr2026.xlsx",
-      "bytes": 5503,
-      "sha256": "208fd61f201c75552e766fe41cfea9b97ed490ac649952f751d771f6f1cbb081"
+      "bytes": 5491,
+      "sha256": "8575bc143de4f977fde3278617a43fbe5fa34d36f68b6b995b1bb94926459180"
     },
     {
       "filename": "bank_hdfc_current_mar2026.csv",
@@ -104,18 +330,28 @@
     },
     {
       "filename": "bank_icici_escrow_mar2026 (1).xlsx",
-      "bytes": 5397,
-      "sha256": "069bd4f1c955cc8885f31c45e129dda6ef6c325b0df4735e41d8a53f8a5b8620"
+      "bytes": 5385,
+      "sha256": "0c3e6a424ed88d833f97e44df9307579eaae70f2f82572855d110baaab4bc040"
     },
     {
       "filename": "bank_icici_escrow_mar2026.xlsx",
-      "bytes": 5397,
-      "sha256": "069bd4f1c955cc8885f31c45e129dda6ef6c325b0df4735e41d8a53f8a5b8620"
+      "bytes": 5385,
+      "sha256": "0c3e6a424ed88d833f97e44df9307579eaae70f2f82572855d110baaab4bc040"
     },
     {
-      "filename": "cashfree_settlements_mar.csv",
-      "bytes": 3412,
-      "sha256": "25cedac69e6c84b826c7be6c5f4a0df221b601710f64a28af9d982c58dfbf5e0"
+      "filename": "collections_settlement_advice_mar2026.csv",
+      "bytes": 4375,
+      "sha256": "7401ea4111742fbba258ed3278759ee53d5c81816d8e6a25a0e459381fc215d0"
+    },
+    {
+      "filename": "erp_gl_export_fy2026.csv",
+      "bytes": 141946,
+      "sha256": "721d3bf92aba0e5e83b4dd05861b4b30f22a2dd64a0e0ac5456c0e35efd89b6f"
+    },
+    {
+      "filename": "gateway_fee_adjustments_mar2026.csv",
+      "bytes": 2834,
+      "sha256": "0af9eeb979440653ca1eb71081ac1a7cac692d9e35b952a06aa5c2c9fe33c3e4"
     },
     {
       "filename": "invoices_internal_export.csv",
@@ -129,13 +365,28 @@
     },
     {
       "filename": "orders_shopify_export.csv",
-      "bytes": 2456,
-      "sha256": "7c903de63dc3256aeaded8af3878f4f24ef6daf741a7064e12fd419bd309859a"
+      "bytes": 2500,
+      "sha256": "d3d696a40e139bc8f9d5c78211c41f6d21a3989979e4b406c487bbf728542688"
+    },
+    {
+      "filename": "paytm_pos_settlements.xlsx",
+      "bytes": 80181,
+      "sha256": "326d13d8c6f46d015fac29b71c23713de64e08ea10ed8fea746333ef5876fa60"
     },
     {
       "filename": "payu_settlements_mar.csv",
       "bytes": 733,
       "sha256": "118ea3f22d2acba3882f9591c08277b52d0cfb503cbc19859324d294972c02fe"
+    },
+    {
+      "filename": "pos_counter_sales_register.csv",
+      "bytes": 112424,
+      "sha256": "8a50266ee9cce2ae5f05d2f6f136253445c1fcc9e41adc0f9dc48624dd732496"
+    },
+    {
+      "filename": "razorpay_payments_export.csv",
+      "bytes": 217197,
+      "sha256": "be60b7b75175a14b47f4737868d2f03c649510248ff8fbf00ce0fb5bbaa2d507"
     },
     {
       "filename": "razorpay_settlements_mar_apr.csv",
@@ -151,6 +402,16 @@
       "filename": "tally_sales_register.csv",
       "bytes": 774,
       "sha256": "92e4332e31d2c84865a3400021bbd4f6dfcaedf472d4ba772e64657409a644be"
+    },
+    {
+      "filename": "upi_collections_settlement_report.csv",
+      "bytes": 241327,
+      "sha256": "7a9da4c21495fb1ecbbe85ab4211906202d73e3a8b9005b35c18f5b11933aa22"
+    },
+    {
+      "filename": "webstore_orders_master.csv",
+      "bytes": 230873,
+      "sha256": "8680c1e4b4ae06e495fb289bb0aa778c1f0fb5303dfde2afa542bdea33218cef"
     },
     {
       "filename": "zoho_books_invoices.csv",

@@ -38,7 +38,11 @@ export const getLatestEvaluation = (dataset = "holdout") => req(`${API}/evaluati
 
 export const getDataSources = () => req(`${API}/data-sources`);
 
-export const getAuditLog = (limit = 200) => req(`${API}/audit/log?limit=${limit}`);
+// `since` matters more than it looks: without it the API returns the OLDEST
+// events, so on a ledger with 20k events the audit view showed ancient
+// history and a human action written seconds earlier never appeared.
+export const getAuditLog = (limit = 200, since = 0) =>
+  req(`${API}/audit/log?limit=${limit}&since=${since}`);
 
 export const getReviewQueue = ({ batchId, state = "OPEN", limit = 50 } = {}) => {
   const params = new URLSearchParams({ state, limit });
@@ -205,3 +209,18 @@ export const investigateRecord = (recordId, batchId) =>
   );
 
 export const getAiHealth = () => req(`${API}/ai/health`);
+
+// ---- sample workspace, live run progress, provider status ------------
+
+/** One click: a run pre-loaded with every file in the demo workspace,
+ *  ingested through the same path an upload takes. */
+export const createSampleRun = () => req(`${API}/runs/sample`, { method: "POST" });
+
+/** Real pipeline state, derived from execution — never simulated. A count
+ *  of `null` means the backend does not know it yet, and the UI must render
+ *  nothing rather than a placeholder. */
+export const getRunProgress = (runId) => req(`${API}/runs/${encodeURIComponent(runId)}/progress`);
+
+/** Product-facing provider status: primary, fallback, last success. No keys,
+ *  no model ids in the primary surface. */
+export const getAiStatus = () => req(`${API}/ai/status`);

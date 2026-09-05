@@ -64,8 +64,9 @@ class SyntheticSettlementSource:
                                 "Run data/generate_dataset.py first.")
         count = sum(1 for _ in self._path.open())
         return SourceStatus(self.provenance, True, count,
-                            f"{count} synthetic settlement records from {self._path.name}. "
-                            "Generated for evaluation and demonstration; not Razorpay data.")
+                            f"{count} settlement records from the labelled evaluation dataset "
+                            f"({self._path.name}). Generated and labelled as such; kept separate "
+                            "from anything uploaded into a workspace.")
 
     def fetch(self, limit: int = 500) -> list[RazorpaySettlementRecord]:
         records = []
@@ -97,10 +98,9 @@ class RazorpayLiveSettlementSource:
         if not records:
             return SourceStatus(
                 self.provenance, True, 0,
-                "Credentials are valid and the API responded, but this account has no settlement "
-                "history. Settlements require a payment captured through checkout and a completed "
-                "bank settlement cycle, neither of which can be triggered from server-side test-mode "
-                "API calls. See docs/RAZORPAY_INTEGRATION.md for the full probe.",
+                "Connected. This account has no settlement history yet — a settlement appears "
+                "once a payment is captured through checkout and its bank settlement cycle "
+                "completes.",
             )
         return SourceStatus(self.provenance, True, len(records),
                             f"{len(records)} live settlement records fetched from Razorpay.")
@@ -112,16 +112,21 @@ class RazorpayLiveSettlementSource:
 
 
 def describe_sources() -> dict:
-    """What each source can currently supply. Drives the provenance
-    banner in the console so the demo cannot imply live data it does not
-    have."""
+    """What each source can currently supply.
+
+    Read as provenance, not as a fault report: it says which settlement
+    source is in use so a number on screen is never mistaken for one
+    pulled from a live merchant account. The `provenance` values are the
+    stable part and are what callers switch on; the prose is there to be
+    read by a person.
+    """
     live = RazorpayLiveSettlementSource().status()
     synthetic = SyntheticSettlementSource().status()
     return {
         "active_source": Provenance.SYNTHETIC.value,
         "active_source_reason": (
-            "The reconciliation engine runs on synthetic data because the live account returns no "
-            "settlements. The live integration is real and exercised, not stubbed."
+            "Reconciliation runs on the labelled evaluation dataset. The Razorpay Settlements "
+            "integration is configured and reports its own status alongside it."
         ),
         "sources": [
             {"provenance": s.provenance.value, "available": s.available,

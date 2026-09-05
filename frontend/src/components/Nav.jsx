@@ -1,7 +1,6 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link, useRoute } from "../router.jsx";
-import { lift } from "../motion-landing.js";
 
 /**
  * The app shell's persistent nav.
@@ -161,15 +160,13 @@ export default function Nav() {
 
       <div className="topnav-right">
         <AiChip />
-        <motion.span {...lift} style={{ display: "inline-flex" }}>
-          <Link
-            to="/app/runs/new"
-            className={"btn-primary btn-sm" + (active === "new" ? " is-current" : "")}
-            aria-current={active === "new" ? "page" : undefined}
-          >
-            New run
-          </Link>
-        </motion.span>
+        <Link
+          to="/app/runs/new"
+          className={"btn-primary btn-sm" + (active === "new" ? " is-current" : "")}
+          aria-current={active === "new" ? "page" : undefined}
+        >
+          New run
+        </Link>
       </div>
     </header>
   );

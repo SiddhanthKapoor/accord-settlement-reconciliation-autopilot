@@ -1,176 +1,478 @@
-import { motion } from "motion/react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Link } from "../router.jsx";
 import {
-  converge,
   heroStage,
-  lift,
   revealGroup,
   revealItem,
   riseUp,
-  streamLeft,
-  streamRight,
   useReveal,
-  useScrolled,
+  useScrolledPast,
 } from "../motion-landing.js";
 import Footer from "./Footer.jsx";
+import HeroFlow from "./HeroFlow.jsx";
 
 /**
  * The public face of Accord.
  *
- * Structured the way the serious end of this category structures itself —
- * state the job, show the loop, then spend most of the page on the control
- * story, because in finance software the control story *is* the product.
+ * The page has one job before a single word is read: many financial
+ * sources go in, one reconciled view comes out. The hero states that
+ * visually, and everything after it has been cut to a heading, an
+ * artefact, and a label for the artefact. Nothing on this page describes
+ * a thing that is already on screen: the table is the argument about
+ * fragmented sources, the stage list is the argument about where a model
+ * sits, the three figures are the argument about failure mode. Sentences
+ * that restated any of those are deleted, not shortened.
  *
- * Every number on this page is one measured in this repository and is
- * labelled with what it was measured on. There are no customer logos, no
- * testimonials and no money-saved figures, because we do not have any.
+ * The one paragraph left is the provenance note, and it stays because it
+ * is the only thing that makes the three figures checkable.
+ *
+ * Every figure on the page is measured and frozen in
+ * `backend/evaluations/accord/FROZEN.json`, and is labelled with the
+ * dataset and configuration it came from. There are no customers, no
+ * testimonials, no logo wall and no money-saved claims, because we do not
+ * have any of those things.
  */
 
 /* --------------------------------------------------------------- content */
 
-const STEPS = [
+/*
+ * One payment as six systems record it. The formats are the ones these
+ * systems really emit; the merchant is invented, and the caption says so.
+ * `alt` marks the cells that diverge from the order of record — the
+ * divergence is the entire point, and it is why this table survived the
+ * cut while the prose around it did not.
+ *
+ * The six rows still carry six identifier namespaces (order id, gateway
+ * payment id, UPI reference, terminal batch, bank UTR, journal entry),
+ * four date formats, four spellings of one counterparty, and gross
+ * against net. Substituting a row is only safe if it keeps all four of
+ * those divergences, which is what a POS terminal export does: its own
+ * id space, its own truncated name field, and the settled net rather
+ * than the ordered gross.
+ */
+const FRAGMENTS = [
+  { file: "Orders.csv", ref: "ORD-48213", date: "2026-01-14", party: "Kirana Junction", amount: "12,400.00" },
   {
-    n: "01",
-    title: "Bring in every file",
-    body:
-      "Settlement reports, bank statements, the order export, the ledger. CSV or XLSX, several at once, in whatever shape your provider hands them over.",
+    file: "Razorpay_Settlements.csv",
+    ref: "pay_MkT19aZ2Q0hLb",
+    date: "14/01/2026",
+    party: "KIRANA JUNCTION PVT LTD",
+    amount: "12,400.00",
+    alt: ["ref", "date", "party"],
   },
   {
-    n: "02",
-    title: "Accord works out what each file is",
-    body:
-      "It classifies the source, identifies the provider, reads the date and amount ranges, and proposes how the columns map. You confirm or correct the map before anything runs.",
+    file: "UPI_Transactions.csv",
+    ref: "401234567890",
+    date: "14-01-2026 18:42",
+    party: "kiranajunction@okhdfc",
+    amount: "12400",
+    alt: ["ref", "date", "party", "amount"],
   },
   {
-    n: "03",
-    title: "Reconcile deterministically",
-    body:
-      "Identifiers, amounts, currency, settlement timing, fees and tax. This tier is arithmetic and rules. It is the tier that decides the overwhelming majority of records, and it does not involve a model.",
+    file: "POS_Settlements.csv",
+    ref: "TID44718/B0092",
+    date: "15-01-2026",
+    party: "KIRANA JN",
+    amount: "11,983.42",
+    alt: ["ref", "date", "party", "amount"],
   },
   {
-    n: "04",
-    title: "Investigate what did not close",
-    body:
-      "For the residue, Accord traces the money order to payment to settlement to bank to books, names the stage where the trail breaks, and asks the model one narrow question about the ambiguity that remains.",
+    file: "Bank_Statement.csv",
+    ref: "NEFT/HDFC/4012345",
+    date: "15-Jan-2026",
+    party: "RZPY SOFTWARE PVT LTD",
+    amount: "11,983.42",
+    alt: ["ref", "date", "party", "amount"],
   },
   {
-    n: "05",
-    title: "A person decides the rest",
-    body:
-      "Whatever cannot be confirmed arrives in a review queue with the trace, the confirmed evidence, the competing hypotheses, and an explicit list of what is still unknown.",
-  },
-  {
-    n: "06",
-    title: "Everything lands in the ledger",
-    body:
-      "Inputs, rule versions, model involvement, and every human approval are appended to a hash-chained audit log that can be verified end to end.",
-  },
-];
-
-const SAFETY = [
-  {
-    title: "Deterministic math decides first",
-    body:
-      "Amounts, currencies, identifiers and dates are settled by arithmetic before a model is consulted at all. On the held-out evaluation the model was invoked on 20.4% of records; the rest never left the deterministic tier.",
-  },
-  {
-    title: "The model answers one narrow question",
-    body:
-      "It is never asked “is this reconciled?”. It is asked whether two specific references describe the same transaction, given a shortlist of candidates the deterministic tier has already qualified.",
-  },
-  {
-    title: "AI can never book money",
-    body:
-      "Policy holds the pen. A model answer cannot override an amount mismatch, a currency mismatch, contradictory identifiers, or the confidence threshold. It can only break a tie the rules have already declared admissible.",
-  },
-  {
-    title: "It degrades to a person, not to a guess",
-    body:
-      "When the provider is unreachable the semantic tier goes dark and the affected records fall through to human review. They do not fall through to a match.",
-  },
-  {
-    title: "The audit trail is hash-chained",
-    body:
-      "Each entry commits to the one before it, so the log can be verified rather than trusted. Tampering with a past decision invalidates every entry after it.",
-  },
-  {
-    title: "Nothing is claimed that was not measured",
-    body:
-      "The evaluation set, the seed, the frozen reports and the code commit they were produced on are all in the repository, including the run where the model provider failed completely.",
+    file: "Ledger_Q1.csv",
+    ref: "JE-2026-0114-77",
+    date: "2026-01-14",
+    party: "Kirana Junction",
+    amount: "12,400.00",
+    alt: ["ref"],
   },
 ];
 
-const EVIDENCE = [
-  {
-    figure: "0",
-    unit: "false auto-reconciliations",
-    body:
-      "In every configuration measured on the held-out split, no record was auto-reconciled whose ground truth was not reconciled — including the run in which the model failed on every single call.",
-  },
-  {
-    figure: "204 / 204",
-    unit: "model calls failed in the outage drill",
-    body:
-      "A total outage of the one external dependency. Exact-reference, fee-and-tax and currency-mismatch categories were unaffected; the semantic-dependent categories moved to human review rather than to a wrong match.",
-  },
-  {
-    figure: "20.4%",
-    unit: "of records reached the model",
-    body:
-      "The remaining 79.6% were decided by rules and arithmetic alone. The model is a narrow instrument applied to a narrow residue, not the engine.",
-  },
+/* Shown, not described — but only four, plus the overflow chip. Four
+   different *kinds* of file (a bank statement, a gateway settlement, a
+   UPI collections report, an accounting ledger) make the multi-source
+   point that nine of them made, in one line instead of three, and
+   without the Ingest row towering over the four stages beneath it. The
+   hero figure already carries the long list. */
+const INGEST_FILES = [
+  "ICICI_Jan.csv",
+  "Razorpay_Settlements.csv",
+  "UPI_Collections.csv",
+  "Ledger_Q1.csv",
 ];
 
-/* ------------------------------------------------------------ components */
+/* Five names and what each stage actually touches. The names carry the
+   sequence on their own, so the sentences that used to sit under them are
+   gone; the heading above states the one fact the names cannot, which is
+   that exactly one of the five involves a model. */
+const STAGES = [
+  { key: "ingest", name: "Ingest", tags: ["1–50 sources"] },
+  { key: "understand", name: "Understand", tags: ["Source role", "Column mapping"] },
+  { key: "prove", name: "Prove", tags: ["Exact references", "Settlement arithmetic"] },
+  { key: "investigate", name: "Investigate", tags: ["Merchant aliases", "Bank narration"] },
+  { key: "review", name: "Review", tags: ["Human review"] },
+];
 
-function Wordmark({ size = 26 }) {
+/*
+ * Every figure below is read from backend/evaluations/accord/FROZEN.json —
+ * a labelled, generated held-out split of 1,000 records, seed 90210, frozen
+ * at code commit b6145bb. Configuration B is the healthy-provider run and
+ * configuration C is the total-outage run; both use the same semantic
+ * backend, so the pair is a fair comparison.
+ */
+const MEASURED = [
+  { figure: "20.4%", unit: "of records reached a model" },
+  { figure: "0", unit: "false reconciliations, 204 / 204 calls failed" },
+  { figure: "9.1% → 21.6%", unit: "human review, healthy vs. dark" },
+];
+
+/* ------------------------------------------------------- pixelate reveal */
+
+/**
+ * A heading that resolves out of blocks instead of fading up.
+ *
+ * Coarse `feTurbulence` quantised by a `discrete` transfer function gives a
+ * displacement map made of chunks rather than a smooth gradient, so the
+ * letterforms break into blocks and snap back together — a real pixelate,
+ * not a blur. A short stepped blur rides alongside it so the blocks read as
+ * unresolved rather than merely shifted.
+ *
+ * Three rules it holds to:
+ *   - The filter and the starting opacity are applied *by the effect*, not
+ *     in JSX. If the effect never runs — reduced motion, no SVG filter
+ *     support, an exception — the heading has never been anything other
+ *     than crisp and fully opaque. Text can never be hidden by this.
+ *   - It plays once per heading, and the filter is removed at the end so
+ *     nothing stays on a rasterised layer for the life of the page.
+ *   - Headings only. A paragraph that pixelates in is unreadable.
+ */
+function PixelHeading({
+  tag: Tag = "h2",
+  className,
+  id,
+  children,
+  active = true,
+  amount = 18,
+  blur = 2.4,
+  duration = 620,
+}) {
+  const rawId = useId();
+  const filterId = `pix${rawId.replace(/[^A-Za-z0-9]/g, "")}`;
+  const hostRef = useRef(null);
+  const dispRef = useRef(null);
+  const blurRef = useRef(null);
+  const played = useRef(false);
+  const reduced = useReducedMotion();
+
+  useLayoutEffect(() => {
+    if (reduced || !active || played.current) return undefined;
+    const host = hostRef.current;
+    const disp = dispRef.current;
+    const gauss = blurRef.current;
+    if (!host || !disp || !gauss) return undefined;
+
+    host.style.filter = `url(#${filterId})`;
+    host.style.opacity = "0.18";
+    disp.setAttribute("scale", String(amount));
+    gauss.setAttribute("stdDeviation", String(blur));
+
+    let raf = 0;
+    let t0 = 0;
+    const step = (now) => {
+      if (!t0) t0 = now;
+      const t = Math.min(1, (now - t0) / duration);
+      const eased = 1 - (1 - t) ** 3;
+      disp.setAttribute("scale", (amount * (1 - eased)).toFixed(2));
+      gauss.setAttribute("stdDeviation", (blur * (1 - eased)).toFixed(2));
+      host.style.opacity = String(Math.min(1, 0.18 + eased * 1.35));
+      if (t < 1) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      // Only now is it played. Marking it played at *start* meant that in
+      // StrictMode — which mounts, unmounts and remounts every effect — the
+      // first pass claimed the reveal, the cleanup wiped it, and the second
+      // pass bailed out, so the effect never ran at all in development.
+      played.current = true;
+      host.style.filter = "";
+      host.style.opacity = "";
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(raf);
+      host.style.filter = "";
+      host.style.opacity = "";
+    };
+  }, [active, reduced, amount, blur, duration, filterId]);
+
   return (
-    <span className="accord-wordmark">
-      <img
-        src="/brand/accord-logo-512.png"
-        alt=""
-        aria-hidden="true"
-        width={size}
-        height={size}
-        className="accord-logo-img"
-        style={{ width: size, height: size }}
-        decoding="async"
-      />
-      <span className="accord-wordmark-text">Accord</span>
-    </span>
+    <>
+      <Tag className={className} id={id} ref={hostRef}>
+        {children}
+      </Tag>
+      {!reduced && (
+        <svg className="pix-defs" width="0" height="0" aria-hidden="true" focusable="false">
+          <filter
+            id={filterId}
+            x="-14%"
+            y="-22%"
+            width="128%"
+            height="144%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feGaussianBlur ref={blurRef} in="SourceGraphic" stdDeviation="0" result="soft" />
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.042"
+              numOctaves="1"
+              seed="8"
+              stitchTiles="stitch"
+              result="noise"
+            />
+            {/* Quantising the noise is what turns a smear into blocks. */}
+            <feComponentTransfer in="noise" result="blocks">
+              <feFuncR type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1" />
+              <feFuncG type="discrete" tableValues="0 0.2 0.4 0.6 0.8 1" />
+            </feComponentTransfer>
+            <feDisplacementMap
+              in="soft"
+              in2="blocks"
+              scale="0"
+              xChannelSelector="R"
+              yChannelSelector="G"
+              ref={dispRef}
+            />
+          </filter>
+        </svg>
+      )}
+    </>
   );
 }
 
-function LandingNav() {
-  const scrolled = useScrolled(10);
+/* ------------------------------------------------------------ components */
+
+/**
+ * The mark, drawn rather than loaded.
+ *
+ * The PNG lockup is dark navy on transparent, so it disappears against the
+ * hero. This is the same geometry the favicon already uses — three streams
+ * converging on one junction, then an arrow — with the outer strokes on
+ * `currentColor`, so one component works on the dark nav and the light one
+ * without shipping two files that can drift apart.
+ */
+function AccordMark({ size = 24 }) {
   return (
-    <header className={"landing-nav" + (scrolled ? " landing-nav-scrolled" : "")}>
-      <div className="landing-nav-inner">
-        <Link to="/" className="landing-brand" aria-label="Accord, home">
-          <Wordmark size={28} />
+    <svg
+      className="accord-mark"
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3">
+        <path d="M5.6 9.4h6.6l4.2 6.6" stroke="currentColor" />
+        <path d="M5.6 22.6h6.6l4.2-6.6" stroke="currentColor" />
+        <path d="M5.6 16h10.8" stroke="#00c389" />
+        <path d="M21.6 10.6 26.8 16l-5.2 5.4" stroke="currentColor" />
+      </g>
+    </svg>
+  );
+}
+
+const SECTIONS = [
+  ["#problem", "Problem"],
+  ["#pipeline", "Pipeline"],
+  ["#assurance", "Assurance"],
+];
+
+/**
+ * Where an in-page target is supposed to sit: whatever its own
+ * `scroll-margin-top` computes to. Read from the element rather than
+ * duplicated as a constant, so the CSS stays the single source of truth
+ * and the desktop and mobile offsets cannot drift apart from it.
+ */
+function targetOffset(el) {
+  const m = parseFloat(getComputedStyle(el).scrollMarginTop);
+  return Number.isFinite(m) ? m : 0;
+}
+
+/**
+ * Put `hash` at its offset immediately, and report how far out it was.
+ *
+ * `scrollIntoView` is a one-shot: it computes a position from the layout
+ * that exists at the instant it is called. On a cold load that layout is a
+ * lie — web fonts have not swapped under the headings and the hero artwork
+ * has not arrived — and every section below inherits the accumulated
+ * error, so the last section on the page misses by over a thousand pixels.
+ * Correcting against a measurement is the only thing that survives that.
+ */
+function alignNow(hash) {
+  const el = document.querySelector(hash);
+  if (!el) return 0;
+  const delta = el.getBoundingClientRect().top - targetOffset(el);
+  if (Math.abs(delta) > 1.5) {
+    window.scrollTo({ top: window.scrollY + delta, behavior: "auto" });
+  }
+  return delta;
+}
+
+/** Correct once the smooth scroll a click started has come to rest. */
+function alignAfterScroll(hash) {
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    window.removeEventListener("scrollend", finish);
+    // Only step in if the smooth scroll actually missed; a correction of a
+    // pixel or two would read as a twitch at the end of the movement.
+    const el = document.querySelector(hash);
+    if (el && Math.abs(el.getBoundingClientRect().top - targetOffset(el)) > 4) alignNow(hash);
+  };
+  if ("onscrollend" in window) window.addEventListener("scrollend", finish, { once: true });
+  window.setTimeout(finish, 900);
+}
+
+/**
+ * In-page navigation, driven by us rather than by the browser.
+ *
+ * Left to the browser this had two failure modes, both of which a reader
+ * hits in normal use: loading or reloading `/#pipeline` did not scroll at
+ * all (the router sets `scrollRestoration = "manual"` and puts the page
+ * back at the top before React has even rendered the section), and any
+ * anchor that had already been visited was a no-op. Doing it here means a
+ * link behaves the same way every time it is clicked, on first load, on
+ * reload, and when the URL is shared — and these are shareable URLs, so
+ * `/#assurance` landing on the wrong section is a wrong claim delivered to
+ * whoever opened the link.
+ */
+function useInPageNav() {
+  const reduced = useReducedMotion();
+
+  const goTo = useCallback(
+    (hash, { push = true, smooth = true } = {}) => {
+      const el = document.querySelector(hash);
+      if (!el) return false;
+      if (smooth && !reduced) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        alignAfterScroll(hash);
+      } else {
+        alignNow(hash);
+      }
+      if (push && window.location.hash !== hash) {
+        window.history.pushState(window.history.state, "", hash);
+      }
+      return true;
+    },
+    [reduced]
+  );
+
+  /**
+   * Honour a hash the page was opened or reloaded on.
+   *
+   * Not two animation frames — frames are not the thing worth waiting for.
+   * The page moves when the web fonts swap in under headings set in a
+   * serif, and when the hero artwork decodes. So the position is asserted
+   * again on each of those, and at a handful of checkpoints out to 2.6s,
+   * and each attempt measures rather than assumes. Any real input from the
+   * reader ends it: nothing here is allowed to yank a page someone has
+   * started reading.
+   */
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash || hash.length < 2) return undefined;
+    if (!document.querySelector(hash)) return undefined;
+
+    let cancelled = false;
+    const stop = () => {
+      cancelled = true;
+    };
+    const attempt = () => {
+      if (!cancelled) alignNow(hash);
+    };
+
+    // Jump instantly: a smooth slide from the top of the page to a section
+    // three screens down is a long, disorienting way to open a link.
+    attempt();
+    const raf = requestAnimationFrame(attempt);
+    const timers = [40, 120, 260, 500, 900, 1400, 2000, 2600].map((d) =>
+      window.setTimeout(attempt, d)
+    );
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        attempt();
+        requestAnimationFrame(attempt);
+      });
+    }
+    window.addEventListener("load", attempt);
+    for (const ev of ["wheel", "touchstart", "keydown"]) {
+      window.addEventListener(ev, stop, { passive: true });
+    }
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      timers.forEach(window.clearTimeout);
+      window.removeEventListener("load", attempt);
+      for (const ev of ["wheel", "touchstart", "keydown"]) {
+        window.removeEventListener(ev, stop);
+      }
+    };
+  }, []);
+
+  return useCallback(
+    (event) => {
+      const href = event.currentTarget.getAttribute("href") || "";
+      if (!href.startsWith("#")) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      goTo(href);
+    },
+    [goTo]
+  );
+}
+
+function LandingNav({ heroRef, onAnchor }) {
+  const solid = useScrolledPast(heroRef, 96);
+  return (
+    <header className={"lnav" + (solid ? " lnav-solid" : "")}>
+      <div className="lnav-pill">
+        <Link to="/" className="lnav-brand" aria-label="Accord, home">
+          <AccordMark size={22} />
+          <span className="lnav-brand-text">Accord</span>
         </Link>
-        <nav className="landing-nav-links" aria-label="Page sections">
-          <a href="#how-it-works">How it works</a>
-          <a href="#safety">Control model</a>
-          <a href="#evidence">Evidence</a>
+        <nav className="lnav-links" aria-label="Page sections">
+          {SECTIONS.map(([href, label]) => (
+            <a href={href} key={href} onClick={onAnchor}>
+              {label}
+            </a>
+          ))}
         </nav>
-        <motion.span className="landing-nav-cta-wrap" {...lift}>
-          <Link to="/app/runs" className="btn-primary">
-            Open the workspace
+        <span className="lnav-cta">
+          <Link to="/app/runs" className="btn-primary btn-sm">
+            Open workspace
           </Link>
-        </motion.span>
+        </span>
       </div>
     </header>
   );
 }
 
-function Hero() {
+function Hero({ heroRef, onAnchor }) {
   return (
-    <section className="hero" aria-labelledby="hero-heading">
-      {/* Decorative only. The section carries its own dark ground colour, so
-          the hero reads correctly at AA even if this never loads. */}
+    <section className="hero" ref={heroRef} aria-labelledby="hero-heading">
+      {/* Decorative. The section carries its own near-black ground, so the
+          hero still clears AA if this never loads. */}
       <img
-        className="hero-image"
+        className="hero-art"
         src="/brand/accord-hero.jpg"
         alt=""
         aria-hidden="true"
@@ -179,220 +481,234 @@ function Hero() {
         decoding="async"
         fetchpriority="high"
       />
-      <div className="hero-scrim" aria-hidden="true" />
+      <div className="hero-veil" aria-hidden="true" />
 
-      <motion.div
-        className="hero-inner"
-        variants={heroStage}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.p className="hero-eyebrow" variants={riseUp}>
-          Multi-source reconciliation
-        </motion.p>
+      <div className="hero-grid">
+        <motion.div className="hero-copy" variants={heroStage} initial="hidden" animate="show">
+          <PixelHeading
+            tag="h1"
+            className="hero-heading"
+            id="hero-heading"
+            amount={24}
+            blur={3}
+            duration={760}
+          >
+            When the numbers don&rsquo;t agree, Accord finds where the trail breaks.
+          </PixelHeading>
 
-        <motion.h1 className="hero-heading" id="hero-heading" variants={streamLeft}>
-          AI that explains why the books don&rsquo;t close.
-        </motion.h1>
+          <motion.p className="hero-principle" variants={riseUp}>
+            Deterministic evidence first. AI only where ambiguity remains.
+          </motion.p>
 
-        <motion.div className="hero-rule" variants={converge} aria-hidden="true" />
-
-        <motion.p className="hero-sub" variants={streamRight}>
-          Accord reconciles payments, settlements, bank statements and your ledger,
-          then investigates each record that did not close &mdash; tracing the money
-          until it can name the stage where the trail breaks, and saying plainly what
-          it could not confirm.
-        </motion.p>
-
-        <motion.div className="hero-actions" variants={riseUp}>
-          <motion.span {...lift}>
+          <motion.div className="hero-actions" variants={riseUp}>
             <Link to="/app/runs" className="btn-primary btn-lg">
-              Open the workspace
+              Open workspace
             </Link>
-          </motion.span>
-          <a href="#how-it-works" className="btn-quiet btn-lg">
-            See how it works
-          </a>
-        </motion.div>
-
-        <motion.p className="hero-foot" variants={riseUp}>
-          Deterministic math decides first. A model is consulted only where the
-          ambiguity is genuinely semantic, and it can never book money.
-        </motion.p>
-      </motion.div>
-    </section>
-  );
-}
-
-function Premise() {
-  const [ref, inView] = useReveal(0.25);
-  return (
-    <section className="section section-premise" ref={ref} aria-labelledby="premise-heading">
-      <motion.div
-        className="wrap wrap-narrow"
-        variants={revealGroup}
-        initial="hidden"
-        animate={inView ? "show" : "hidden"}
-      >
-        <motion.h2 className="section-heading" id="premise-heading" variants={revealItem}>
-          The hard part was never the matching.
-        </motion.h2>
-        <motion.p className="section-lede" variants={revealItem}>
-          Most reconciliation tools stop at a number: 8,400 matched, 600 unmatched.
-          The 600 are the entire job, and they arrive as a spreadsheet with no
-          explanation attached. Somebody then spends three days working out that one
-          batch settled late, one reference was reformatted by an acquirer, and one
-          amount is genuinely short.
-        </motion.p>
-        <motion.p className="section-lede" variants={revealItem}>
-          Accord is built for that residue. It treats an unmatched record as something
-          to be investigated and explained, not as a row to be handed over.
-        </motion.p>
-      </motion.div>
-    </section>
-  );
-}
-
-function HowItWorks() {
-  const [ref, inView] = useReveal(0.1);
-  return (
-    <section className="section section-alt" id="how-it-works" ref={ref} aria-labelledby="how-heading">
-      <div className="wrap">
-        <motion.div
-          variants={revealGroup}
-          initial="hidden"
-          animate={inView ? "show" : "hidden"}
-        >
-          <motion.p className="section-eyebrow" variants={revealItem}>
-            The loop
-          </motion.p>
-          <motion.h2 className="section-heading" id="how-heading" variants={revealItem}>
-            Six steps, and a person owns the last decision.
-          </motion.h2>
-
-          <ol className="steps">
-            {STEPS.map((s) => (
-              <motion.li className="step" key={s.n} variants={revealItem}>
-                <span className="step-n" aria-hidden="true">
-                  {s.n}
-                </span>
-                <div className="step-body">
-                  <h3 className="step-title">{s.title}</h3>
-                  <p className="step-text">{s.body}</p>
-                </div>
-              </motion.li>
-            ))}
-          </ol>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function Safety() {
-  const [ref, inView] = useReveal(0.08);
-  return (
-    <section className="section" id="safety" ref={ref} aria-labelledby="safety-heading">
-      <div className="wrap">
-        <motion.div
-          variants={revealGroup}
-          initial="hidden"
-          animate={inView ? "show" : "hidden"}
-        >
-          <motion.p className="section-eyebrow" variants={revealItem}>
-            Control model
-          </motion.p>
-          <motion.h2 className="section-heading" id="safety-heading" variants={revealItem}>
-            The constraint is the feature.
-          </motion.h2>
-          <motion.p className="section-lede section-lede-tight" variants={revealItem}>
-            A reconciliation system that is confidently wrong is worse than one that is
-            slow. Accord is built so that the model cannot be the reason a number moves.
-          </motion.p>
-
-          <div className="safety-grid">
-            {SAFETY.map((s) => (
-              <motion.article className="safety-card" key={s.title} variants={revealItem}>
-                <h3 className="safety-title">{s.title}</h3>
-                <p className="safety-text">{s.body}</p>
-              </motion.article>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function Evidence() {
-  const [ref, inView] = useReveal(0.1);
-  return (
-    <section className="section section-alt" id="evidence" ref={ref} aria-labelledby="evidence-heading">
-      <div className="wrap">
-        <motion.div
-          variants={revealGroup}
-          initial="hidden"
-          animate={inView ? "show" : "hidden"}
-        >
-          <motion.p className="section-eyebrow" variants={revealItem}>
-            Evidence
-          </motion.p>
-          <motion.h2 className="section-heading" id="evidence-heading" variants={revealItem}>
-            What we actually measured.
-          </motion.h2>
-
-          <div className="evidence-grid">
-            {EVIDENCE.map((e) => (
-              <motion.article className="evidence-card" key={e.unit} variants={revealItem}>
-                <p className="evidence-figure">{e.figure}</p>
-                <p className="evidence-unit">{e.unit}</p>
-                <p className="evidence-text">{e.body}</p>
-              </motion.article>
-            ))}
-          </div>
-
-          <motion.div className="provenance-note" variants={revealItem}>
-            <p className="provenance-note-tag">Provenance</p>
-            <p className="provenance-note-text">
-              Measured on a 1,000-record held-out split of a{" "}
-              <strong>synthetic dataset generated for this project</strong> (seed 90210,
-              19 labelled failure categories). This is not customer data and these are
-              not production figures. The frozen reports, the dataset checksums and the
-              code commit they were produced on are in{" "}
-              <code className="mono">backend/evaluations/final/</code>, including the run
-              where the model provider failed on every call. The full evaluation console
-              ships inside the product.
-            </p>
+            <a href="#pipeline" className="btn-quiet btn-lg btn-on-dark" onClick={onAnchor}>
+              See how it works
+            </a>
           </motion.div>
         </motion.div>
+
+        <motion.div
+          className="hero-visual"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.16 }}
+        >
+          <HeroFlow />
+        </motion.div>
       </div>
     </section>
   );
 }
 
-function ClosingBand() {
-  const [ref, inView] = useReveal(0.3);
+function Problem() {
+  const [ref, inView] = useReveal(0.05);
+  const cell = (row, key) =>
+    "frag-cell" + (row.alt && row.alt.includes(key) ? " frag-cell-alt" : "");
+
   return (
-    <section className="closing-band" ref={ref} aria-labelledby="closing-heading">
+    <section className="section section-problem" id="problem" ref={ref} aria-labelledby="problem-heading">
       <motion.div
-        className="wrap wrap-narrow closing-inner"
+        className="wrap"
         variants={revealGroup}
         initial="hidden"
         animate={inView ? "show" : "hidden"}
       >
-        <motion.h2 className="closing-heading" id="closing-heading" variants={revealItem}>
-          Open a workspace and load a file.
-        </motion.h2>
-        <motion.p className="closing-text" variants={revealItem}>
-          Bring a settlement report and an order export. Accord will tell you what it
-          could reconcile, what it could not, and exactly why.
-        </motion.p>
-        <motion.div variants={revealItem}>
-          <motion.span {...lift} style={{ display: "inline-block" }}>
-            <Link to="/app/runs/new" className="btn-primary btn-lg btn-on-dark">
-              Start a new run
-            </Link>
-          </motion.span>
+        <PixelHeading
+          className="section-heading"
+          id="problem-heading"
+          active={inView}
+          amount={15}
+          blur={2}
+          duration={540}
+        >
+          One payment. Six files. No two agree.
+        </PixelHeading>
+
+        <motion.div className="frag" variants={revealItem}>
+          {/* A scrollable region needs to be reachable and operable from the
+              keyboard, so it is a labelled region with a tab stop rather
+              than a div only a pointer can move. */}
+          <div
+            className="frag-scroll"
+            role="region"
+            aria-label="One payment across six source files"
+            tabIndex={0}
+          >
+            {/* The description a screen reader needs lives on the table as a
+                label rather than as a visible caption, because the visible
+                caption said the same thing the region label already said and
+                this page is not allowed a third pass over one fact. */}
+            <table
+              className="frag-table"
+              aria-label="One payment as it appears in six source files: the identifier, date, counterparty and amount differ in each"
+            >
+              <thead>
+                <tr>
+                  <th scope="col">Source</th>
+                  <th scope="col">Identifier</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Counterparty</th>
+                  <th scope="col" className="frag-num">
+                    {/* The symbol, not the currency code: it is a column of
+                        rupee amounts and the glyph says so in one character. */}
+                    Amount &#8377;
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {FRAGMENTS.map((row) => (
+                  <tr key={row.file}>
+                    <th scope="row" className="frag-file">
+                      {row.file}
+                    </th>
+                    <td className={cell(row, "ref")}>{row.ref}</td>
+                    <td className={cell(row, "date")}>{row.date}</td>
+                    <td className={cell(row, "party")}>{row.party}</td>
+                    <td className={cell(row, "amount") + " frag-num"}>{row.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="frag-caption">Illustrative. Highlighted cells diverge from Orders.csv.</p>
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
+function Pipeline() {
+  const [ref, inView] = useReveal(0.04);
+  return (
+    <section className="section section-pipeline" id="pipeline" ref={ref} aria-labelledby="pipeline-heading">
+      <motion.div
+        className="wrap"
+        variants={revealGroup}
+        initial="hidden"
+        animate={inView ? "show" : "hidden"}
+      >
+        <PixelHeading
+          className="section-heading"
+          id="pipeline-heading"
+          active={inView}
+          amount={15}
+          blur={2}
+          duration={540}
+        >
+          Five stages. A model is in one.
+        </PixelHeading>
+
+        <ol className="stages">
+          {STAGES.map((s) => (
+            <motion.li className={`stage stage-${s.key}`} key={s.key} variants={revealItem}>
+              <div className="stage-mark">
+                <h3 className="stage-name">{s.name}</h3>
+              </div>
+              <div className="stage-body">
+                {/* Ingest is many sources at once, so it is shown as many
+                    rather than claimed as many. Decorative: the capacity is
+                    stated as a tag beside it. */}
+                {s.key === "ingest" && (
+                  <ul className="filestrip" aria-hidden="true">
+                    {INGEST_FILES.map((f) => (
+                      <li className="filechip" key={f}>
+                        <span className="filechip-dot" />
+                        {f}
+                      </li>
+                    ))}
+                    <li className="filechip filechip-more">+ more</li>
+                  </ul>
+                )}
+
+                <ul className="stage-tags">
+                  {s.tags.map((t) => (
+                    <li className="stage-tag" key={t}>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.li>
+          ))}
+        </ol>
+      </motion.div>
+    </section>
+  );
+}
+
+function Assurance() {
+  const [ref, inView] = useReveal(0.04);
+  return (
+    <section className="assurance" id="assurance" ref={ref} aria-labelledby="assurance-heading">
+      <motion.div
+        className="wrap"
+        variants={revealGroup}
+        initial="hidden"
+        animate={inView ? "show" : "hidden"}
+      >
+        <PixelHeading
+          className="assurance-heading"
+          id="assurance-heading"
+          active={inView}
+          amount={16}
+          blur={2.2}
+          duration={580}
+        >
+          Unresolved is better than incorrectly reconciled.
+        </PixelHeading>
+
+        <div className="measured">
+          {MEASURED.map((m) => (
+            <motion.article className="measured-card" key={m.unit} variants={revealItem}>
+              <p className="measured-figure">{m.figure}</p>
+              <h3 className="measured-unit">{m.unit}</h3>
+            </motion.article>
+          ))}
+        </div>
+
+        {/* The only paragraph left on the page. It stays because it is the
+            single thing that makes the three figures above checkable: strip
+            it and they are just numbers someone typed. */}
+        <motion.div className="prov-note" variants={revealItem}>
+          <p className="prov-note-tag">Method</p>
+          <p className="prov-note-text">
+            1,000-record labelled held-out split, seed 90210, digest{" "}
+            <code className="mono">473394ea</code>, frozen at{" "}
+            <code className="mono">b6145bb</code>. Accuracy 88.3% healthy, 76.8% dark.
+            Checksums: <code className="mono">backend/evaluations/accord/</code>.
+          </p>
+        </motion.div>
+
+        <motion.div className="assurance-cta" variants={revealItem}>
+          <Link to="/app/runs" className="btn-primary btn-lg">
+            Open workspace
+          </Link>
+          <Link to="/app/evaluation" className="btn-quiet btn-lg btn-on-dark">
+            See the evaluation
+          </Link>
         </motion.div>
       </motion.div>
     </section>
@@ -400,19 +716,20 @@ function ClosingBand() {
 }
 
 export default function Landing() {
+  const heroRef = useRef(null);
+  const onAnchor = useInPageNav();
+
   return (
     <div className="landing">
       <a className="skip-link" href="#landing-main">
-        Skip to main content
+        Skip to content
       </a>
-      <LandingNav />
+      <LandingNav heroRef={heroRef} onAnchor={onAnchor} />
       <main id="landing-main">
-        <Hero />
-        <Premise />
-        <HowItWorks />
-        <Safety />
-        <Evidence />
-        <ClosingBand />
+        <Hero heroRef={heroRef} onAnchor={onAnchor} />
+        <Problem />
+        <Pipeline />
+        <Assurance />
       </main>
       <Footer />
     </div>

@@ -146,17 +146,31 @@ def investigate_record(record_id: str, batch_id: str | None = None, use_ai: bool
 
 
 @router.get("/batch/{batch_id}/breakpoints")
-def batch_breakpoints(batch_id: str, limit: int = 2000):
+def batch_breakpoints(batch_id: str, limit: int | None = None):
     """Where a whole run's money trails stop, counted by stage and kind.
 
     Entirely deterministic — the same trace analysis each record's
     drill-in shows, aggregated, so the dashboard and the detail view can
     never disagree. No model is called.
+
+    The default covers the WHOLE run. It used to stop at 2,000 records,
+    which on a 3,504-record run produced a summary that silently described
+    a subset while the run header described the run — two true numbers that
+    read as one contradiction. A partial summary is worse than a slower
+    one, so completeness is the default and any truncation is declared in
+    the response rather than left for the reader to notice.
     """
-    if not store.get_batch(batch_id):
+    batch = store.get_batch(batch_id)
+    if not batch:
         raise HTTPException(404, "batch not found")
-    rows = store.list_records(batch_id, limit=limit)
+
+    total = batch.get("total_records") or 0
+    effective = limit if limit is not None else max(total, 1)
+    rows = store.list_records(batch_id, limit=effective)
     sources = store.list_sources(batch_id)
     summary = breakpoint_summary(rows, sources, PolicyConfig())
     summary["batch_id"] = batch_id
+    summary["covers_records"] = len(rows)
+    summary["batch_total_records"] = total
+    summary["truncated"] = bool(total and len(rows) < total)
     return summary

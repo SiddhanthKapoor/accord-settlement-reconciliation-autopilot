@@ -1,0 +1,801 @@
+Bill No,Bill Date,Store Code,Terminal Id,Customer Name,Item Name,Qty,Payment Mode,Bill Amount,Tax,Remarks
+POS-300111,01/03/2026,HYD-01,TID4351,Shubhankar Electricals LLP,Sponge pack,3,NETBANKING,"33,963.20","2,590.41",Counter bill Sponge pack
+POS-300841,01/03/2026,BLR-02,TID4363,Ojas Lighting Private Limited,Battery pack AA,3,WALLET,"21,446.75","1,635.77",Counter bill Battery pack AA
+POS-302087,01/03/2026,HYD-01,TID4783,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,NETBANKING,"43,283.00","3,301.25",Counter bill Torch and cells
+POS-302180,01/03/2026,MYS-01,TID4271,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,WALLET,"20,802.00","1,586.59",Counter bill Adhesive carton
+POS-302271,01/03/2026,BLR-01,TID4093,Sohrab Auto Spares LLP,Grocery basket,4,NETBANKING,"32,155.00","2,452.50",Counter bill Grocery basket
+POS-302426,01/03/2026,PNQ-01,TID4012,Tarangini Prints LLP,Garden tool set,2,UPI,"6,389.92",487.37,Counter bill Garden tool set
+POS-302659,01/03/2026,MYS-01,TID4338,Utsav Bakers LLP,Extension board,4,NETBANKING,"33,867.41","2,583.11",Counter bill Extension board
+POS-302666,01/03/2026,HYD-01,TID4319,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,UPI,"2,233.00",170.31,Counter bill Cable tie pack
+POS-302731,01/03/2026,PNQ-01,TID4427,Palashwood Interiors Pvt Ltd,Stationery pack,1,WALLET,"2,994.20",228.37,Counter bill Stationery pack
+POS-303140,01/03/2026,MYS-01,TID4544,Devgiri Paints LLP,Fastener assortment,2,CARD,"3,812.00",290.75,Counter bill Fastener assortment
+POS-303725,01/03/2026,BLR-01,TID4550,Vaayu Organics Private Limited,Plumbing fittings,4,WALLET,"10,150.00",774.15,Counter bill Plumbing fittings
+POS-304145,01/03/2026,MYS-01,TID4111,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,WALLET,782.72,59.70,Counter bill Tarpaulin sheet
+POS-304171,01/03/2026,BLR-01,TID4832,Kesari Handlooms Pvt Ltd,Hardware fittings,2,WALLET,"37,330.00","2,847.20",Counter bill Hardware fittings
+POS-304330,01/03/2026,BLR-01,TID4323,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,UPI,"14,865.00","1,133.77",Counter bill Bulb pack of six
+POS-304392,01/03/2026,HYD-01,TID4437,Meghdoot Packaging LLP,Paint tin 4L,3,NETBANKING,"15,663.00","1,194.64",Counter bill Paint tin 4L
+POS-304851,01/03/2026,PNQ-01,TID4009,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,UPI,"18,969.08","1,446.79",Counter bill Cleaning supplies
+POS-305365,01/03/2026,BLR-02,TID4867,Naaz Fabrics Private Limited,Mop and bucket,2,NETBANKING,"37,571.00","2,865.58",Counter bill Mop and bucket
+POS-305370,01/03/2026,PNQ-01,TID4427,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,WALLET,"2,994.00",228.36,Counter bill Ladder step 4ft
+POS-305401,01/03/2026,MYS-01,TID4621,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,NETBANKING,"23,247.00","1,773.08",Counter bill Bedding roll
+POS-305765,01/03/2026,HYD-01,TID4331,Barkat Stationers Private Limited,Crockery half set,4,WALLET,"21,218.00","1,618.32",Counter bill Crockery half set
+POS-301003,02/03/2026,MYS-01,TID4085,Palashwood Interiors Pvt Ltd,Adhesive carton,1,UPI,"38,397.94","2,928.66",Counter bill Adhesive carton
+POS-301062,02/03/2026,MYS-01,TID4658,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,CARD,"4,612.78",351.82,Counter bill Ladder step 4ft
+POS-301396,02/03/2026,HYD-01,TID4751,Rukmini Provisions Private Limited,Extension board,4,WALLET,"36,758.00","2,803.58",Counter bill Extension board
+POS-301465,02/03/2026,BLR-02,TID4207,Chandravat Metals Private Limited,Torch and cells,4,NETBANKING,"1,451.00",110.67,Counter bill Torch and cells
+POS-301558,02/03/2026,BLR-01,TID4385,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,NETBANKING,"34,195.09","2,608.10",Counter bill Measuring tape 5m
+POS-301936,02/03/2026,PNQ-01,TID4281,Ojas Lighting Private Limited,Cable tie pack,3,UPI,"39,769.41","3,033.26",Counter bill Cable tie pack
+POS-302035,02/03/2026,BLR-01,TID4886,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,UPI,"18,805.81","1,434.34",Counter bill Electrical wire roll
+POS-302089,02/03/2026,BLR-02,TID4463,Chirag Battery House Pvt Ltd,Cleaning supplies,3,WALLET,"3,246.00",247.58,Counter bill Cleaning supplies
+POS-302298,02/03/2026,PNQ-01,TID4444,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,WALLET,"22,014.17","1,679.05",Counter bill Crockery half set
+POS-302692,02/03/2026,PNQ-01,TID4644,Bhavani Steel Trading Pvt Ltd,Storage crate,4,WALLET,"10,814.36",824.82,Counter bill Storage crate
+POS-302809,02/03/2026,BLR-01,TID4604,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,WALLET,"4,230.93",322.70,Counter bill Paint tin 4L
+POS-302975,02/03/2026,BLR-02,TID4088,Marudhar Furnishings LLP,Tarpaulin sheet,2,UPI,"38,421.00","2,930.42",Counter bill Tarpaulin sheet
+POS-303595,02/03/2026,HYD-01,TID4291,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,WALLET,"20,938.84","1,597.03",Counter bill Bulb pack of six
+POS-303890,02/03/2026,PNQ-01,TID4588,Tarangini Prints LLP,Mop and bucket,2,NETBANKING,"35,619.00","2,716.70",Counter bill Mop and bucket
+POS-304168,02/03/2026,PNQ-01,TID4119,Suvarna Weaves LLP,Sports kit,2,WALLET,"7,134.00",544.12,Counter bill Sports kit
+POS-304680,02/03/2026,HYD-01,TID4781,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,CARD,"24,368.80","1,858.64",Counter bill Battery pack AA
+POS-304844,02/03/2026,BLR-02,TID4511,Tanmay Toolroom Private Limited,Garden tool set,2,UPI,"9,881.00",753.64,Counter bill Garden tool set
+POS-304887,02/03/2026,HYD-01,TID4856,Jashan Sports Goods Pvt Ltd,Stationery pack,1,UPI,"24,893.90","1,898.69",Counter bill Stationery pack
+POS-305188,02/03/2026,BLR-01,TID4122,Vindhya Plastics Private Limited,Hardware fittings,2,NETBANKING,"13,455.16","1,026.24",Counter bill Hardware fittings
+POS-300689,03/03/2026,PNQ-01,TID4642,Sohrab Auto Spares LLP,Torch and cells,4,WALLET,"23,394.61","1,784.33",Counter bill Torch and cells
+POS-300856,03/03/2026,BLR-01,TID4843,Vaayu Organics Private Limited,Extension board,4,UPI,"43,705.00","3,333.43",Counter bill Extension board
+POS-301047,03/03/2026,MYS-01,TID4561,Kesari Handlooms Pvt Ltd,Fastener assortment,2,CARD,"35,432.98","2,702.52",Counter bill Fastener assortment
+POS-301163,03/03/2026,MYS-01,TID4263,Utsav Bakers LLP,Plumbing fittings,4,WALLET,"33,342.41","2,543.07",Counter bill Plumbing fittings
+POS-301868,03/03/2026,PNQ-01,TID4096,Shubhankar Electricals LLP,Cleaning supplies,3,WALLET,"44,774.82","3,415.03",Counter bill Cleaning supplies
+POS-301869,03/03/2026,BLR-02,TID4812,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"43,486.00","3,316.73",Counter bill Garden tool set
+POS-302462,03/03/2026,HYD-01,TID4686,Yamini Home Needs Pvt Ltd,Bedding roll,1,NETBANKING,"30,003.00","2,288.36",Counter bill Bedding roll
+POS-302527,03/03/2026,BLR-01,TID4166,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,UPI,"1,165.00",88.86,Counter bill Ladder step 4ft
+POS-303258,03/03/2026,BLR-01,TID4527,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,WALLET,"3,690.12",281.45,Counter bill Sponge pack
+POS-303299,03/03/2026,MYS-01,TID4840,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,WALLET,"12,182.00",929.14,Counter bill Bulb pack of six
+POS-303391,03/03/2026,MYS-01,TID4742,Palashwood Interiors Pvt Ltd,Adhesive carton,1,UPI,"24,097.49","1,837.94",Counter bill Adhesive carton
+POS-303938,03/03/2026,BLR-02,TID4228,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,CARD,"20,496.00","1,563.25",Counter bill Stationery pack
+POS-304198,03/03/2026,MYS-01,TID4103,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,NETBANKING,"13,327.64","1,016.51",Counter bill Grocery basket
+POS-304273,03/03/2026,BLR-01,TID4837,Barkat Stationers Private Limited,Storage crate,4,CARD,"18,460.46","1,408.00",Counter bill Storage crate
+POS-304297,03/03/2026,PNQ-01,TID4445,Meghdoot Packaging LLP,Measuring tape 5m,3,NETBANKING,"47,219.45","3,601.48",Counter bill Measuring tape 5m
+POS-304395,03/03/2026,BLR-01,TID4874,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,CARD,"25,020.32","1,908.33",Counter bill Electrical wire roll
+POS-304482,03/03/2026,BLR-02,TID4856,Devgiri Paints LLP,Hardware fittings,2,CARD,"37,496.00","2,859.86",Counter bill Hardware fittings
+POS-304493,03/03/2026,BLR-02,TID4356,Ekansh Glassworks Private Limited,Sports kit,2,CARD,"40,296.03","3,073.43",Counter bill Sports kit
+POS-305051,03/03/2026,PNQ-01,TID4187,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,UPI,"20,209.00","1,541.36",Counter bill Battery pack AA
+POS-305136,03/03/2026,BLR-02,TID4661,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,NETBANKING,"17,231.31","1,314.25",Counter bill Paint tin 4L
+POS-305247,03/03/2026,HYD-01,TID4812,Suvarna Weaves LLP,Tarpaulin sheet,2,CARD,"30,888.25","2,355.88",Counter bill Tarpaulin sheet
+POS-300261,04/03/2026,MYS-01,TID4423,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,WALLET,"9,262.00",706.42,Counter bill Measuring tape 5m
+POS-300288,04/03/2026,PNQ-01,TID4210,Ojas Lighting Private Limited,Battery pack AA,3,WALLET,"14,074.00","1,073.44",Counter bill Battery pack AA
+POS-300324,04/03/2026,MYS-01,TID4426,Tanmay Toolroom Private Limited,Mop and bucket,2,WALLET,"28,182.50","2,149.51",Counter bill Mop and bucket
+POS-300623,04/03/2026,BLR-02,TID4704,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,NETBANKING,"23,831.23","1,817.64",Counter bill Cable tie pack
+POS-301357,04/03/2026,BLR-02,TID4288,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,UPI,"27,221.53","2,076.22",Counter bill Electrical wire roll
+POS-302819,04/03/2026,PNQ-01,TID4188,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,NETBANKING,"13,919.27","1,061.64",Counter bill Ladder step 4ft
+POS-302942,04/03/2026,MYS-01,TID4747,Marudhar Furnishings LLP,Sports kit,2,CARD,"11,532.13",879.57,Counter bill Sports kit
+POS-303449,04/03/2026,BLR-02,TID4357,Tarangini Prints LLP,Garden tool set,2,UPI,"15,101.11","1,151.78",Counter bill Garden tool set
+POS-303495,04/03/2026,HYD-01,TID4792,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,CARD,"11,848.00",903.66,Counter bill Adhesive carton
+POS-304265,04/03/2026,PNQ-01,TID4306,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,CARD,"14,744.00","1,124.54",Counter bill Crockery half set
+POS-304612,04/03/2026,BLR-02,TID4128,Chirag Battery House Pvt Ltd,Sponge pack,3,UPI,"32,401.00","2,471.26",Counter bill Sponge pack
+POS-304644,04/03/2026,HYD-01,TID4467,Kesari Handlooms Pvt Ltd,Hardware fittings,2,UPI,"9,573.00",730.14,Counter bill Hardware fittings
+POS-304717,04/03/2026,PNQ-01,TID4407,Palashwood Interiors Pvt Ltd,Stationery pack,1,WALLET,"40,654.00","3,100.73",Counter bill Stationery pack
+POS-304781,04/03/2026,HYD-01,TID4698,Bhoomi Tiles and Sanitary LLP,Storage crate,4,CARD,"17,488.62","1,333.88",Counter bill Storage crate
+POS-304837,04/03/2026,MYS-01,TID4328,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,UPI,"46,397.00","3,538.75",Counter bill Bedding roll
+POS-305143,04/03/2026,BLR-01,TID4707,Chandravat Metals Private Limited,Grocery basket,4,WALLET,"4,950.00",377.54,Counter bill Grocery basket
+POS-305659,04/03/2026,BLR-01,TID4360,Rukmini Provisions Private Limited,Plumbing fittings,4,CARD,"2,520.00",192.20,Counter bill Plumbing fittings
+POS-305703,04/03/2026,MYS-01,TID4368,Vindhya Plastics Private Limited,Fastener assortment,2,WALLET,"46,682.00","3,560.49",Counter bill Fastener assortment
+POS-305945,04/03/2026,BLR-02,TID4351,Utsav Bakers LLP,Extension board,4,UPI,"27,661.00","2,109.74",Counter bill Extension board
+POS-300142,05/03/2026,HYD-01,TID4276,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,WALLET,"46,038.00","3,511.37",Counter bill Bulb pack of six
+POS-300337,05/03/2026,PNQ-01,TID4607,Naaz Fabrics Private Limited,Mop and bucket,2,UPI,"4,249.40",324.11,Counter bill Mop and bucket
+POS-300653,05/03/2026,BLR-02,TID4744,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,NETBANKING,"5,211.67",397.50,Counter bill Adhesive carton
+POS-301809,05/03/2026,MYS-01,TID4694,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,WALLET,"4,862.00",370.83,Counter bill Cleaning supplies
+POS-301834,05/03/2026,MYS-01,TID4076,Devgiri Paints LLP,Fastener assortment,2,CARD,"19,432.79","1,482.16",Counter bill Fastener assortment
+POS-302193,05/03/2026,MYS-01,TID4503,Sohrab Auto Spares LLP,Grocery basket,4,NETBANKING,"16,127.00","1,230.03",Counter bill Grocery basket
+POS-302423,05/03/2026,BLR-02,TID4141,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,NETBANKING,"38,791.00","2,958.64",Counter bill Bedding roll
+POS-302605,05/03/2026,HYD-01,TID4634,Bhavani Steel Trading Pvt Ltd,Storage crate,4,WALLET,"4,438.61",338.54,Counter bill Storage crate
+POS-302722,05/03/2026,BLR-02,TID4337,Meghdoot Packaging LLP,Paint tin 4L,3,UPI,"14,961.00","1,141.09",Counter bill Paint tin 4L
+POS-302739,05/03/2026,MYS-01,TID4751,Jashan Sports Goods Pvt Ltd,Stationery pack,1,UPI,"24,157.98","1,842.56",Counter bill Stationery pack
+POS-302872,05/03/2026,BLR-02,TID4130,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,NETBANKING,"45,011.00","3,433.04",Counter bill Torch and cells
+POS-303161,05/03/2026,PNQ-01,TID4491,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,NETBANKING,"28,639.00","2,184.33",Counter bill Tarpaulin sheet
+POS-303277,05/03/2026,BLR-02,TID4032,Shubhankar Electricals LLP,Sponge pack,3,WALLET,"12,826.88",978.32,Counter bill Sponge pack
+POS-304097,05/03/2026,MYS-01,TID4666,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,NETBANKING,"17,267.00","1,316.97",Counter bill Electrical wire roll
+POS-304260,05/03/2026,PNQ-01,TID4550,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,WALLET,"3,854.00",293.95,Counter bill Measuring tape 5m
+POS-304720,05/03/2026,PNQ-01,TID4730,Vaayu Organics Private Limited,Plumbing fittings,4,WALLET,"5,114.50",390.09,Counter bill Plumbing fittings
+POS-305360,05/03/2026,PNQ-01,TID4062,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,WALLET,"19,334.00","1,474.63",Counter bill Cable tie pack
+POS-305453,05/03/2026,HYD-01,TID4864,Suvarna Weaves LLP,Sports kit,2,CARD,"43,848.00","3,344.34",Counter bill Sports kit
+POS-305662,05/03/2026,BLR-02,TID4682,Barkat Stationers Private Limited,Crockery half set,4,CARD,"4,776.00",364.27,Counter bill Crockery half set
+POS-300131,06/03/2026,MYS-01,TID4104,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,CARD,"7,032.00",536.34,Counter bill Ladder step 4ft
+POS-300378,06/03/2026,HYD-01,TID4469,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,NETBANKING,"28,483.00","2,172.43",Counter bill Sponge pack
+POS-300721,06/03/2026,BLR-02,TID4648,Chirag Battery House Pvt Ltd,Cleaning supplies,3,CARD,"23,436.46","1,787.53",Counter bill Cleaning supplies
+POS-301397,06/03/2026,HYD-01,TID4814,Rukmini Provisions Private Limited,Extension board,4,NETBANKING,"18,303.00","1,395.99",Counter bill Extension board
+POS-301421,06/03/2026,PNQ-01,TID4277,Palashwood Interiors Pvt Ltd,Adhesive carton,1,CARD,"27,144.00","2,070.31",Counter bill Adhesive carton
+POS-301653,06/03/2026,BLR-01,TID4814,Utsav Bakers LLP,Plumbing fittings,4,CARD,"12,000.00",915.25,Counter bill Plumbing fittings
+POS-301784,06/03/2026,PNQ-01,TID4628,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,NETBANKING,"42,199.00","3,218.57",Counter bill Grocery basket
+POS-301791,06/03/2026,PNQ-01,TID4309,Yamini Home Needs Pvt Ltd,Bedding roll,1,CARD,"33,664.81","2,567.66",Counter bill Bedding roll
+POS-301979,06/03/2026,HYD-01,TID4703,Tanmay Toolroom Private Limited,Garden tool set,2,NETBANKING,"30,123.82","2,297.58",Counter bill Garden tool set
+POS-302107,06/03/2026,HYD-01,TID4857,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,NETBANKING,"37,503.00","2,860.40",Counter bill Paint tin 4L
+POS-302326,06/03/2026,PNQ-01,TID4290,Vindhya Plastics Private Limited,Hardware fittings,2,WALLET,"8,334.87",635.71,Counter bill Hardware fittings
+POS-303660,06/03/2026,BLR-01,TID4089,Tarangini Prints LLP,Mop and bucket,2,UPI,625.18,47.68,Counter bill Mop and bucket
+POS-303823,06/03/2026,MYS-01,TID4594,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,WALLET,"4,162.53",317.48,Counter bill Crockery half set
+POS-303882,06/03/2026,MYS-01,TID4188,Kesari Handlooms Pvt Ltd,Fastener assortment,2,UPI,"20,217.00","1,541.97",Counter bill Fastener assortment
+POS-304040,06/03/2026,HYD-01,TID4473,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,UPI,"22,213.00","1,694.21",Counter bill Electrical wire roll
+POS-304046,06/03/2026,HYD-01,TID4503,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,NETBANKING,"16,123.00","1,229.72",Counter bill Battery pack AA
+POS-304521,06/03/2026,BLR-01,TID4214,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,CARD,"33,000.51","2,516.99",Counter bill Bulb pack of six
+POS-304897,06/03/2026,BLR-02,TID4181,Ojas Lighting Private Limited,Cable tie pack,3,NETBANKING,"45,371.77","3,460.56",Counter bill Cable tie pack
+POS-305020,06/03/2026,BLR-01,TID4845,Chandravat Metals Private Limited,Torch and cells,4,CARD,"43,720.05","3,334.58",Counter bill Torch and cells
+POS-305746,06/03/2026,BLR-02,TID4315,Marudhar Furnishings LLP,Tarpaulin sheet,2,NETBANKING,"14,811.00","1,129.65",Counter bill Tarpaulin sheet
+POS-300182,07/03/2026,HYD-01,TID4551,Barkat Stationers Private Limited,Storage crate,4,WALLET,"10,158.15",774.77,Counter bill Storage crate
+POS-300202,07/03/2026,HYD-01,TID4690,Devgiri Paints LLP,Hardware fittings,2,UPI,"30,033.00","2,290.65",Counter bill Hardware fittings
+POS-300297,07/03/2026,BLR-02,TID4647,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,NETBANKING,"23,431.10","1,787.12",Counter bill Ladder step 4ft
+POS-300598,07/03/2026,BLR-02,TID4386,Suvarna Weaves LLP,Tarpaulin sheet,2,WALLET,"21,606.00","1,647.92",Counter bill Tarpaulin sheet
+POS-300703,07/03/2026,PNQ-01,TID4549,Ekansh Glassworks Private Limited,Sports kit,2,UPI,"47,949.00","3,657.13",Counter bill Sports kit
+POS-300727,07/03/2026,PNQ-01,TID4866,Rukmini Provisions Private Limited,Plumbing fittings,4,CARD,"6,064.00",462.51,Counter bill Plumbing fittings
+POS-300869,07/03/2026,BLR-02,TID4115,Vaayu Organics Private Limited,Extension board,4,WALLET,"38,606.00","2,944.53",Counter bill Extension board
+POS-300952,07/03/2026,PNQ-01,TID4848,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,NETBANKING,"24,839.20","1,894.52",Counter bill Cable tie pack
+POS-301774,07/03/2026,HYD-01,TID4531,Meghdoot Packaging LLP,Measuring tape 5m,3,NETBANKING,"16,323.00","1,244.97",Counter bill Measuring tape 5m
+POS-302160,07/03/2026,BLR-02,TID4760,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,WALLET,"11,626.00",886.73,Counter bill Adhesive carton
+POS-302311,07/03/2026,PNQ-01,TID4469,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,UPI,"3,289.33",250.88,Counter bill Battery pack AA
+POS-302377,07/03/2026,MYS-01,TID4266,Sohrab Auto Spares LLP,Torch and cells,4,NETBANKING,"27,067.09","2,064.44",Counter bill Torch and cells
+POS-302589,07/03/2026,BLR-02,TID4437,Naaz Fabrics Private Limited,Garden tool set,2,UPI,"47,161.00","3,597.03",Counter bill Garden tool set
+POS-303039,07/03/2026,PNQ-01,TID4684,Tanmay Toolroom Private Limited,Mop and bucket,2,WALLET,"29,994.77","2,287.74",Counter bill Mop and bucket
+POS-303059,07/03/2026,PNQ-01,TID4727,Shubhankar Electricals LLP,Cleaning supplies,3,WALLET,"11,394.00",869.03,Counter bill Cleaning supplies
+POS-304222,07/03/2026,BLR-01,TID4260,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,UPI,"8,125.00",619.70,Counter bill Stationery pack
+POS-305249,07/03/2026,BLR-02,TID4639,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,CARD,"42,276.00","3,224.44",Counter bill Paint tin 4L
+POS-305298,07/03/2026,BLR-02,TID4839,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,CARD,"37,376.72","2,850.77",Counter bill Bulb pack of six
+POS-305798,07/03/2026,BLR-01,TID4374,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,CARD,"46,720.92","3,563.46",Counter bill Crockery half set
+POS-301045,08/03/2026,PNQ-01,TID4139,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,NETBANKING,"19,879.35","1,516.22",Counter bill Bedding roll
+POS-301055,08/03/2026,BLR-02,TID4422,Chirag Battery House Pvt Ltd,Sponge pack,3,CARD,"34,456.00","2,628.00",Counter bill Sponge pack
+POS-301633,08/03/2026,PNQ-01,TID4014,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,CARD,"6,404.00",488.44,Counter bill Ladder step 4ft
+POS-302106,08/03/2026,BLR-02,TID4804,Utsav Bakers LLP,Extension board,4,NETBANKING,"30,831.81","2,351.58",Counter bill Extension board
+POS-302660,08/03/2026,HYD-01,TID4026,Marudhar Furnishings LLP,Sports kit,2,CARD,"6,488.31",494.87,Counter bill Sports kit
+POS-302738,08/03/2026,BLR-02,TID4807,Tarangini Prints LLP,Garden tool set,2,NETBANKING,"30,851.00","2,353.04",Counter bill Garden tool set
+POS-302851,08/03/2026,BLR-02,TID4091,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,UPI,"13,241.92","1,009.98",Counter bill Cleaning supplies
+POS-303302,08/03/2026,BLR-02,TID4281,Bhoomi Tiles and Sanitary LLP,Storage crate,4,NETBANKING,"46,071.00","3,513.89",Counter bill Storage crate
+POS-303379,08/03/2026,MYS-01,TID4285,Barkat Stationers Private Limited,Crockery half set,4,UPI,"14,597.00","1,113.33",Counter bill Crockery half set
+POS-303641,08/03/2026,BLR-02,TID4733,Ojas Lighting Private Limited,Battery pack AA,3,NETBANKING,"11,431.95",871.93,Counter bill Battery pack AA
+POS-303714,08/03/2026,MYS-01,TID4424,Palashwood Interiors Pvt Ltd,Stationery pack,1,CARD,"28,172.00","2,148.71",Counter bill Stationery pack
+POS-303812,08/03/2026,BLR-02,TID4403,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,WALLET,"15,426.38","1,176.59",Counter bill Torch and cells
+POS-304002,08/03/2026,PNQ-01,TID4508,Vindhya Plastics Private Limited,Fastener assortment,2,NETBANKING,"28,759.44","2,193.52",Counter bill Fastener assortment
+POS-304014,08/03/2026,PNQ-01,TID4865,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,NETBANKING,"24,959.26","1,903.67",Counter bill Measuring tape 5m
+POS-304203,08/03/2026,MYS-01,TID4216,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,CARD,"45,612.00","3,478.88",Counter bill Tarpaulin sheet
+POS-304796,08/03/2026,PNQ-01,TID4427,Meghdoot Packaging LLP,Paint tin 4L,3,WALLET,"47,094.49","3,591.95",Counter bill Paint tin 4L
+POS-304797,08/03/2026,HYD-01,TID4790,Chandravat Metals Private Limited,Grocery basket,4,UPI,"11,833.58",902.56,Counter bill Grocery basket
+POS-305134,08/03/2026,HYD-01,TID4496,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,WALLET,"41,278.00","3,148.32",Counter bill Bulb pack of six
+POS-305398,08/03/2026,BLR-01,TID4710,Kesari Handlooms Pvt Ltd,Hardware fittings,2,NETBANKING,"30,175.63","2,301.53",Counter bill Hardware fittings
+POS-305879,08/03/2026,HYD-01,TID4837,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,NETBANKING,"43,663.14","3,330.24",Counter bill Electrical wire roll
+POS-300235,09/03/2026,BLR-01,TID4111,Jashan Sports Goods Pvt Ltd,Stationery pack,1,CARD,"25,980.00","1,981.53",Counter bill Stationery pack
+POS-300361,09/03/2026,PNQ-01,TID4682,Bhavani Steel Trading Pvt Ltd,Storage crate,4,WALLET,"17,374.44","1,325.17",Counter bill Storage crate
+POS-300588,09/03/2026,BLR-02,TID4190,Chirag Battery House Pvt Ltd,Cleaning supplies,3,CARD,"26,536.00","2,023.93",Counter bill Cleaning supplies
+POS-301252,09/03/2026,HYD-01,TID4259,Shubhankar Electricals LLP,Sponge pack,3,WALLET,"27,018.00","2,060.69",Counter bill Sponge pack
+POS-301295,09/03/2026,BLR-01,TID4370,Vaayu Organics Private Limited,Plumbing fittings,4,NETBANKING,"2,595.00",197.92,Counter bill Plumbing fittings
+POS-301597,09/03/2026,HYD-01,TID4216,Rukmini Provisions Private Limited,Extension board,4,WALLET,"33,018.88","2,518.39",Counter bill Extension board
+POS-302307,09/03/2026,HYD-01,TID4146,Devgiri Paints LLP,Fastener assortment,2,NETBANKING,"32,523.44","2,480.60",Counter bill Fastener assortment
+POS-302313,09/03/2026,PNQ-01,TID4717,Tanmay Toolroom Private Limited,Garden tool set,2,CARD,"23,924.00","1,824.71",Counter bill Garden tool set
+POS-302482,09/03/2026,HYD-01,TID4838,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,CARD,"12,168.00",928.07,Counter bill Battery pack AA
+POS-302707,09/03/2026,HYD-01,TID4059,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,WALLET,"25,618.04","1,953.92",Counter bill Ladder step 4ft
+POS-303016,09/03/2026,MYS-01,TID4308,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,WALLET,"27,362.00","2,086.93",Counter bill Bedding roll
+POS-303493,09/03/2026,HYD-01,TID4254,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,WALLET,"1,778.38",135.64,Counter bill Adhesive carton
+POS-304144,09/03/2026,PNQ-01,TID4365,Naaz Fabrics Private Limited,Mop and bucket,2,NETBANKING,"15,159.24","1,156.21",Counter bill Mop and bucket
+POS-304235,09/03/2026,PNQ-01,TID4104,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,UPI,"7,029.00",536.11,Counter bill Electrical wire roll
+POS-304428,09/03/2026,BLR-01,TID4587,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,WALLET,"35,610.00","2,716.02",Counter bill Measuring tape 5m
+POS-304527,09/03/2026,PNQ-01,TID4882,Suvarna Weaves LLP,Sports kit,2,NETBANKING,"31,379.00","2,393.31",Counter bill Sports kit
+POS-305339,09/03/2026,BLR-02,TID4891,Sohrab Auto Spares LLP,Grocery basket,4,UPI,"25,141.14","1,917.54",Counter bill Grocery basket
+POS-305534,09/03/2026,MYS-01,TID4159,Vindhya Plastics Private Limited,Hardware fittings,2,UPI,"1,117.50",85.23,Counter bill Hardware fittings
+POS-305877,09/03/2026,BLR-01,TID4072,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,WALLET,"19,410.00","1,480.42",Counter bill Cable tie pack
+POS-300103,10/03/2026,MYS-01,TID4535,Barkat Stationers Private Limited,Storage crate,4,NETBANKING,"41,547.00","3,168.84",Counter bill Storage crate
+POS-300592,10/03/2026,BLR-01,TID4365,Tarangini Prints LLP,Mop and bucket,2,CARD,"34,060.18","2,597.81",Counter bill Mop and bucket
+POS-300615,10/03/2026,HYD-01,TID4206,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,CARD,"1,448.00",110.44,Counter bill Paint tin 4L
+POS-301111,10/03/2026,HYD-01,TID4636,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,WALLET,"29,658.86","2,262.12",Counter bill Electrical wire roll
+POS-301116,10/03/2026,MYS-01,TID4547,Meghdoot Packaging LLP,Measuring tape 5m,3,CARD,"47,932.00","3,655.83",Counter bill Measuring tape 5m
+POS-301641,10/03/2026,BLR-01,TID4696,Naaz Fabrics Private Limited,Garden tool set,2,NETBANKING,"42,675.00","3,254.87",Counter bill Garden tool set
+POS-301900,10/03/2026,MYS-01,TID4855,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,NETBANKING,"12,287.34",937.17,Counter bill Bulb pack of six
+POS-301927,10/03/2026,BLR-01,TID4452,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,WALLET,"28,370.38","2,163.84",Counter bill Stationery pack
+POS-302151,10/03/2026,BLR-01,TID4893,Yamini Home Needs Pvt Ltd,Bedding roll,1,NETBANKING,"31,455.49","2,399.15",Counter bill Bedding roll
+POS-302233,10/03/2026,BLR-02,TID4639,Utsav Bakers LLP,Plumbing fittings,4,CARD,"35,976.00","2,743.93",Counter bill Plumbing fittings
+POS-302236,10/03/2026,BLR-02,TID4686,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,WALLET,"11,106.00",847.07,Counter bill Crockery half set
+POS-302295,10/03/2026,HYD-01,TID4569,Palashwood Interiors Pvt Ltd,Adhesive carton,1,CARD,"41,788.22","3,187.24",Counter bill Adhesive carton
+POS-302525,10/03/2026,BLR-02,TID4118,Ojas Lighting Private Limited,Cable tie pack,3,NETBANKING,"13,431.00","1,024.40",Counter bill Cable tie pack
+POS-302900,10/03/2026,PNQ-01,TID4434,Kesari Handlooms Pvt Ltd,Fastener assortment,2,CARD,"40,844.42","3,115.25",Counter bill Fastener assortment
+POS-303478,10/03/2026,PNQ-01,TID4827,Marudhar Furnishings LLP,Tarpaulin sheet,2,UPI,"30,989.58","2,363.61",Counter bill Tarpaulin sheet
+POS-303713,10/03/2026,HYD-01,TID4349,Ekansh Glassworks Private Limited,Sports kit,2,CARD,"27,648.00","2,108.75",Counter bill Sports kit
+POS-303850,10/03/2026,PNQ-01,TID4301,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,UPI,"2,109.00",160.86,Counter bill Grocery basket
+POS-304383,10/03/2026,HYD-01,TID4689,Chandravat Metals Private Limited,Torch and cells,4,NETBANKING,"23,723.00","1,809.38",Counter bill Torch and cells
+POS-305781,10/03/2026,BLR-02,TID4400,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,UPI,"28,001.75","2,135.73",Counter bill Sponge pack
+POS-300256,11/03/2026,BLR-01,TID4620,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,UPI,"10,645.93",811.98,Counter bill Cable tie pack
+POS-300303,11/03/2026,PNQ-01,TID4044,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,WALLET,"44,414.00","3,387.51",Counter bill Bulb pack of six
+POS-301099,11/03/2026,BLR-01,TID4699,Tanmay Toolroom Private Limited,Mop and bucket,2,NETBANKING,"17,495.00","1,334.36",Counter bill Mop and bucket
+POS-301157,11/03/2026,PNQ-01,TID4300,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,CARD,"33,604.86","2,563.08",Counter bill Stationery pack
+POS-301435,11/03/2026,MYS-01,TID4338,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,CARD,"14,972.00","1,141.93",Counter bill Ladder step 4ft
+POS-301518,11/03/2026,MYS-01,TID4712,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,NETBANKING,"4,987.29",380.39,Counter bill Battery pack AA
+POS-301575,11/03/2026,MYS-01,TID4164,Shubhankar Electricals LLP,Cleaning supplies,3,CARD,"32,652.83","2,490.47",Counter bill Cleaning supplies
+POS-301885,11/03/2026,BLR-01,TID4552,Marudhar Furnishings LLP,Sports kit,2,UPI,"35,365.50","2,697.37",Counter bill Sports kit
+POS-302163,11/03/2026,PNQ-01,TID4517,Rukmini Provisions Private Limited,Plumbing fittings,4,NETBANKING,"22,519.00","1,717.55",Counter bill Plumbing fittings
+POS-302323,11/03/2026,PNQ-01,TID4464,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,WALLET,"15,854.00","1,209.20",Counter bill Electrical wire roll
+POS-302529,11/03/2026,PNQ-01,TID4539,Suvarna Weaves LLP,Tarpaulin sheet,2,WALLET,"47,874.00","3,651.41",Counter bill Tarpaulin sheet
+POS-303283,11/03/2026,BLR-01,TID4116,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,NETBANKING,"13,415.35","1,023.20",Counter bill Paint tin 4L
+POS-303923,11/03/2026,MYS-01,TID4621,Chirag Battery House Pvt Ltd,Sponge pack,3,NETBANKING,"35,847.50","2,734.13",Counter bill Sponge pack
+POS-304147,11/03/2026,MYS-01,TID4797,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,WALLET,"11,882.30",906.28,Counter bill Adhesive carton
+POS-304449,11/03/2026,BLR-02,TID4505,Sohrab Auto Spares LLP,Torch and cells,4,CARD,"3,536.75",269.75,Counter bill Torch and cells
+POS-305084,11/03/2026,MYS-01,TID4068,Vaayu Organics Private Limited,Extension board,4,UPI,"6,777.37",516.92,Counter bill Extension board
+POS-305220,11/03/2026,BLR-01,TID4082,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,CARD,"13,180.03","1,005.26",Counter bill Bedding roll
+POS-305468,11/03/2026,BLR-01,TID4416,Vindhya Plastics Private Limited,Fastener assortment,2,NETBANKING,"2,915.00",222.33,Counter bill Fastener assortment
+POS-305697,11/03/2026,BLR-01,TID4625,Devgiri Paints LLP,Hardware fittings,2,NETBANKING,"35,875.96","2,736.30",Counter bill Hardware fittings
+POS-305813,11/03/2026,MYS-01,TID4031,Chandravat Metals Private Limited,Grocery basket,4,WALLET,"6,522.57",497.48,Counter bill Grocery basket
+POS-305925,11/03/2026,BLR-01,TID4660,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,CARD,"36,120.00","2,754.92",Counter bill Crockery half set
+POS-300486,12/03/2026,BLR-02,TID4549,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,WALLET,"35,346.00","2,695.88",Counter bill Cleaning supplies
+POS-300668,12/03/2026,MYS-01,TID4126,Ojas Lighting Private Limited,Battery pack AA,3,WALLET,"32,382.00","2,469.81",Counter bill Battery pack AA
+POS-301289,12/03/2026,PNQ-01,TID4565,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,NETBANKING,"29,159.00","2,223.99",Counter bill Tarpaulin sheet
+POS-301716,12/03/2026,BLR-02,TID4300,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,WALLET,"14,706.22","1,121.66",Counter bill Measuring tape 5m
+POS-301974,12/03/2026,BLR-02,TID4662,Vaayu Organics Private Limited,Plumbing fittings,4,CARD,"29,836.00","2,275.63",Counter bill Plumbing fittings
+POS-302451,12/03/2026,BLR-02,TID4430,Naaz Fabrics Private Limited,Mop and bucket,2,CARD,"34,516.04","2,632.58",Counter bill Mop and bucket
+POS-302611,12/03/2026,BLR-01,TID4267,Utsav Bakers LLP,Extension board,4,WALLET,"14,470.41","1,103.68",Counter bill Extension board
+POS-302906,12/03/2026,PNQ-01,TID4112,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,UPI,"19,689.00","1,501.70",Counter bill Bedding roll
+POS-303445,12/03/2026,BLR-02,TID4295,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,WALLET,"33,566.00","2,560.12",Counter bill Adhesive carton
+POS-303711,12/03/2026,MYS-01,TID4843,Palashwood Interiors Pvt Ltd,Stationery pack,1,WALLET,"18,502.00","1,411.17",Counter bill Stationery pack
+POS-304268,12/03/2026,BLR-01,TID4764,Kesari Handlooms Pvt Ltd,Hardware fittings,2,WALLET,"17,950.00","1,369.07",Counter bill Hardware fittings
+POS-304568,12/03/2026,BLR-01,TID4868,Barkat Stationers Private Limited,Crockery half set,4,CARD,"43,880.77","3,346.84",Counter bill Crockery half set
+POS-304639,12/03/2026,BLR-01,TID4460,Meghdoot Packaging LLP,Paint tin 4L,3,CARD,"41,020.00","3,128.64",Counter bill Paint tin 4L
+POS-305528,12/03/2026,BLR-01,TID4742,Bhoomi Tiles and Sanitary LLP,Storage crate,4,CARD,"30,400.74","2,318.70",Counter bill Storage crate
+POS-305529,12/03/2026,PNQ-01,TID4858,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,UPI,"24,909.00","1,899.84",Counter bill Bulb pack of six
+POS-305643,12/03/2026,BLR-02,TID4693,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,CARD,"23,756.00","1,811.90",Counter bill Cable tie pack
+POS-305675,12/03/2026,BLR-01,TID4353,Tarangini Prints LLP,Garden tool set,2,NETBANKING,"33,975.88","2,591.38",Counter bill Garden tool set
+POS-305789,12/03/2026,MYS-01,TID4458,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,NETBANKING,"41,007.00","3,127.65",Counter bill Torch and cells
+POS-305839,12/03/2026,HYD-01,TID4476,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,WALLET,"3,338.59",254.64,Counter bill Ladder step 4ft
+POS-300240,13/03/2026,BLR-02,TID4058,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,WALLET,"38,206.00","2,914.02",Counter bill Bulb pack of six
+POS-300531,13/03/2026,MYS-01,TID4787,Chandravat Metals Private Limited,Torch and cells,4,CARD,"43,312.00","3,303.46",Counter bill Torch and cells
+POS-300658,13/03/2026,BLR-01,TID4490,Vindhya Plastics Private Limited,Hardware fittings,2,WALLET,"16,030.00","1,222.63",Counter bill Hardware fittings
+POS-300782,13/03/2026,PNQ-01,TID4130,Devgiri Paints LLP,Fastener assortment,2,WALLET,"26,114.00","1,991.75",Counter bill Fastener assortment
+POS-301125,13/03/2026,BLR-01,TID4210,Chirag Battery House Pvt Ltd,Cleaning supplies,3,WALLET,"20,370.00","1,553.64",Counter bill Cleaning supplies
+POS-301136,13/03/2026,MYS-01,TID4457,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,WALLET,"15,802.00","1,205.24",Counter bill Battery pack AA
+POS-302060,13/03/2026,BLR-02,TID4813,Jashan Sports Goods Pvt Ltd,Stationery pack,1,CARD,"18,296.46","1,395.49",Counter bill Stationery pack
+POS-302184,13/03/2026,PNQ-01,TID4327,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,UPI,"46,389.00","3,538.14",Counter bill Crockery half set
+POS-302261,13/03/2026,HYD-01,TID4720,Bhavani Steel Trading Pvt Ltd,Storage crate,4,NETBANKING,"30,243.62","2,306.72",Counter bill Storage crate
+POS-302653,13/03/2026,BLR-02,TID4197,Palashwood Interiors Pvt Ltd,Adhesive carton,1,UPI,"32,881.00","2,507.87",Counter bill Adhesive carton
+POS-303525,13/03/2026,HYD-01,TID4711,Rukmini Provisions Private Limited,Extension board,4,WALLET,"42,778.00","3,262.73",Counter bill Extension board
+POS-303740,13/03/2026,BLR-02,TID4162,Tanmay Toolroom Private Limited,Garden tool set,2,CARD,"26,336.47","2,008.71",Counter bill Garden tool set
+POS-303746,13/03/2026,HYD-01,TID4696,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,WALLET,"23,778.60","1,813.62",Counter bill Measuring tape 5m
+POS-304094,13/03/2026,BLR-01,TID4576,Sohrab Auto Spares LLP,Grocery basket,4,NETBANKING,"35,535.00","2,710.30",Counter bill Grocery basket
+POS-304186,13/03/2026,PNQ-01,TID4792,Shubhankar Electricals LLP,Sponge pack,3,UPI,"5,549.00",423.23,Counter bill Sponge pack
+POS-304866,13/03/2026,BLR-01,TID4418,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,WALLET,"21,830.94","1,665.07",Counter bill Electrical wire roll
+POS-304948,13/03/2026,HYD-01,TID4643,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,NETBANKING,"36,003.00","2,745.99",Counter bill Paint tin 4L
+POS-305103,13/03/2026,BLR-01,TID4042,Suvarna Weaves LLP,Sports kit,2,NETBANKING,"38,095.29","2,905.57",Counter bill Sports kit
+POS-305189,13/03/2026,BLR-01,TID4578,Marudhar Furnishings LLP,Tarpaulin sheet,2,WALLET,"16,650.00","1,269.92",Counter bill Tarpaulin sheet
+POS-305260,13/03/2026,MYS-01,TID4768,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,WALLET,"36,882.76","2,813.09",Counter bill Ladder step 4ft
+POS-300144,14/03/2026,MYS-01,TID4690,Sohrab Auto Spares LLP,Torch and cells,4,CARD,"17,432.00","1,329.56",Counter bill Torch and cells
+POS-300254,14/03/2026,BLR-01,TID4774,Barkat Stationers Private Limited,Storage crate,4,CARD,"11,720.00",893.90,Counter bill Storage crate
+POS-300268,14/03/2026,MYS-01,TID4546,Ekansh Glassworks Private Limited,Sports kit,2,WALLET,"41,622.28","3,174.58",Counter bill Sports kit
+POS-300707,14/03/2026,BLR-01,TID4532,Utsav Bakers LLP,Plumbing fittings,4,WALLET,"41,530.66","3,167.59",Counter bill Plumbing fittings
+POS-300866,14/03/2026,MYS-01,TID4626,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"10,682.20",814.74,Counter bill Garden tool set
+POS-300877,14/03/2026,MYS-01,TID4387,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,CARD,"34,212.00","2,609.39",Counter bill Battery pack AA
+POS-301399,14/03/2026,MYS-01,TID4528,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,UPI,"35,197.93","2,684.59",Counter bill Grocery basket
+POS-301753,14/03/2026,BLR-02,TID4895,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,NETBANKING,"37,771.00","2,880.84",Counter bill Electrical wire roll
+POS-301971,14/03/2026,PNQ-01,TID4266,Meghdoot Packaging LLP,Measuring tape 5m,3,CARD,"14,464.10","1,103.19",Counter bill Measuring tape 5m
+POS-302187,14/03/2026,PNQ-01,TID4079,Vaayu Organics Private Limited,Extension board,4,NETBANKING,559.00,42.64,Counter bill Extension board
+POS-302780,14/03/2026,BLR-01,TID4747,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,WALLET,"11,530.49",879.44,Counter bill Stationery pack
+POS-303159,14/03/2026,MYS-01,TID4703,Kesari Handlooms Pvt Ltd,Fastener assortment,2,NETBANKING,"11,227.85",856.36,Counter bill Fastener assortment
+POS-303515,14/03/2026,HYD-01,TID4217,Tarangini Prints LLP,Mop and bucket,2,NETBANKING,"14,123.00","1,077.18",Counter bill Mop and bucket
+POS-303826,14/03/2026,BLR-02,TID4218,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,NETBANKING,"39,331.00","2,999.82",Counter bill Sponge pack
+POS-304052,14/03/2026,PNQ-01,TID4800,Shubhankar Electricals LLP,Cleaning supplies,3,CARD,"18,204.00","1,388.44",Counter bill Cleaning supplies
+POS-304539,14/03/2026,BLR-01,TID4167,Ojas Lighting Private Limited,Cable tie pack,3,NETBANKING,"26,375.00","2,011.65",Counter bill Cable tie pack
+POS-304577,14/03/2026,PNQ-01,TID4577,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,CARD,"41,844.00","3,191.49",Counter bill Ladder step 4ft
+POS-304740,14/03/2026,HYD-01,TID4513,Devgiri Paints LLP,Hardware fittings,2,UPI,"41,393.00","3,157.09",Counter bill Hardware fittings
+POS-305504,14/03/2026,BLR-01,TID4016,Yamini Home Needs Pvt Ltd,Bedding roll,1,NETBANKING,"19,015.62","1,450.34",Counter bill Bedding roll
+POS-300628,15/03/2026,BLR-01,TID4125,Suvarna Weaves LLP,Tarpaulin sheet,2,CARD,880.68,67.17,Counter bill Tarpaulin sheet
+POS-300649,15/03/2026,BLR-01,TID4052,Chandravat Metals Private Limited,Grocery basket,4,WALLET,"31,870.00","2,430.76",Counter bill Grocery basket
+POS-300796,15/03/2026,PNQ-01,TID4085,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,NETBANKING,599.00,45.69,Counter bill Crockery half set
+POS-301008,15/03/2026,BLR-02,TID4380,Palashwood Interiors Pvt Ltd,Stationery pack,1,WALLET,"15,266.00","1,164.36",Counter bill Stationery pack
+POS-301428,15/03/2026,MYS-01,TID4573,Tanmay Toolroom Private Limited,Mop and bucket,2,CARD,"4,012.00",306.00,Counter bill Mop and bucket
+POS-301703,15/03/2026,HYD-01,TID4561,Marudhar Furnishings LLP,Sports kit,2,CARD,"16,528.83","1,260.67",Counter bill Sports kit
+POS-302914,15/03/2026,PNQ-01,TID4451,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,NETBANKING,"40,959.71","3,124.05",Counter bill Electrical wire roll
+POS-303061,15/03/2026,MYS-01,TID4898,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,NETBANKING,"31,487.00","2,401.55",Counter bill Paint tin 4L
+POS-303262,15/03/2026,PNQ-01,TID4289,Ojas Lighting Private Limited,Battery pack AA,3,CARD,"20,924.22","1,595.92",Counter bill Battery pack AA
+POS-303433,15/03/2026,HYD-01,TID4301,Vindhya Plastics Private Limited,Fastener assortment,2,CARD,"27,308.14","2,082.82",Counter bill Fastener assortment
+POS-303650,15/03/2026,BLR-02,TID4872,Chirag Battery House Pvt Ltd,Sponge pack,3,WALLET,"18,706.00","1,426.73",Counter bill Sponge pack
+POS-303984,15/03/2026,MYS-01,TID4388,Tarangini Prints LLP,Garden tool set,2,WALLET,"34,222.23","2,610.17",Counter bill Garden tool set
+POS-303990,15/03/2026,HYD-01,TID4886,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,CARD,"12,508.00",954.00,Counter bill Bulb pack of six
+POS-304134,15/03/2026,MYS-01,TID4738,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,NETBANKING,"30,367.16","2,316.14",Counter bill Bedding roll
+POS-304219,15/03/2026,BLR-02,TID4651,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,UPI,"10,861.48",828.42,Counter bill Measuring tape 5m
+POS-305004,15/03/2026,MYS-01,TID4556,Bhoomi Tiles and Sanitary LLP,Storage crate,4,UPI,"47,997.00","3,660.79",Counter bill Storage crate
+POS-305811,15/03/2026,MYS-01,TID4483,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,NETBANKING,"28,587.00","2,180.36",Counter bill Adhesive carton
+POS-305830,15/03/2026,HYD-01,TID4096,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,UPI,"32,173.00","2,453.87",Counter bill Cable tie pack
+POS-305944,15/03/2026,HYD-01,TID4535,Rukmini Provisions Private Limited,Plumbing fittings,4,CARD,"3,748.00",285.86,Counter bill Plumbing fittings
+POS-300405,16/03/2026,PNQ-01,TID4751,Suvarna Weaves LLP,Sports kit,2,NETBANKING,"17,859.00","1,362.13",Counter bill Sports kit
+POS-300517,16/03/2026,BLR-02,TID4685,Shubhankar Electricals LLP,Sponge pack,3,CARD,"23,696.00","1,807.32",Counter bill Sponge pack
+POS-300674,16/03/2026,PNQ-01,TID4666,Kesari Handlooms Pvt Ltd,Hardware fittings,2,CARD,"42,464.00","3,238.78",Counter bill Hardware fittings
+POS-300751,16/03/2026,HYD-01,TID4464,Devgiri Paints LLP,Fastener assortment,2,CARD,"15,848.21","1,208.76",Counter bill Fastener assortment
+POS-301384,16/03/2026,BLR-02,TID4303,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,WALLET,"2,126.98",162.23,Counter bill Cable tie pack
+POS-301473,16/03/2026,BLR-02,TID4360,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,UPI,"8,821.00",672.79,Counter bill Torch and cells
+POS-301702,16/03/2026,PNQ-01,TID4641,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,UPI,"10,789.20",822.91,Counter bill Electrical wire roll
+POS-301767,16/03/2026,BLR-01,TID4365,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,CARD,"34,060.08","2,597.80",Counter bill Bulb pack of six
+POS-302262,16/03/2026,PNQ-01,TID4079,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,WALLET,"13,154.00","1,003.27",Counter bill Ladder step 4ft
+POS-302424,16/03/2026,BLR-02,TID4893,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,NETBANKING,"6,251.00",476.77,Counter bill Bedding roll
+POS-303014,16/03/2026,BLR-01,TID4227,Naaz Fabrics Private Limited,Mop and bucket,2,NETBANKING,"1,595.00",121.65,Counter bill Mop and bucket
+POS-303056,16/03/2026,PNQ-01,TID4695,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,UPI,"4,869.11",371.37,Counter bill Tarpaulin sheet
+POS-303456,16/03/2026,PNQ-01,TID4510,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,WALLET,"22,474.00","1,714.12",Counter bill Adhesive carton
+POS-303991,16/03/2026,PNQ-01,TID4062,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,NETBANKING,"13,039.00",994.50,Counter bill Cleaning supplies
+POS-304710,16/03/2026,BLR-02,TID4825,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,UPI,"12,081.00",921.43,Counter bill Measuring tape 5m
+POS-304756,16/03/2026,HYD-01,TID4704,Sohrab Auto Spares LLP,Grocery basket,4,UPI,"11,233.62",856.80,Counter bill Grocery basket
+POS-305111,16/03/2026,BLR-01,TID4178,Meghdoot Packaging LLP,Paint tin 4L,3,WALLET,"39,050.21","2,978.41",Counter bill Paint tin 4L
+POS-305463,16/03/2026,HYD-01,TID4214,Utsav Bakers LLP,Extension board,4,NETBANKING,"45,603.27","3,478.22",Counter bill Extension board
+POS-305484,16/03/2026,BLR-02,TID4575,Barkat Stationers Private Limited,Crockery half set,4,WALLET,"41,826.00","3,190.12",Counter bill Crockery half set
+POS-305872,16/03/2026,BLR-02,TID4470,Vaayu Organics Private Limited,Plumbing fittings,4,NETBANKING,"22,191.92","1,692.60",Counter bill Plumbing fittings
+POS-300550,17/03/2026,PNQ-01,TID4014,Utsav Bakers LLP,Plumbing fittings,4,NETBANKING,"31,599.00","2,410.09",Counter bill Plumbing fittings
+POS-301331,17/03/2026,BLR-02,TID4846,Kesari Handlooms Pvt Ltd,Fastener assortment,2,WALLET,"5,926.00",451.98,Counter bill Fastener assortment
+POS-301477,17/03/2026,BLR-02,TID4848,Chandravat Metals Private Limited,Torch and cells,4,UPI,"24,841.00","1,894.65",Counter bill Torch and cells
+POS-301538,17/03/2026,PNQ-01,TID4691,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,NETBANKING,"23,739.00","1,810.60",Counter bill Paint tin 4L
+POS-301775,17/03/2026,MYS-01,TID4149,Marudhar Furnishings LLP,Tarpaulin sheet,2,NETBANKING,"32,547.00","2,482.40",Counter bill Tarpaulin sheet
+POS-301803,17/03/2026,PNQ-01,TID4876,Vindhya Plastics Private Limited,Hardware fittings,2,WALLET,"6,134.90",467.92,Counter bill Hardware fittings
+POS-301836,17/03/2026,BLR-01,TID4087,Jashan Sports Goods Pvt Ltd,Stationery pack,1,NETBANKING,"44,715.49","3,410.50",Counter bill Stationery pack
+POS-301994,17/03/2026,BLR-02,TID4119,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,CARD,"19,736.88","1,505.36",Counter bill Crockery half set
+POS-302640,17/03/2026,BLR-01,TID4811,Chirag Battery House Pvt Ltd,Battery pack AA,1,CARD,"5,680.00",433.22,Counter bill battery pack lot
+POS-303174,17/03/2026,PNQ-01,TID4609,Rukmini Provisions Private Limited,Extension board,4,UPI,"35,769.45","2,728.18",Counter bill Extension board
+POS-303583,17/03/2026,MYS-01,TID4791,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,UPI,"18,137.00","1,383.33",Counter bill Bulb pack of six
+POS-303590,17/03/2026,PNQ-01,TID4557,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,NETBANKING,"41,699.00","3,180.43",Counter bill Ladder step 4ft
+POS-303607,17/03/2026,BLR-02,TID4345,Tarangini Prints LLP,Mop and bucket,2,UPI,"40,221.43","3,067.74",Counter bill Mop and bucket
+POS-303651,17/03/2026,BLR-01,TID4835,Chirag Battery House Pvt Ltd,Cleaning supplies,3,WALLET,"37,350.00","2,848.73",Counter bill Cleaning supplies
+POS-304001,17/03/2026,BLR-01,TID4257,Yamini Home Needs Pvt Ltd,Bedding roll,1,UPI,"33,305.85","2,540.28",Counter bill Bedding roll
+POS-304653,17/03/2026,HYD-01,TID4321,Ojas Lighting Private Limited,Cable tie pack,3,UPI,"46,353.00","3,535.40",Counter bill Cable tie pack
+POS-305033,17/03/2026,PNQ-01,TID4565,Bhavani Steel Trading Pvt Ltd,Storage crate,4,NETBANKING,"3,959.13",301.97,Counter bill Storage crate
+POS-305276,17/03/2026,MYS-01,TID4361,Tanmay Toolroom Private Limited,Garden tool set,2,CARD,"46,632.00","3,556.68",Counter bill Garden tool set
+POS-305785,17/03/2026,MYS-01,TID4738,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,CARD,"17,772.00","1,355.49",Counter bill Battery pack AA
+POS-300247,18/03/2026,PNQ-01,TID4127,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,WALLET,"26,094.00","1,990.22",Counter bill Bulb pack of six
+POS-300808,18/03/2026,BLR-01,TID4098,Shubhankar Electricals LLP,Cleaning supplies,3,WALLET,"44,790.04","3,416.19",Counter bill Cleaning supplies
+POS-301479,18/03/2026,HYD-01,TID4806,Devgiri Paints LLP,Hardware fittings,2,NETBANKING,"43,443.54","3,313.49",Counter bill Hardware fittings
+POS-301507,18/03/2026,BLR-01,TID4355,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,WALLET,"2,490.00",189.92,Counter bill Adhesive carton
+POS-301529,18/03/2026,MYS-01,TID4846,Tanmay Toolroom Private Limited,Mop and bucket,2,NETBANKING,"31,127.00","2,374.09",Counter bill Mop and bucket
+POS-301891,18/03/2026,MYS-01,TID4289,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,NETBANKING,"39,827.38","3,037.68",Counter bill Stationery pack
+POS-302374,18/03/2026,BLR-02,TID4036,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,CARD,"25,456.95","1,941.63",Counter bill Battery pack AA
+POS-302389,18/03/2026,PNQ-01,TID4236,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,WALLET,"33,154.00","2,528.69",Counter bill Crockery half set
+POS-302806,18/03/2026,MYS-01,TID4871,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,UPI,"18,697.00","1,426.04",Counter bill Paint tin 4L
+POS-303149,18/03/2026,BLR-02,TID4366,Ekansh Glassworks Private Limited,Sports kit,2,WALLET,"46,666.72","3,559.33",Counter bill Sports kit
+POS-303615,18/03/2026,BLR-02,TID4694,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,UPI,"42,661.00","3,253.81",Counter bill Ladder step 4ft
+POS-303668,18/03/2026,MYS-01,TID4622,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,UPI,"16,957.72","1,293.39",Counter bill Grocery basket
+POS-303745,18/03/2026,BLR-01,TID4235,Vaayu Organics Private Limited,Extension board,4,UPI,"39,445.00","3,008.52",Counter bill Extension board
+POS-304199,18/03/2026,PNQ-01,TID4882,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,WALLET,"25,074.00","1,912.42",Counter bill Sponge pack
+POS-304416,18/03/2026,BLR-01,TID4317,Sohrab Auto Spares LLP,Torch and cells,4,CARD,"46,320.00","3,532.88",Counter bill Torch and cells
+POS-304718,18/03/2026,HYD-01,TID4653,Meghdoot Packaging LLP,Measuring tape 5m,3,UPI,"36,073.00","2,751.33",Counter bill Measuring tape 5m
+POS-305183,18/03/2026,BLR-02,TID4603,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"16,826.38","1,283.37",Counter bill Garden tool set
+POS-305790,18/03/2026,BLR-02,TID4577,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,UPI,"35,541.07","2,710.76",Counter bill Electrical wire roll
+POS-305911,18/03/2026,HYD-01,TID4407,Barkat Stationers Private Limited,Storage crate,4,UPI,"28,053.00","2,139.64",Counter bill Storage crate
+POS-305990,18/03/2026,HYD-01,TID4356,Suvarna Weaves LLP,Tarpaulin sheet,2,UPI,"40,293.00","3,073.19",Counter bill Tarpaulin sheet
+POS-300375,19/03/2026,BLR-01,TID4841,Rukmini Provisions Private Limited,Plumbing fittings,4,WALLET,"37,390.00","2,851.78",Counter bill Plumbing fittings
+POS-301532,19/03/2026,BLR-01,TID4377,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,CARD,"21,540.00","1,642.88",Counter bill Torch and cells
+POS-301794,19/03/2026,PNQ-01,TID4657,Marudhar Furnishings LLP,Sports kit,2,CARD,"36,104.00","2,753.69",Counter bill Sports kit
+POS-302636,19/03/2026,MYS-01,TID4297,Bhoomi Tiles and Sanitary LLP,Storage crate,4,WALLET,"39,882.73","3,041.90",Counter bill Storage crate
+POS-302740,19/03/2026,BLR-01,TID4885,Palashwood Interiors Pvt Ltd,Stationery pack,1,CARD,"37,700.00","2,875.42",Counter bill Stationery pack
+POS-302769,19/03/2026,BLR-02,TID4297,Chandravat Metals Private Limited,Grocery basket,4,UPI,"46,181.00","3,522.28",Counter bill Grocery basket
+POS-302959,19/03/2026,BLR-01,TID4052,Vindhya Plastics Private Limited,Fastener assortment,2,WALLET,"6,670.00",508.73,Counter bill Fastener assortment
+POS-303182,19/03/2026,PNQ-01,TID4307,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,UPI,"46,249.05","3,527.47",Counter bill Bedding roll
+POS-303470,19/03/2026,MYS-01,TID4562,Chirag Battery House Pvt Ltd,Sponge pack,3,UPI,"35,437.00","2,702.82",Counter bill Sponge pack
+POS-303637,19/03/2026,HYD-01,TID4381,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,UPI,"21,573.00","1,645.40",Counter bill Electrical wire roll
+POS-303747,19/03/2026,HYD-01,TID4299,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,WALLET,"14,698.00","1,121.03",Counter bill Cleaning supplies
+POS-303901,19/03/2026,BLR-02,TID4791,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,UPI,"11,841.73",903.18,Counter bill Measuring tape 5m
+POS-304312,19/03/2026,PNQ-01,TID4237,Kesari Handlooms Pvt Ltd,Hardware fittings,2,CARD,"7,964.00",607.42,Counter bill Hardware fittings
+POS-304998,19/03/2026,BLR-01,TID4165,Tarangini Prints LLP,Garden tool set,2,CARD,"7,460.00",568.98,Counter bill Garden tool set
+POS-305081,19/03/2026,BLR-01,TID4184,Ojas Lighting Private Limited,Battery pack AA,3,WALLET,"39,090.00","2,981.44",Counter bill Battery pack AA
+POS-305163,19/03/2026,BLR-02,TID4768,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,UPI,"36,881.18","2,812.97",Counter bill Ladder step 4ft
+POS-305321,19/03/2026,BLR-02,TID4704,Utsav Bakers LLP,Extension board,4,NETBANKING,"11,231.00",856.60,Counter bill Extension board
+POS-305923,19/03/2026,BLR-02,TID4423,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,UPI,"34,461.00","2,628.38",Counter bill Cable tie pack
+POS-305951,19/03/2026,BLR-01,TID4847,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,NETBANKING,"12,235.00",933.18,Counter bill Bulb pack of six
+POS-300100,20/03/2026,PNQ-01,TID4884,Bhavani Steel Trading Pvt Ltd,Storage crate,4,WALLET,"25,094.19","1,913.96",Counter bill Storage crate
+POS-300388,20/03/2026,BLR-01,TID4249,Barkat Stationers Private Limited,Crockery half set,4,UPI,"39,545.00","3,016.14",Counter bill Crockery half set
+POS-300733,20/03/2026,MYS-01,TID4191,Shubhankar Electricals LLP,Sponge pack,3,WALLET,"32,842.00","2,504.90",Counter bill Sponge pack
+POS-300993,20/03/2026,BLR-02,TID4385,Rukmini Provisions Private Limited,Extension board,4,CARD,"27,896.00","2,127.66",Counter bill Extension board
+POS-301743,20/03/2026,BLR-01,TID4894,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,CARD,"25,160.00","1,918.98",Counter bill Measuring tape 5m
+POS-301842,20/03/2026,HYD-01,TID4214,Tanmay Toolroom Private Limited,Garden tool set,2,WALLET,"7,798.00",594.76,Counter bill Garden tool set
+POS-302503,20/03/2026,MYS-01,TID4148,Suvarna Weaves LLP,Sports kit,2,WALLET,"38,842.20","2,962.54",Counter bill Sports kit
+POS-302650,20/03/2026,BLR-02,TID4208,Vaayu Organics Private Limited,Plumbing fittings,4,UPI,"1,461.00",111.43,Counter bill Plumbing fittings
+POS-302695,20/03/2026,MYS-01,TID4806,Meghdoot Packaging LLP,Paint tin 4L,3,NETBANKING,"24,547.58","1,872.27",Counter bill Paint tin 4L
+POS-302949,20/03/2026,MYS-01,TID4461,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,NETBANKING,"41,027.00","3,129.18",Counter bill Adhesive carton
+POS-303466,20/03/2026,BLR-02,TID4654,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,UPI,"17,181.02","1,310.42",Counter bill Electrical wire roll
+POS-304034,20/03/2026,MYS-01,TID4478,Devgiri Paints LLP,Fastener assortment,2,CARD,"41,152.09","3,138.72",Counter bill Fastener assortment
+POS-304545,20/03/2026,MYS-01,TID4091,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,UPI,"44,737.97","3,412.22",Counter bill Cable tie pack
+POS-304693,20/03/2026,PNQ-01,TID4294,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,CARD,"14,664.00","1,118.44",Counter bill Tarpaulin sheet
+POS-305216,20/03/2026,HYD-01,TID4501,Naaz Fabrics Private Limited,Mop and bucket,2,UPI,"9,813.49",748.49,Counter bill Mop and bucket
+POS-305237,20/03/2026,HYD-01,TID4565,Jashan Sports Goods Pvt Ltd,Stationery pack,1,WALLET,"3,958.32",301.91,Counter bill Stationery pack
+POS-305462,20/03/2026,BLR-02,TID4188,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,UPI,"7,621.00",581.26,Counter bill Battery pack AA
+POS-305554,20/03/2026,PNQ-01,TID4544,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,UPI,"29,009.37","2,212.58",Counter bill Bedding roll
+POS-305915,20/03/2026,MYS-01,TID4040,Sohrab Auto Spares LLP,Grocery basket,4,WALLET,"25,482.00","1,943.54",Counter bill Grocery basket
+POS-300624,21/03/2026,BLR-02,TID4160,Vindhya Plastics Private Limited,Hardware fittings,2,WALLET,"26,326.17","2,007.93",Counter bill Hardware fittings
+POS-301011,21/03/2026,MYS-01,TID4682,Ekansh Glassworks Private Limited,Sports kit,2,UPI,"36,277.06","2,766.89",Counter bill Sports kit
+POS-301262,21/03/2026,BLR-01,TID4837,Meghdoot Packaging LLP,Measuring tape 5m,3,UPI,"37,365.00","2,849.87",Counter bill Measuring tape 5m
+POS-301569,21/03/2026,HYD-01,TID4459,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,UPI,"15,813.00","1,206.08",Counter bill Crockery half set
+POS-301690,21/03/2026,BLR-01,TID4229,Chirag Battery House Pvt Ltd,Cleaning supplies,3,UPI,"39,405.00","3,005.47",Counter bill Cleaning supplies
+POS-302245,21/03/2026,BLR-02,TID4468,Chandravat Metals Private Limited,Torch and cells,4,CARD,"15,876.77","1,210.94",Counter bill Torch and cells
+POS-302286,21/03/2026,HYD-01,TID4852,Utsav Bakers LLP,Plumbing fittings,4,CARD,"31,168.00","2,377.22",Counter bill Plumbing fittings
+POS-302472,21/03/2026,BLR-01,TID4617,Tarangini Prints LLP,Mop and bucket,2,UPI,"35,825.00","2,732.42",Counter bill Mop and bucket
+POS-303012,21/03/2026,HYD-01,TID4381,Barkat Stationers Private Limited,Storage crate,4,CARD,"2,668.00",203.49,Counter bill Storage crate
+POS-303356,21/03/2026,MYS-01,TID4506,Yamini Home Needs Pvt Ltd,Bedding roll,1,WALLET,"41,342.00","3,153.20",Counter bill Bedding roll
+POS-303537,21/03/2026,HYD-01,TID4330,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,UPI,"46,413.00","3,539.97",Counter bill Paint tin 4L
+POS-303631,21/03/2026,BLR-02,TID4468,Palashwood Interiors Pvt Ltd,Adhesive carton,1,UPI,"28,481.28","2,172.30",Counter bill Adhesive carton
+POS-303786,21/03/2026,HYD-01,TID4070,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,UPI,"44,593.00","3,401.16",Counter bill Bulb pack of six
+POS-303904,21/03/2026,MYS-01,TID4541,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,NETBANKING,"3,787.10",288.85,Counter bill Ladder step 4ft
+POS-303917,21/03/2026,BLR-02,TID4508,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,UPI,"47,661.00","3,635.16",Counter bill Grocery basket
+POS-304340,21/03/2026,BLR-01,TID4557,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,UPI,"35,405.00","2,700.38",Counter bill Sponge pack
+POS-304389,21/03/2026,BLR-01,TID4037,Ojas Lighting Private Limited,Cable tie pack,3,CARD,"12,860.00",980.85,Counter bill Cable tie pack
+POS-305001,21/03/2026,BLR-01,TID4758,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,WALLET,"43,110.84","3,288.11",Counter bill Electrical wire roll
+POS-305201,21/03/2026,BLR-02,TID4450,Kesari Handlooms Pvt Ltd,Fastener assortment,2,CARD,"15,756.25","1,201.75",Counter bill Fastener assortment
+POS-305699,21/03/2026,BLR-01,TID4225,Marudhar Furnishings LLP,Tarpaulin sheet,2,CARD,"1,580.00",120.51,Counter bill Tarpaulin sheet
+POS-300640,22/03/2026,MYS-01,TID4266,Sohrab Auto Spares LLP,Torch and cells,4,WALLET,"33,362.00","2,544.56",Counter bill Torch and cells
+POS-301134,22/03/2026,HYD-01,TID4554,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,NETBANKING,"35,383.59","2,698.75",Counter bill Battery pack AA
+POS-301305,22/03/2026,HYD-01,TID4448,Shubhankar Electricals LLP,Cleaning supplies,3,WALLET,"22,038.00","1,680.86",Counter bill Cleaning supplies
+POS-301316,22/03/2026,MYS-01,TID4352,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,NETBANKING,"2,467.00",188.16,Counter bill Paint tin 4L
+POS-301336,22/03/2026,PNQ-01,TID4054,Tanmay Toolroom Private Limited,Mop and bucket,2,NETBANKING,379.31,28.93,Counter bill Mop and bucket
+POS-301375,22/03/2026,BLR-01,TID4511,Vindhya Plastics Private Limited,Fastener assortment,2,CARD,"41,380.75","3,156.16",Counter bill Fastener assortment
+POS-302794,22/03/2026,HYD-01,TID4106,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,CARD,"7,048.00",537.56,Counter bill Bedding roll
+POS-302973,22/03/2026,MYS-01,TID4803,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,WALLET,"18,222.00","1,389.81",Counter bill Stationery pack
+POS-303616,22/03/2026,BLR-02,TID4672,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,WALLET,"36,206.74","2,761.53",Counter bill Cable tie pack
+POS-304116,22/03/2026,BLR-02,TID4143,Rukmini Provisions Private Limited,Plumbing fittings,4,UPI,"38,801.00","2,959.40",Counter bill Plumbing fittings
+POS-304346,22/03/2026,HYD-01,TID4633,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,UPI,"42,233.04","3,221.16",Counter bill Ladder step 4ft
+POS-304382,22/03/2026,MYS-01,TID4665,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,UPI,"4,657.00",355.19,Counter bill Crockery half set
+POS-304459,22/03/2026,HYD-01,TID4039,Vaayu Organics Private Limited,Extension board,4,WALLET,"38,078.00","2,904.25",Counter bill Extension board
+POS-304555,22/03/2026,HYD-01,TID4211,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"20,378.00","1,554.25",Counter bill Garden tool set
+POS-304651,22/03/2026,BLR-01,TID4028,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,CARD,"38,000.00","2,898.31",Counter bill Adhesive carton
+POS-304690,22/03/2026,BLR-01,TID4462,Devgiri Paints LLP,Hardware fittings,2,CARD,"9,540.00",727.63,Counter bill Hardware fittings
+POS-304803,22/03/2026,BLR-02,TID4783,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,UPI,"24,381.00","1,859.57",Counter bill Bulb pack of six
+POS-305010,22/03/2026,BLR-02,TID4612,Suvarna Weaves LLP,Tarpaulin sheet,2,WALLET,"29,486.52","2,248.97",Counter bill Tarpaulin sheet
+POS-305456,22/03/2026,BLR-01,TID4879,Chirag Battery House Pvt Ltd,Sponge pack,3,NETBANKING,"31,355.00","2,391.48",Counter bill Sponge pack
+POS-300168,23/03/2026,BLR-02,TID4375,Marudhar Furnishings LLP,Sports kit,2,NETBANKING,"27,831.00","2,122.70",Counter bill Sports kit
+POS-300412,23/03/2026,BLR-01,TID4322,Sanchit Hardware Depot Pvt Ltd,Hardware fittings,1,CARD,"27,460.00","2,094.41",Counter bill hardware fittings
+POS-300526,23/03/2026,PNQ-01,TID4273,Ojas Lighting Private Limited,Battery pack AA,3,WALLET,"8,214.00",626.49,Counter bill Battery pack AA
+POS-300745,23/03/2026,HYD-01,TID4142,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,WALLET,998.00,76.12,Counter bill Ladder step 4ft
+POS-300759,23/03/2026,HYD-01,TID4434,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,WALLET,"9,338.00",712.22,Counter bill Electrical wire roll
+POS-300832,23/03/2026,MYS-01,TID4826,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,WALLET,"43,582.85","3,324.12",Counter bill Measuring tape 5m
+POS-300834,23/03/2026,BLR-02,TID4110,Barkat Stationers Private Limited,Crockery half set,4,NETBANKING,"7,071.00",539.31,Counter bill Crockery half set
+POS-301614,23/03/2026,MYS-01,TID4595,Utsav Bakers LLP,Extension board,4,NETBANKING,"4,167.11",317.83,Counter bill Extension board
+POS-301693,23/03/2026,BLR-01,TID4686,Bhoomi Tiles and Sanitary LLP,Storage crate,4,UPI,"11,105.00",846.99,Counter bill Storage crate
+POS-301892,23/03/2026,PNQ-01,TID4834,Naaz Fabrics Private Limited,Mop and bucket,2,NETBANKING,"24,739.69","1,886.93",Counter bill Mop and bucket
+POS-302005,23/03/2026,HYD-01,TID4465,Kesari Handlooms Pvt Ltd,Hardware fittings,2,WALLET,"9,558.02",729.00,Counter bill Hardware fittings
+POS-302047,23/03/2026,PNQ-01,TID4895,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,UPI,"25,169.72","1,919.72",Counter bill Adhesive carton
+POS-302379,23/03/2026,BLR-01,TID4790,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,NETBANKING,"24,435.00","1,863.69",Counter bill Tarpaulin sheet
+POS-302645,23/03/2026,MYS-01,TID4213,Meghdoot Packaging LLP,Paint tin 4L,3,CARD,"7,792.00",594.31,Counter bill Paint tin 4L
+POS-303058,23/03/2026,PNQ-01,TID4324,Chandravat Metals Private Limited,Grocery basket,4,UPI,"14,869.00","1,134.08",Counter bill Grocery basket
+POS-303180,23/03/2026,BLR-01,TID4422,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,NETBANKING,"34,455.70","2,627.98",Counter bill Bulb pack of six
+POS-304209,23/03/2026,MYS-01,TID4113,Palashwood Interiors Pvt Ltd,Stationery pack,1,UPI,"7,097.00",541.30,Counter bill Stationery pack
+POS-304314,23/03/2026,MYS-01,TID4191,Tarangini Prints LLP,Garden tool set,2,WALLET,"45,442.36","3,465.94",Counter bill Garden tool set
+POS-305107,23/03/2026,MYS-01,TID4004,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,CARD,"44,132.24","3,366.02",Counter bill Torch and cells
+POS-305984,23/03/2026,HYD-01,TID4200,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,NETBANKING,"26,603.00","2,029.04",Counter bill Cleaning supplies
+POS-300152,24/03/2026,BLR-02,TID4384,Tanmay Toolroom Private Limited,Garden tool set,2,NETBANKING,"8,991.00",685.75,Counter bill Garden tool set
+POS-300200,24/03/2026,PNQ-01,TID4044,Shubhankar Electricals LLP,Sponge pack,3,UPI,"25,509.00","1,945.60",Counter bill Sponge pack
+POS-300826,24/03/2026,BLR-01,TID4669,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,UPI,"42,485.00","3,240.38",Counter bill Electrical wire roll
+POS-301335,24/03/2026,HYD-01,TID4145,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,WALLET,"26,218.00","1,999.68",Counter bill Bulb pack of six
+POS-301420,24/03/2026,HYD-01,TID4353,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,UPI,"33,973.00","2,591.16",Counter bill Ladder step 4ft
+POS-301991,24/03/2026,HYD-01,TID4795,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,CARD,"43,368.00","3,307.73",Counter bill Battery pack AA
+POS-302083,24/03/2026,MYS-01,TID4306,Devgiri Paints LLP,Fastener assortment,2,NETBANKING,"33,647.00","2,566.30",Counter bill Fastener assortment
+POS-302251,24/03/2026,HYD-01,TID4034,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,NETBANKING,"44,343.00","3,382.09",Counter bill Cable tie pack
+POS-302431,24/03/2026,BLR-01,TID4323,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,UPI,"21,165.80","1,614.34",Counter bill Bedding roll
+POS-303132,24/03/2026,HYD-01,TID4201,Chandravat Metals Private Limited,Torch and cells,4,UPI,"20,313.00","1,549.30",Counter bill Torch and cells
+POS-303455,24/03/2026,MYS-01,TID4890,Chirag Battery House Pvt Ltd,Cleaning supplies,3,CARD,"6,232.21",475.34,Counter bill Cleaning supplies
+POS-303683,24/03/2026,BLR-02,TID4152,Sohrab Auto Spares LLP,Grocery basket,4,WALLET,"13,666.00","1,042.32",Counter bill Grocery basket
+POS-303742,24/03/2026,PNQ-01,TID4817,Marudhar Furnishings LLP,Tarpaulin sheet,2,CARD,"30,924.00","2,358.61",Counter bill Tarpaulin sheet
+POS-303992,24/03/2026,HYD-01,TID4469,Rukmini Provisions Private Limited,Extension board,4,CARD,"3,288.00",250.78,Counter bill Extension board
+POS-304074,24/03/2026,HYD-01,TID4652,Bhavani Steel Trading Pvt Ltd,Storage crate,4,CARD,"36,068.00","2,750.95",Counter bill Storage crate
+POS-304224,24/03/2026,PNQ-01,TID4734,Jashan Sports Goods Pvt Ltd,Stationery pack,1,NETBANKING,"42,939.00","3,275.01",Counter bill Stationery pack
+POS-304610,24/03/2026,BLR-02,TID4420,Suvarna Weaves LLP,Sports kit,2,UPI,"21,841.56","1,665.88",Counter bill Sports kit
+POS-304652,24/03/2026,HYD-01,TID4659,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,UPI,"4,613.00",351.84,Counter bill Measuring tape 5m
+POS-305245,24/03/2026,MYS-01,TID4580,Vindhya Plastics Private Limited,Hardware fittings,2,WALLET,"10,362.31",790.35,Counter bill Hardware fittings
+POS-305377,24/03/2026,PNQ-01,TID4443,Vaayu Organics Private Limited,Plumbing fittings,4,CARD,"15,704.00","1,197.76",Counter bill Plumbing fittings
+POS-300194,25/03/2026,BLR-02,TID4553,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,NETBANKING,"22,771.00","1,736.77",Counter bill Grocery basket
+POS-300754,25/03/2026,BLR-02,TID4346,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,WALLET,"46,526.14","3,548.60",Counter bill Crockery half set
+POS-301159,25/03/2026,BLR-01,TID4495,Kesari Handlooms Pvt Ltd,Fastener assortment,2,WALLET,"34,970.00","2,667.20",Counter bill Fastener assortment
+POS-301183,25/03/2026,PNQ-01,TID4426,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,CARD,"9,284.84",708.17,Counter bill Stationery pack
+POS-301221,25/03/2026,BLR-02,TID4713,Ekansh Glassworks Private Limited,Sports kit,2,NETBANKING,"4,991.23",380.69,Counter bill Sports kit
+POS-301504,25/03/2026,BLR-01,TID4033,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,NETBANKING,"6,535.00",498.43,Counter bill Sponge pack
+POS-301540,25/03/2026,HYD-01,TID4098,Ojas Lighting Private Limited,Cable tie pack,3,CARD,"44,788.00","3,416.03",Counter bill Cable tie pack
+POS-301737,25/03/2026,BLR-02,TID4235,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,WALLET,"26,846.00","2,047.58",Counter bill Battery pack AA
+POS-302333,25/03/2026,HYD-01,TID4476,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,WALLET,"41,138.00","3,137.64",Counter bill Ladder step 4ft
+POS-302673,25/03/2026,PNQ-01,TID4418,Utsav Bakers LLP,Plumbing fittings,4,UPI,"40,729.21","3,106.47",Counter bill Plumbing fittings
+POS-303578,25/03/2026,MYS-01,TID4099,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,UPI,"13,297.27","1,014.20",Counter bill Electrical wire roll
+POS-303902,25/03/2026,BLR-01,TID4280,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,CARD,"1,960.00",149.49,Counter bill Paint tin 4L
+POS-303919,25/03/2026,MYS-01,TID4116,Naaz Fabrics Private Limited,Garden tool set,2,CARD,812.03,61.93,Counter bill Garden tool set
+POS-304342,25/03/2026,MYS-01,TID4401,Vaayu Organics Private Limited,Extension board,4,NETBANKING,"46,907.00","3,577.65",Counter bill Extension board
+POS-304365,25/03/2026,BLR-02,TID4183,Meghdoot Packaging LLP,Measuring tape 5m,3,WALLET,"32,786.00","2,500.63",Counter bill Measuring tape 5m
+POS-304561,25/03/2026,PNQ-01,TID4603,Barkat Stationers Private Limited,Storage crate,4,CARD,"16,824.00","1,283.19",Counter bill Storage crate
+POS-304895,25/03/2026,MYS-01,TID4386,Tarangini Prints LLP,Mop and bucket,2,WALLET,"15,302.40","1,167.13",Counter bill Mop and bucket
+POS-305167,25/03/2026,BLR-02,TID4632,Yamini Home Needs Pvt Ltd,Bedding roll,1,WALLET,"4,426.00",337.58,Counter bill Bedding roll
+POS-305810,25/03/2026,PNQ-01,TID4404,Palashwood Interiors Pvt Ltd,Adhesive carton,1,UPI,"34,329.49","2,618.35",Counter bill Adhesive carton
+POS-300177,26/03/2026,MYS-01,TID4712,Palashwood Interiors Pvt Ltd,Stationery pack,1,NETBANKING,"4,987.00",380.36,Counter bill Stationery pack
+POS-300296,26/03/2026,BLR-02,TID4177,Devgiri Paints LLP,Hardware fittings,2,UPI,"32,741.86","2,497.26",Counter bill Hardware fittings
+POS-300336,26/03/2026,BLR-01,TID4177,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,CARD,"1,240.72",94.63,Counter bill Bulb pack of six
+POS-301194,26/03/2026,BLR-02,TID4708,Suvarna Weaves LLP,Tarpaulin sheet,2,UPI,"4,961.00",378.38,Counter bill Tarpaulin sheet
+POS-301640,26/03/2026,HYD-01,TID4041,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,CARD,"31,788.23","2,424.53",Counter bill Crockery half set
+POS-302063,26/03/2026,HYD-01,TID4745,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,WALLET,"24,118.66","1,839.56",Counter bill Cable tie pack
+POS-302123,26/03/2026,MYS-01,TID4800,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,WALLET,"11,902.90",907.85,Counter bill Electrical wire roll
+POS-302296,26/03/2026,BLR-01,TID4757,Tanmay Toolroom Private Limited,Mop and bucket,2,UPI,"17,905.00","1,365.64",Counter bill Mop and bucket
+POS-302418,26/03/2026,HYD-01,TID4899,Chandravat Metals Private Limited,Grocery basket,4,WALLET,"25,198.27","1,921.90",Counter bill Grocery basket
+POS-303152,26/03/2026,HYD-01,TID4199,Chirag Battery House Pvt Ltd,Sponge pack,3,WALLET,"26,598.00","2,028.66",Counter bill Sponge pack
+POS-303172,26/03/2026,PNQ-01,TID4500,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,CARD,"16,104.00","1,228.27",Counter bill Measuring tape 5m
+POS-303242,26/03/2026,BLR-02,TID4111,Shubhankar Electricals LLP,Cleaning supplies,3,UPI,"19,681.70","1,501.15",Counter bill Cleaning supplies
+POS-303896,26/03/2026,BLR-02,TID4086,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,WALLET,"25,806.71","1,968.31",Counter bill Adhesive carton
+POS-303949,26/03/2026,PNQ-01,TID4047,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,WALLET,"31,834.83","2,428.08",Counter bill Bedding roll
+POS-304579,26/03/2026,BLR-02,TID4506,Marudhar Furnishings LLP,Sports kit,2,WALLET,"22,446.00","1,711.98",Counter bill Sports kit
+POS-304648,26/03/2026,PNQ-01,TID4435,Vindhya Plastics Private Limited,Fastener assortment,2,UPI,"9,349.17",713.07,Counter bill Fastener assortment
+POS-304712,26/03/2026,BLR-02,TID4870,Sohrab Auto Spares LLP,Torch and cells,4,CARD,"31,296.08","2,386.99",Counter bill Torch and cells
+POS-304936,26/03/2026,BLR-01,TID4081,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,WALLET,"25,770.00","1,965.51",Counter bill Paint tin 4L
+POS-305572,26/03/2026,PNQ-01,TID4722,Bhoomi Tiles and Sanitary LLP,Storage crate,4,NETBANKING,"17,659.00","1,346.87",Counter bill Storage crate
+POS-305626,26/03/2026,HYD-01,TID4868,Rukmini Provisions Private Limited,Plumbing fittings,4,WALLET,"12,378.00",944.08,Counter bill Plumbing fittings
+POS-300509,27/03/2026,MYS-01,TID4272,Ojas Lighting Private Limited,Battery pack AA,3,NETBANKING,"46,007.00","3,509.01",Counter bill Battery pack AA
+POS-300713,27/03/2026,BLR-02,TID4358,Shubhankar Electricals LLP,Sponge pack,3,WALLET,"40,306.59","3,074.23",Counter bill Sponge pack
+POS-300787,27/03/2026,HYD-01,TID4429,Kesari Handlooms Pvt Ltd,Hardware fittings,2,CARD,"40,808.91","3,112.54",Counter bill Hardware fittings
+POS-301241,27/03/2026,HYD-01,TID4554,Vaayu Organics Private Limited,Plumbing fittings,4,NETBANKING,"16,483.63","1,257.23",Counter bill Plumbing fittings
+POS-302528,27/03/2026,PNQ-01,TID4294,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,CARD,"2,064.00",157.42,Counter bill Tarpaulin sheet
+POS-302534,27/03/2026,BLR-01,TID4017,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,UPI,"6,425.42",490.07,Counter bill Adhesive carton
+POS-302551,27/03/2026,HYD-01,TID4610,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,UPI,"4,273.43",325.94,Counter bill Cable tie pack
+POS-302604,27/03/2026,BLR-01,TID4322,Sohrab Auto Spares LLP,Grocery basket,4,CARD,"21,160.00","1,613.90",Counter bill Grocery basket
+POS-302671,27/03/2026,MYS-01,TID4019,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,UPI,"25,337.41","1,932.51",Counter bill Ladder step 4ft
+POS-302966,27/03/2026,BLR-01,TID4129,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,UPI,"26,105.91","1,991.13",Counter bill Bedding roll
+POS-302983,27/03/2026,BLR-02,TID4298,Utsav Bakers LLP,Extension board,4,WALLET,"8,386.19",639.62,Counter bill Extension board
+POS-303726,27/03/2026,PNQ-01,TID4767,Naaz Fabrics Private Limited,Mop and bucket,2,UPI,"24,269.00","1,851.03",Counter bill Mop and bucket
+POS-303996,27/03/2026,MYS-01,TID4342,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,UPI,"40,197.00","3,065.87",Counter bill Torch and cells
+POS-304154,27/03/2026,BLR-02,TID4100,Devgiri Paints LLP,Fastener assortment,2,UPI,"38,501.12","2,936.53",Counter bill Fastener assortment
+POS-304445,27/03/2026,BLR-02,TID4184,Meghdoot Packaging LLP,Paint tin 4L,3,NETBANKING,"32,791.61","2,501.06",Counter bill Paint tin 4L
+POS-305041,27/03/2026,BLR-02,TID4512,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,WALLET,"22,486.00","1,715.03",Counter bill Bulb pack of six
+POS-305177,27/03/2026,MYS-01,TID4735,Barkat Stationers Private Limited,Crockery half set,4,NETBANKING,"36,647.00","2,795.11",Counter bill Crockery half set
+POS-305422,27/03/2026,HYD-01,TID4604,Tarangini Prints LLP,Garden tool set,2,UPI,"23,133.47","1,764.42",Counter bill Garden tool set
+POS-305573,27/03/2026,BLR-01,TID4175,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,WALLET,"7,530.00",574.32,Counter bill Cleaning supplies
+POS-300170,28/03/2026,BLR-02,TID4664,Jashan Sports Goods Pvt Ltd,Stationery pack,1,NETBANKING,"4,651.00",354.74,Counter bill Stationery pack
+POS-300320,28/03/2026,MYS-01,TID4397,Vindhya Plastics Private Limited,Hardware fittings,2,WALLET,"2,782.31",212.21,Counter bill Hardware fittings
+POS-300338,28/03/2026,HYD-01,TID4790,Rukmini Provisions Private Limited,Extension board,4,UPI,"18,133.00","1,383.03",Counter bill Extension board
+POS-300349,28/03/2026,PNQ-01,TID4650,Suvarna Weaves LLP,Sports kit,2,WALLET,"42,354.00","3,230.39",Counter bill Sports kit
+POS-301433,28/03/2026,PNQ-01,TID4342,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,WALLET,"8,694.17",663.11,Counter bill Ladder step 4ft
+POS-302411,28/03/2026,BLR-02,TID4320,Tarangini Prints LLP,Mop and bucket,2,WALLET,"8,546.00",651.81,Counter bill Mop and bucket
+POS-302465,28/03/2026,BLR-02,TID4083,Tanmay Toolroom Private Limited,Garden tool set,2,UPI,"25,781.61","1,966.39",Counter bill Garden tool set
+POS-302620,28/03/2026,PNQ-01,TID4001,Bhavani Steel Trading Pvt Ltd,Storage crate,4,UPI,"12,609.94",961.78,Counter bill Storage crate
+POS-302646,28/03/2026,BLR-01,TID4527,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,NETBANKING,"35,195.00","2,684.36",Counter bill Paint tin 4L
+POS-302850,28/03/2026,BLR-01,TID4189,Chirag Battery House Pvt Ltd,Cleaning supplies,3,UPI,"1,325.00",101.06,Counter bill Cleaning supplies
+POS-303408,28/03/2026,BLR-01,TID4312,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,UPI,"2,185.73",166.71,Counter bill Battery pack AA
+POS-303883,28/03/2026,HYD-01,TID4291,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,NETBANKING,"20,943.80","1,597.41",Counter bill Electrical wire roll
+POS-303997,28/03/2026,PNQ-01,TID4228,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,NETBANKING,"33,099.47","2,524.54",Counter bill Measuring tape 5m
+POS-304358,28/03/2026,PNQ-01,TID4148,Palashwood Interiors Pvt Ltd,Adhesive carton,1,NETBANKING,"7,339.60",559.80,Counter bill Adhesive carton
+POS-304461,28/03/2026,BLR-02,TID4586,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,WALLET,"35,606.00","2,715.71",Counter bill Crockery half set
+POS-304963,28/03/2026,PNQ-01,TID4357,Chandravat Metals Private Limited,Torch and cells,4,NETBANKING,"27,699.00","2,112.64",Counter bill Torch and cells
+POS-305480,28/03/2026,MYS-01,TID4524,Ojas Lighting Private Limited,Cable tie pack,3,CARD,"22,572.00","1,721.59",Counter bill Cable tie pack
+POS-305490,28/03/2026,MYS-01,TID4099,Marudhar Furnishings LLP,Tarpaulin sheet,2,UPI,"19,597.00","1,494.69",Counter bill Tarpaulin sheet
+POS-305552,28/03/2026,MYS-01,TID4296,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,CARD,"20,972.62","1,599.61",Counter bill Bulb pack of six
+POS-300137,29/03/2026,HYD-01,TID4311,Devgiri Paints LLP,Hardware fittings,2,WALLET,"2,178.00",166.12,Counter bill Hardware fittings
+POS-300158,29/03/2026,BLR-01,TID4227,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"45,690.52","3,484.87",Counter bill Garden tool set
+POS-300431,29/03/2026,HYD-01,TID4531,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,NETBANKING,"3,723.60",284.00,Counter bill Paint tin 4L
+POS-300966,29/03/2026,BLR-01,TID4789,Yamini Home Needs Pvt Ltd,Bedding roll,1,UPI,"43,325.00","3,304.45",Counter bill Bedding roll
+POS-300973,29/03/2026,BLR-02,TID4256,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,CARD,"8,096.00",617.49,Counter bill Sponge pack
+POS-301152,29/03/2026,PNQ-01,TID4080,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,CARD,"38,364.00","2,926.07",Counter bill Ladder step 4ft
+POS-301271,29/03/2026,BLR-02,TID4877,Meghdoot Packaging LLP,Measuring tape 5m,3,UPI,"6,141.92",468.45,Counter bill Measuring tape 5m
+POS-301282,29/03/2026,BLR-01,TID4657,Suvarna Weaves LLP,Tarpaulin sheet,2,CARD,"23,500.38","1,792.40",Counter bill Tarpaulin sheet
+POS-301678,29/03/2026,BLR-01,TID4774,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,CARD,"43,220.55","3,296.48",Counter bill Stationery pack
+POS-301941,29/03/2026,PNQ-01,TID4295,Shubhankar Electricals LLP,Cleaning supplies,3,UPI,"39,869.00","3,040.86",Counter bill Cleaning supplies
+POS-302153,29/03/2026,BLR-01,TID4444,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,WALLET,"15,710.00","1,198.22",Counter bill Bulb pack of six
+POS-302788,29/03/2026,MYS-01,TID4449,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,NETBANKING,"28,347.00","2,162.06",Counter bill Electrical wire roll
+POS-303995,29/03/2026,MYS-01,TID4489,Barkat Stationers Private Limited,Storage crate,4,NETBANKING,"3,427.14",261.39,Counter bill Storage crate
+POS-304338,29/03/2026,HYD-01,TID4365,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,WALLET,"15,158.00","1,156.12",Counter bill Grocery basket
+POS-304381,29/03/2026,PNQ-01,TID4451,Ekansh Glassworks Private Limited,Sports kit,2,NETBANKING,"47,259.29","3,604.52",Counter bill Sports kit
+POS-304664,29/03/2026,PNQ-01,TID4292,Vaayu Organics Private Limited,Extension board,4,CARD,"2,044.47",155.93,Counter bill Extension board
+POS-305140,29/03/2026,BLR-02,TID4479,Sohrab Auto Spares LLP,Torch and cells,4,CARD,"15,956.00","1,216.98",Counter bill Torch and cells
+POS-305351,29/03/2026,BLR-02,TID4277,Kesari Handlooms Pvt Ltd,Fastener assortment,2,UPI,"46,041.26","3,511.62",Counter bill Fastener assortment
+POS-305551,29/03/2026,BLR-02,TID4683,Utsav Bakers LLP,Plumbing fittings,4,WALLET,"42,586.06","3,248.09",Counter bill Plumbing fittings
+POS-305996,29/03/2026,MYS-01,TID4439,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,UPI,"34,577.00","2,637.23",Counter bill Battery pack AA
+POS-300120,30/03/2026,HYD-01,TID4148,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,WALLET,"32,538.00","2,481.71",Counter bill Ladder step 4ft
+POS-300365,30/03/2026,BLR-02,TID4052,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,WALLET,366.00,27.92,Counter bill Adhesive carton
+POS-301188,30/03/2026,BLR-02,TID4024,Tanmay Toolroom Private Limited,Mop and bucket,2,NETBANKING,"6,471.89",493.62,Counter bill Mop and bucket
+POS-301291,30/03/2026,PNQ-01,TID4051,Ojas Lighting Private Limited,Battery pack AA,3,NETBANKING,"12,959.27",988.42,Counter bill Battery pack AA
+POS-301453,30/03/2026,BLR-02,TID4226,Chirag Battery House Pvt Ltd,Sponge pack,3,WALLET,"20,486.00","1,562.49",Counter bill Sponge pack
+POS-301965,30/03/2026,MYS-01,TID4812,Vindhya Plastics Private Limited,Fastener assortment,2,NETBANKING,"30,887.30","2,355.81",Counter bill Fastener assortment
+POS-302144,30/03/2026,BLR-02,TID4304,Palashwood Interiors Pvt Ltd,Stationery pack,1,NETBANKING,"21,031.00","1,604.06",Counter bill Stationery pack
+POS-302481,30/03/2026,MYS-01,TID4225,Marudhar Furnishings LLP,Sports kit,2,UPI,"14,177.00","1,081.30",Counter bill Sports kit
+POS-303142,30/03/2026,BLR-02,TID4055,Chandravat Metals Private Limited,Grocery basket,4,NETBANKING,"44,491.00","3,393.38",Counter bill Grocery basket
+POS-303200,30/03/2026,PNQ-01,TID4062,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,NETBANKING,"19,339.00","1,475.01",Counter bill Cable tie pack
+POS-303404,30/03/2026,MYS-01,TID4216,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,CARD,"1,512.20",115.34,Counter bill Crockery half set
+POS-304570,30/03/2026,PNQ-01,TID4660,Bhoomi Tiles and Sanitary LLP,Storage crate,4,CARD,"36,124.00","2,755.22",Counter bill Storage crate
+POS-304583,30/03/2026,PNQ-01,TID4519,Utsav Bakers LLP,Extension board,4,NETBANKING,"47,739.00","3,641.11",Counter bill Extension board
+POS-305306,30/03/2026,BLR-02,TID4013,Tarangini Prints LLP,Garden tool set,2,NETBANKING,"18,991.28","1,448.49",Counter bill Garden tool set
+POS-305458,30/03/2026,HYD-01,TID4528,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,WALLET,"22,598.00","1,723.58",Counter bill Bedding roll
+POS-305664,30/03/2026,HYD-01,TID4401,Rukmini Provisions Private Limited,Plumbing fittings,4,UPI,"34,313.00","2,617.09",Counter bill Plumbing fittings
+POS-305670,30/03/2026,MYS-01,TID4333,Kesari Handlooms Pvt Ltd,Hardware fittings,2,CARD,"27,532.00","2,099.90",Counter bill Hardware fittings
+POS-305761,30/03/2026,MYS-01,TID4736,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,CARD,"30,352.00","2,314.98",Counter bill Measuring tape 5m
+POS-305982,30/03/2026,MYS-01,TID4500,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,WALLET,"41,302.00","3,150.15",Counter bill Electrical wire roll
+POS-300150,31/03/2026,BLR-01,TID4753,Barkat Stationers Private Limited,Crockery half set,4,NETBANKING,"30,475.00","2,324.36",Counter bill Crockery half set
+POS-300210,31/03/2026,BLR-01,TID4065,Devgiri Paints LLP,Fastener assortment,2,CARD,"13,060.31",996.13,Counter bill Fastener assortment
+POS-300777,31/03/2026,PNQ-01,TID4779,Vaayu Organics Private Limited,Plumbing fittings,4,WALLET,"18,054.75","1,377.06",Counter bill Plumbing fittings
+POS-300868,31/03/2026,PNQ-01,TID4388,Naaz Fabrics Private Limited,Mop and bucket,2,NETBANKING,"2,719.00",207.38,Counter bill Mop and bucket
+POS-301043,31/03/2026,HYD-01,TID4140,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,NETBANKING,"32,483.00","2,477.52",Counter bill Electrical wire roll
+POS-301142,31/03/2026,BLR-02,TID4888,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,UPI,"37,721.04","2,877.03",Counter bill Measuring tape 5m
+POS-301276,31/03/2026,HYD-01,TID4569,Meghdoot Packaging LLP,Paint tin 4L,3,NETBANKING,"41,783.00","3,186.84",Counter bill Paint tin 4L
+POS-302372,31/03/2026,BLR-02,TID4740,Shubhankar Electricals LLP,Sponge pack,3,UPI,"11,481.00",875.67,Counter bill Sponge pack
+POS-302785,31/03/2026,PNQ-01,TID4424,Tanmay Toolroom Private Limited,Garden tool set,2,WALLET,"2,974.00",226.83,Counter bill Garden tool set
+POS-303177,31/03/2026,BLR-02,TID4525,Jashan Sports Goods Pvt Ltd,Stationery pack,1,CARD,"28,876.22","2,202.42",Counter bill Stationery pack
+POS-303381,31/03/2026,PNQ-01,TID4155,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,UPI,"19,989.76","1,524.64",Counter bill Bulb pack of six
+POS-303628,31/03/2026,HYD-01,TID4723,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,NETBANKING,"36,563.55","2,788.75",Counter bill Cleaning supplies
+POS-303870,31/03/2026,BLR-01,TID4184,Sohrab Auto Spares LLP,Grocery basket,4,WALLET,"7,590.00",578.90,Counter bill Grocery basket
+POS-304004,31/03/2026,HYD-01,TID4582,Bhavani Steel Trading Pvt Ltd,Storage crate,4,WALLET,"22,978.15","1,752.57",Counter bill Storage crate
+POS-304104,31/03/2026,PNQ-01,TID4336,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,WALLET,"33,854.00","2,582.08",Counter bill Adhesive carton
+POS-304595,31/03/2026,BLR-02,TID4526,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,WALLET,"35,186.67","2,683.73",Counter bill Torch and cells
+POS-304665,31/03/2026,HYD-01,TID4064,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,UPI,"6,753.52",515.10,Counter bill Tarpaulin sheet
+POS-304938,31/03/2026,PNQ-01,TID4083,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,CARD,"44,684.95","3,408.17",Counter bill Cable tie pack
+POS-305278,31/03/2026,BLR-01,TID4203,Suvarna Weaves LLP,Sports kit,2,UPI,"1,425.00",108.69,Counter bill Sports kit
+POS-305378,31/03/2026,BLR-01,TID4265,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,CARD,"1,860.00",141.86,Counter bill Bedding roll
+POS-300449,01/04/2026,PNQ-01,TID4064,Kesari Handlooms Pvt Ltd,Fastener assortment,2,WALLET,"44,554.00","3,398.19",Counter bill Fastener assortment
+POS-300492,01/04/2026,PNQ-01,TID4092,Vindhya Plastics Private Limited,Hardware fittings,2,CARD,"25,844.00","1,971.15",Counter bill Hardware fittings
+POS-300579,01/04/2026,PNQ-01,TID4737,Ojas Lighting Private Limited,Cable tie pack,3,CARD,"11,464.14",874.38,Counter bill Cable tie pack
+POS-300645,01/04/2026,PNQ-01,TID4268,Utsav Bakers LLP,Plumbing fittings,4,NETBANKING,"27,079.00","2,065.35",Counter bill Plumbing fittings
+POS-301498,01/04/2026,MYS-01,TID4084,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,CARD,"44,692.00","3,408.71",Counter bill Sponge pack
+POS-301564,01/04/2026,BLR-02,TID4549,Chirag Battery House Pvt Ltd,Cleaning supplies,3,WALLET,"10,146.91",773.92,Counter bill Cleaning supplies
+POS-302393,01/04/2026,BLR-01,TID4834,Marudhar Furnishings LLP,Tarpaulin sheet,2,CARD,"37,340.29","2,847.99",Counter bill Tarpaulin sheet
+POS-302397,01/04/2026,BLR-02,TID4183,Yamini Home Needs Pvt Ltd,Bedding roll,1,WALLET,"45,386.00","3,461.64",Counter bill Bedding roll
+POS-302709,01/04/2026,HYD-01,TID4681,Tarangini Prints LLP,Mop and bucket,2,CARD,"17,368.50","1,324.72",Counter bill Mop and bucket
+POS-302719,01/04/2026,MYS-01,TID4255,Chandravat Metals Private Limited,Torch and cells,4,NETBANKING,"14,387.00","1,097.31",Counter bill Torch and cells
+POS-302831,01/04/2026,PNQ-01,TID4250,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,WALLET,"14,354.00","1,094.80",Counter bill Crockery half set
+POS-303443,01/04/2026,PNQ-01,TID4732,Rukmini Provisions Private Limited,Extension board,4,UPI,"11,429.00",871.70,Counter bill Extension board
+POS-303715,01/04/2026,MYS-01,TID4747,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,CARD,"24,132.30","1,840.60",Counter bill Grocery basket
+POS-303829,01/04/2026,PNQ-01,TID4381,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,UPI,"40,469.00","3,086.62",Counter bill Bulb pack of six
+POS-304473,01/04/2026,BLR-01,TID4077,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,UPI,"6,845.00",522.08,Counter bill Battery pack AA
+POS-304722,01/04/2026,HYD-01,TID4111,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,WALLET,"19,678.00","1,500.86",Counter bill Ladder step 4ft
+POS-304923,01/04/2026,HYD-01,TID4886,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,CARD,"25,108.00","1,915.02",Counter bill Paint tin 4L
+POS-305206,01/04/2026,BLR-01,TID4333,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,NETBANKING,"21,235.00","1,619.62",Counter bill Electrical wire roll
+POS-305700,01/04/2026,PNQ-01,TID4449,Palashwood Interiors Pvt Ltd,Adhesive carton,1,CARD,"3,144.36",239.82,Counter bill Adhesive carton
+POS-300445,02/04/2026,BLR-02,TID4701,Shubhankar Electricals LLP,Cleaning supplies,3,NETBANKING,"11,211.00",855.08,Counter bill Cleaning supplies
+POS-300591,02/04/2026,MYS-01,TID4483,Sohrab Auto Spares LLP,Torch and cells,4,NETBANKING,"9,687.43",738.87,Counter bill Torch and cells
+POS-300603,02/04/2026,HYD-01,TID4720,Suvarna Weaves LLP,Tarpaulin sheet,2,NETBANKING,"30,243.00","2,306.67",Counter bill Tarpaulin sheet
+POS-300771,02/04/2026,BLR-01,TID4862,Devgiri Paints LLP,Paint tin 4L,1,CARD,"12,340.00",941.19,Counter bill paint tin lot
+POS-301546,02/04/2026,BLR-01,TID4889,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,UPI,"31,425.90","2,396.89",Counter bill Paint tin 4L
+POS-302542,02/04/2026,MYS-01,TID4709,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,NETBANKING,"42,767.00","3,261.89",Counter bill Crockery half set
+POS-302629,02/04/2026,HYD-01,TID4189,Rukmini Provisions Private Limited,Plumbing fittings,4,NETBANKING,"45,423.00","3,464.47",Counter bill Plumbing fittings
+POS-302865,02/04/2026,BLR-02,TID4145,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,UPI,"13,621.00","1,038.89",Counter bill Battery pack AA
+POS-303139,02/04/2026,PNQ-01,TID4679,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,NETBANKING,"17,359.83","1,324.05",Counter bill Ladder step 4ft
+POS-303976,02/04/2026,BLR-02,TID4735,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"17,746.00","1,353.51",Counter bill Garden tool set
+POS-304129,02/04/2026,MYS-01,TID4828,Barkat Stationers Private Limited,Storage crate,4,UPI,"30,997.00","2,364.18",Counter bill Storage crate
+POS-304557,02/04/2026,BLR-01,TID4370,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,NETBANKING,"46,695.92","3,561.55",Counter bill Cable tie pack
+POS-304703,02/04/2026,BLR-01,TID4032,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,UPI,225.00,17.16,Counter bill Adhesive carton
+POS-304909,02/04/2026,BLR-01,TID4599,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,NETBANKING,"29,395.23","2,242.01",Counter bill Stationery pack
+POS-305114,02/04/2026,HYD-01,TID4286,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,CARD,"2,008.00",153.15,Counter bill Bulb pack of six
+POS-305145,02/04/2026,HYD-01,TID4342,Meghdoot Packaging LLP,Measuring tape 5m,3,WALLET,"8,698.00",663.41,Counter bill Measuring tape 5m
+POS-305284,02/04/2026,MYS-01,TID4835,Tanmay Toolroom Private Limited,Mop and bucket,2,NETBANKING,"43,647.00","3,329.01",Counter bill Mop and bucket
+POS-305613,02/04/2026,PNQ-01,TID4420,Vaayu Organics Private Limited,Extension board,4,CARD,"15,544.00","1,185.56",Counter bill Extension board
+POS-305722,02/04/2026,HYD-01,TID4239,Devgiri Paints LLP,Hardware fittings,2,UPI,"26,873.00","2,049.64",Counter bill Hardware fittings
+POS-305831,02/04/2026,BLR-01,TID4345,Ekansh Glassworks Private Limited,Sports kit,2,CARD,"33,920.60","2,587.16",Counter bill Sports kit
+POS-300126,03/04/2026,BLR-01,TID4722,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,CARD,"5,060.00",385.93,Counter bill Electrical wire roll
+POS-300687,03/04/2026,BLR-01,TID4248,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,CARD,"1,740.00",132.71,Counter bill Bulb pack of six
+POS-300779,03/04/2026,BLR-01,TID4373,Bhoomi Tiles and Sanitary LLP,Plumbing fittings,1,NETBANKING,"8,915.00",679.96,Counter bill plumbing fittings
+POS-300793,03/04/2026,BLR-01,TID4306,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,UPI,"21,045.00","1,605.13",Counter bill Cleaning supplies
+POS-300800,03/04/2026,HYD-01,TID4740,Utsav Bakers LLP,Extension board,4,NETBANKING,"11,483.00",875.82,Counter bill Extension board
+POS-300963,03/04/2026,BLR-01,TID4438,Kesari Handlooms Pvt Ltd,Hardware fittings,2,WALLET,"34,570.00","2,636.69",Counter bill Hardware fittings
+POS-301409,03/04/2026,MYS-01,TID4479,Tarangini Prints LLP,Garden tool set,2,UPI,"9,657.00",736.55,Counter bill Garden tool set
+POS-301590,03/04/2026,MYS-01,TID4220,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,WALLET,"20,442.92","1,559.21",Counter bill Torch and cells
+POS-301924,03/04/2026,PNQ-01,TID4695,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,UPI,"36,369.05","2,773.91",Counter bill Measuring tape 5m
+POS-302201,03/04/2026,MYS-01,TID4791,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,WALLET,"43,342.00","3,305.75",Counter bill Bedding roll
+POS-302935,03/04/2026,BLR-02,TID4161,Chirag Battery House Pvt Ltd,Sponge pack,3,NETBANKING,"7,431.79",566.83,Counter bill Sponge pack
+POS-303362,03/04/2026,PNQ-01,TID4387,Ojas Lighting Private Limited,Battery pack AA,3,UPI,"34,209.59","2,609.21",Counter bill Battery pack AA
+POS-303396,03/04/2026,MYS-01,TID4798,Chandravat Metals Private Limited,Grocery basket,4,NETBANKING,"24,487.00","1,867.65",Counter bill Grocery basket
+POS-303482,03/04/2026,HYD-01,TID4530,Bhoomi Tiles and Sanitary LLP,Storage crate,4,UPI,"3,713.09",283.20,Counter bill Storage crate
+POS-303689,03/04/2026,BLR-01,TID4219,Marudhar Furnishings LLP,Sports kit,2,NETBANKING,"1,535.88",117.14,Counter bill Sports kit
+POS-303925,03/04/2026,MYS-01,TID4208,Barkat Stationers Private Limited,Crockery half set,4,UPI,"39,257.00","2,994.18",Counter bill Crockery half set
+POS-304011,03/04/2026,HYD-01,TID4097,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,NETBANKING,"25,883.61","1,974.17",Counter bill Ladder step 4ft
+POS-304075,03/04/2026,HYD-01,TID4672,Vindhya Plastics Private Limited,Fastener assortment,2,CARD,"11,008.00",839.59,Counter bill Fastener assortment
+POS-304190,03/04/2026,MYS-01,TID4742,Palashwood Interiors Pvt Ltd,Stationery pack,1,UPI,"36,697.50","2,798.96",Counter bill Stationery pack
+POS-304334,03/04/2026,MYS-01,TID4358,Meghdoot Packaging LLP,Paint tin 4L,3,CARD,"15,112.80","1,152.67",Counter bill Paint tin 4L
+POS-305282,03/04/2026,BLR-01,TID4175,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,WALLET,"39,030.00","2,976.86",Counter bill Tarpaulin sheet
+POS-300376,04/04/2026,HYD-01,TID4431,Bhavani Steel Trading Pvt Ltd,Storage crate,4,NETBANKING,"21,923.00","1,672.09",Counter bill Storage crate
+POS-300690,04/04/2026,BLR-02,TID4279,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,CARD,"14,556.00","1,110.20",Counter bill Bedding roll
+POS-300818,04/04/2026,MYS-01,TID4340,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,WALLET,"40,182.18","3,064.74",Counter bill Ladder step 4ft
+POS-301196,04/04/2026,BLR-01,TID4563,Sohrab Auto Spares LLP,Grocery basket,4,UPI,"29,145.00","2,222.92",Counter bill Grocery basket
+POS-302130,04/04/2026,PNQ-01,TID4524,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,WALLET,"35,174.79","2,682.82",Counter bill Battery pack AA
+POS-302316,04/04/2026,MYS-01,TID4681,Devgiri Paints LLP,Fastener assortment,2,CARD,"29,972.00","2,286.00",Counter bill Fastener assortment
+POS-302533,04/04/2026,HYD-01,TID4479,Jashan Sports Goods Pvt Ltd,Stationery pack,1,WALLET,"15,958.00","1,217.14",Counter bill Stationery pack
+POS-302662,04/04/2026,BLR-02,TID4369,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,WALLET,"8,886.00",677.75,Counter bill Cable tie pack
+POS-302791,04/04/2026,PNQ-01,TID4375,Naaz Fabrics Private Limited,Mop and bucket,2,UPI,"34,129.00","2,603.06",Counter bill Mop and bucket
+POS-303040,04/04/2026,BLR-02,TID4045,Suvarna Weaves LLP,Sports kit,2,UPI,"38,121.24","2,907.55",Counter bill Sports kit
+POS-303084,04/04/2026,BLR-02,TID4624,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,NETBANKING,"10,671.38",813.92,Counter bill Adhesive carton
+POS-303125,04/04/2026,MYS-01,TID4163,Shubhankar Electricals LLP,Sponge pack,3,WALLET,"7,442.26",567.63,Counter bill Sponge pack
+POS-303401,04/04/2026,PNQ-01,TID4149,Rukmini Provisions Private Limited,Extension board,4,CARD,"26,244.43","2,001.69",Counter bill Extension board
+POS-304018,04/04/2026,PNQ-01,TID4411,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,NETBANKING,"40,679.90","3,102.70",Counter bill Measuring tape 5m
+POS-304945,04/04/2026,BLR-01,TID4285,Tanmay Toolroom Private Limited,Garden tool set,2,CARD,"2,000.86",152.61,Counter bill Garden tool set
+POS-305200,04/04/2026,PNQ-01,TID4517,Vindhya Plastics Private Limited,Hardware fittings,2,CARD,"9,924.00",756.92,Counter bill Hardware fittings
+POS-305248,04/04/2026,BLR-02,TID4115,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,NETBANKING,811.00,61.86,Counter bill Electrical wire roll
+POS-305250,04/04/2026,MYS-01,TID4026,Vaayu Organics Private Limited,Plumbing fittings,4,NETBANKING,"12,787.00",975.28,Counter bill Plumbing fittings
+POS-305651,04/04/2026,BLR-02,TID4400,Chirag Battery House Pvt Ltd,Cleaning supplies,3,WALLET,"2,806.00",214.02,Counter bill Cleaning supplies
+POS-300318,05/04/2026,HYD-01,TID4309,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,NETBANKING,"46,263.00","3,528.53",Counter bill Grocery basket
+POS-300495,05/04/2026,PNQ-01,TID4540,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,CARD,"47,884.00","3,652.17",Counter bill Battery pack AA
+POS-300619,05/04/2026,BLR-02,TID4330,Meghdoot Packaging LLP,Measuring tape 5m,3,CARD,"21,216.00","1,618.17",Counter bill Measuring tape 5m
+POS-300825,05/04/2026,HYD-01,TID4643,Ekansh Glassworks Private Limited,Sports kit,2,NETBANKING,"4,503.00",343.45,Counter bill Sports kit
+POS-301131,05/04/2026,BLR-02,TID4890,Marudhar Furnishings LLP,Tarpaulin sheet,2,NETBANKING,"44,031.55","3,358.34",Counter bill Tarpaulin sheet
+POS-301243,05/04/2026,MYS-01,TID4821,Yamini Home Needs Pvt Ltd,Bedding roll,1,CARD,"30,952.91","2,360.82",Counter bill Bedding roll
+POS-301684,05/04/2026,MYS-01,TID4796,Barkat Stationers Private Limited,Storage crate,4,CARD,"18,172.46","1,386.04",Counter bill Storage crate
+POS-302458,05/04/2026,HYD-01,TID4367,Utsav Bakers LLP,Plumbing fittings,4,UPI,"40,373.07","3,079.30",Counter bill Plumbing fittings
+POS-303349,05/04/2026,HYD-01,TID4019,Kesari Handlooms Pvt Ltd,Fastener assortment,2,UPI,"44,233.00","3,373.70",Counter bill Fastener assortment
+POS-303542,05/04/2026,BLR-02,TID4443,Ojas Lighting Private Limited,Cable tie pack,3,UPI,"15,701.87","1,197.60",Counter bill Cable tie pack
+POS-303600,05/04/2026,PNQ-01,TID4335,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,UPI,"2,349.00",179.16,Counter bill Electrical wire roll
+POS-303858,05/04/2026,PNQ-01,TID4729,Tarangini Prints LLP,Mop and bucket,2,UPI,"30,309.00","2,311.70",Counter bill Mop and bucket
+POS-304141,05/04/2026,BLR-01,TID4830,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,WALLET,"37,310.00","2,845.68",Counter bill Paint tin 4L
+POS-304728,05/04/2026,BLR-01,TID4572,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,UPI,"35,505.48","2,708.05",Counter bill Bulb pack of six
+POS-305088,05/04/2026,BLR-02,TID4309,Chandravat Metals Private Limited,Torch and cells,4,WALLET,"33,666.00","2,567.75",Counter bill Torch and cells
+POS-305179,05/04/2026,MYS-01,TID4373,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,UPI,"21,517.14","1,641.14",Counter bill Crockery half set
+POS-305408,05/04/2026,BLR-01,TID4090,Palashwood Interiors Pvt Ltd,Adhesive carton,1,NETBANKING,"25,835.00","1,970.47",Counter bill Adhesive carton
+POS-305479,05/04/2026,BLR-01,TID4859,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,NETBANKING,"37,515.19","2,861.33",Counter bill Sponge pack
+POS-305627,05/04/2026,MYS-01,TID4151,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"26,262.28","2,003.06",Counter bill Garden tool set
+POS-300508,06/04/2026,MYS-01,TID4364,Devgiri Paints LLP,Hardware fittings,2,CARD,"15,152.35","1,155.69",Counter bill Hardware fittings
+POS-301377,06/04/2026,PNQ-01,TID4487,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,UPI,"22,309.21","1,701.55",Counter bill Crockery half set
+POS-302014,06/04/2026,BLR-01,TID4520,Rukmini Provisions Private Limited,Plumbing fittings,4,CARD,"9,940.00",758.14,Counter bill Plumbing fittings
+POS-302022,06/04/2026,MYS-01,TID4291,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,WALLET,"20,942.72","1,597.33",Counter bill Ladder step 4ft
+POS-302179,06/04/2026,HYD-01,TID4216,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,WALLET,"7,818.99",596.36,Counter bill Electrical wire roll
+POS-302268,06/04/2026,PNQ-01,TID4221,Chandravat Metals Private Limited,Grocery basket,4,UPI,"14,149.71","1,079.22",Counter bill Grocery basket
+POS-302757,06/04/2026,BLR-01,TID4376,Chirag Battery House Pvt Ltd,Sponge pack,3,NETBANKING,"46,735.00","3,564.53",Counter bill Sponge pack
+POS-302777,06/04/2026,BLR-02,TID4446,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,WALLET,"9,426.92",719.00,Counter bill Paint tin 4L
+POS-303029,06/04/2026,PNQ-01,TID4873,Suvarna Weaves LLP,Tarpaulin sheet,2,WALLET,"37,614.00","2,868.86",Counter bill Tarpaulin sheet
+POS-304048,06/04/2026,MYS-01,TID4221,Vindhya Plastics Private Limited,Fastener assortment,2,NETBANKING,"7,847.00",598.50,Counter bill Fastener assortment
+POS-304128,06/04/2026,BLR-01,TID4794,Sohrab Auto Spares LLP,Torch and cells,4,CARD,"37,060.23","2,826.63",Counter bill Torch and cells
+POS-304438,06/04/2026,BLR-02,TID4383,Tanmay Toolroom Private Limited,Mop and bucket,2,WALLET,"46,786.00","3,568.42",Counter bill Mop and bucket
+POS-304611,06/04/2026,BLR-02,TID4070,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,NETBANKING,"19,391.82","1,479.04",Counter bill Bulb pack of six
+POS-304835,06/04/2026,BLR-01,TID4390,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,WALLET,"9,030.77",688.79,Counter bill Bedding roll
+POS-304943,06/04/2026,MYS-01,TID4621,Vaayu Organics Private Limited,Extension board,4,NETBANKING,"10,647.00",812.06,Counter bill Extension board
+POS-305232,06/04/2026,HYD-01,TID4893,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,UPI,"12,553.00",957.43,Counter bill Adhesive carton
+POS-305254,06/04/2026,MYS-01,TID4291,Shubhankar Electricals LLP,Cleaning supplies,3,UPI,"39,837.20","3,038.43",Counter bill Cleaning supplies
+POS-305396,06/04/2026,PNQ-01,TID4297,Marudhar Furnishings LLP,Sports kit,2,CARD,"46,184.14","3,522.52",Counter bill Sports kit
+POS-305886,06/04/2026,BLR-02,TID4372,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,WALLET,"21,506.00","1,640.29",Counter bill Cable tie pack
+POS-301427,07/04/2026,PNQ-01,TID4262,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,WALLET,"20,734.00","1,581.41",Counter bill Measuring tape 5m
+POS-301843,07/04/2026,PNQ-01,TID4844,Palashwood Interiors Pvt Ltd,Stationery pack,1,UPI,"31,109.55","2,372.76",Counter bill Stationery pack
+POS-301984,07/04/2026,HYD-01,TID4084,Utsav Bakers LLP,Extension board,4,CARD,"44,688.00","3,408.41",Counter bill Extension board
+POS-302727,07/04/2026,PNQ-01,TID4789,Ojas Lighting Private Limited,Battery pack AA,3,CARD,"5,524.00",421.32,Counter bill Battery pack AA
+POS-303031,07/04/2026,PNQ-01,TID4871,Tarangini Prints LLP,Garden tool set,2,NETBANKING,"6,099.58",465.22,Counter bill Garden tool set
+POS-303244,07/04/2026,PNQ-01,TID4740,Madhuban Nurseries Pvt Ltd,Cable tie pack,3,CARD,"36,684.30","2,797.96",Counter bill Cable tie pack
+POS-303269,07/04/2026,BLR-01,TID4117,Bhoomi Tiles and Sanitary LLP,Storage crate,4,CARD,"13,420.00","1,023.56",Counter bill Storage crate
+POS-303422,07/04/2026,HYD-01,TID4561,Vaayu Organics Private Limited,Plumbing fittings,4,UPI,"3,933.00",299.97,Counter bill Plumbing fittings
+POS-303516,07/04/2026,BLR-01,TID4487,Naaz Fabrics Private Limited,Mop and bucket,2,WALLET,"3,410.11",260.09,Counter bill Mop and bucket
+POS-303706,07/04/2026,MYS-01,TID4645,Yamini Home Needs Pvt Ltd,Ladder step 4ft,1,UPI,"36,017.99","2,747.13",Counter bill Ladder step 4ft
+POS-303739,07/04/2026,PNQ-01,TID4532,Barkat Stationers Private Limited,Crockery half set,4,UPI,"47,829.59","3,648.02",Counter bill Crockery half set
+POS-303939,07/04/2026,BLR-01,TID4121,Ranjeet Timber Depot Pvt Ltd,Bulb pack of six,1,WALLET,"7,150.07",545.34,Counter bill Bulb pack of six
+POS-304220,07/04/2026,HYD-01,TID4621,Prithvi Seeds and Feeds Pvt Ltd,Torch and cells,4,CARD,"29,548.00","2,253.66",Counter bill Torch and cells
+POS-304250,07/04/2026,MYS-01,TID4178,Kesari Handlooms Pvt Ltd,Hardware fittings,2,CARD,"45,352.00","3,459.05",Counter bill Hardware fittings
+POS-304269,07/04/2026,BLR-01,TID4287,Ekansh Glassworks Private Limited,Tarpaulin sheet,2,WALLET,"39,810.52","3,036.40",Counter bill Tarpaulin sheet
+POS-304888,07/04/2026,BLR-01,TID4500,Neelkanth Ceramics Pvt Ltd,Cleaning supplies,3,UPI,"3,505.74",267.39,Counter bill Cleaning supplies
+POS-305175,07/04/2026,PNQ-01,TID4158,Meghdoot Packaging LLP,Paint tin 4L,3,UPI,"13,709.45","1,045.64",Counter bill Paint tin 4L
+POS-305353,07/04/2026,HYD-01,TID4759,Girnar Pipes and Fittings Pvt Ltd,Bedding roll,1,UPI,"43,113.00","3,288.28",Counter bill Bedding roll
+POS-305939,07/04/2026,HYD-01,TID4172,Kaveri Rubber Works Pvt Ltd,Adhesive carton,1,CARD,"7,508.00",572.64,Counter bill Adhesive carton
+POS-300354,08/04/2026,BLR-01,TID4381,Suvarna Weaves LLP,Sports kit,2,WALLET,"8,970.00",684.15,Counter bill Sports kit
+POS-300734,08/04/2026,MYS-01,TID4189,Anokhi Kitchenware Pvt Ltd,Ladder step 4ft,1,NETBANKING,"32,827.00","2,503.75",Counter bill Ladder step 4ft
+POS-300858,08/04/2026,HYD-01,TID4514,Nirvaan Agro Mills Pvt Ltd,Battery pack AA,3,NETBANKING,"35,103.85","2,677.41",Counter bill Battery pack AA
+POS-301029,08/04/2026,PNQ-01,TID4792,Sitara Packaging Solutions Pvt Ltd,Electrical wire roll,1,UPI,"37,049.00","2,825.77",Counter bill Electrical wire roll
+POS-301210,08/04/2026,PNQ-01,TID4529,Sohrab Auto Spares LLP,Grocery basket,4,UPI,"35,209.23","2,685.45",Counter bill Grocery basket
+POS-301552,08/04/2026,BLR-02,TID4520,Bhavani Steel Trading Pvt Ltd,Storage crate,4,UPI,"47,741.04","3,641.27",Counter bill Storage crate
+POS-301688,08/04/2026,MYS-01,TID4508,Marudhar Furnishings LLP,Tarpaulin sheet,2,UPI,"22,457.15","1,712.83",Counter bill Tarpaulin sheet
+POS-301804,08/04/2026,BLR-02,TID4319,Vindhya Plastics Private Limited,Hardware fittings,2,CARD,"40,036.00","3,053.59",Counter bill Hardware fittings
+POS-301859,08/04/2026,PNQ-01,TID4797,Sanchit Hardware Depot Pvt Ltd,Measuring tape 5m,3,CARD,"24,484.00","1,867.42",Counter bill Measuring tape 5m
+POS-301863,08/04/2026,HYD-01,TID4059,Chirag Battery House Pvt Ltd,Cleaning supplies,3,WALLET,"31,918.46","2,434.46",Counter bill Cleaning supplies
+POS-301922,08/04/2026,MYS-01,TID4631,Chandravat Metals Private Limited,Torch and cells,4,UPI,"17,017.00","1,297.91",Counter bill Torch and cells
+POS-302027,08/04/2026,MYS-01,TID4796,Tanmay Toolroom Private Limited,Garden tool set,2,UPI,"30,777.00","2,347.40",Counter bill Garden tool set
+POS-302396,08/04/2026,HYD-01,TID4209,Rukmini Provisions Private Limited,Extension board,4,CARD,"45,568.00","3,475.53",Counter bill Extension board
+POS-303630,08/04/2026,MYS-01,TID4136,Shubhankar Electricals LLP,Sponge pack,3,UPI,"19,857.84","1,514.58",Counter bill Sponge pack
+POS-303894,08/04/2026,BLR-02,TID4695,Jashan Sports Goods Pvt Ltd,Stationery pack,1,NETBANKING,"30,071.00","2,293.55",Counter bill Stationery pack
+POS-304016,08/04/2026,BLR-02,TID4211,Ambar Cold Rooms Pvt Ltd,Bulb pack of six,1,UPI,"20,381.00","1,554.48",Counter bill Bulb pack of six
+POS-304590,08/04/2026,BLR-01,TID4725,Bhoomi Tiles and Sanitary LLP,Crockery half set,4,CARD,"23,980.00","1,828.98",Counter bill Crockery half set
+POS-304812,08/04/2026,HYD-01,TID4895,Kalanjali Crafts Pvt Ltd,Paint tin 4L,3,CARD,"12,568.92",958.65,Counter bill Paint tin 4L
+POS-305384,08/04/2026,PNQ-01,TID4108,Palashwood Interiors Pvt Ltd,Adhesive carton,1,NETBANKING,"38,559.48","2,940.98",Counter bill Adhesive carton
+POS-305916,08/04/2026,MYS-01,TID4200,Devgiri Paints LLP,Fastener assortment,2,WALLET,"39,202.00","2,989.98",Counter bill Fastener assortment
+POS-300110,09/04/2026,PNQ-01,TID4128,Ojas Lighting Private Limited,Cable tie pack,3,NETBANKING,899.96,68.64,Counter bill Cable tie pack
+POS-300573,09/04/2026,HYD-01,TID4034,Naaz Fabrics Private Limited,Garden tool set,2,WALLET,"44,338.93","3,381.78",Counter bill Garden tool set
+POS-300887,09/04/2026,PNQ-01,TID4196,Sohrab Auto Spares LLP,Torch and cells,4,WALLET,"13,974.00","1,065.81",Counter bill Torch and cells
+POS-301042,09/04/2026,BLR-01,TID4764,Neelkanth Ceramics Pvt Ltd,Sponge pack,3,WALLET,"43,150.00","3,291.10",Counter bill Sponge pack
+POS-301139,09/04/2026,MYS-01,TID4838,Yamini Home Needs Pvt Ltd,Bedding roll,1,CARD,"37,372.29","2,850.43",Counter bill Bedding roll
+POS-301228,09/04/2026,PNQ-01,TID4194,Madhuban Nurseries Pvt Ltd,Battery pack AA,3,NETBANKING,"32,859.00","2,506.19",Counter bill Battery pack AA
+POS-301596,09/04/2026,HYD-01,TID4146,Ekansh Glassworks Private Limited,Sports kit,2,CARD,"7,328.00",558.92,Counter bill Sports kit
+POS-303034,09/04/2026,MYS-01,TID4207,Utsav Bakers LLP,Plumbing fittings,4,CARD,"14,052.00","1,071.76",Counter bill Plumbing fittings
+POS-303831,09/04/2026,BLR-02,TID4356,Kaveri Rubber Works Pvt Ltd,Stationery pack,1,CARD,"46,596.78","3,553.99",Counter bill Stationery pack
+POS-303974,09/04/2026,PNQ-01,TID4294,Ranjeet Timber Depot Pvt Ltd,Electrical wire roll,1,CARD,"33,564.74","2,560.02",Counter bill Electrical wire roll
+POS-304275,09/04/2026,BLR-01,TID4486,Devgiri Paints LLP,Hardware fittings,2,UPI,"3,405.71",259.76,Counter bill Hardware fittings
+POS-304370,09/04/2026,BLR-02,TID4130,Kesari Handlooms Pvt Ltd,Fastener assortment,2,NETBANKING,"38,711.08","2,952.54",Counter bill Fastener assortment
+POS-304532,09/04/2026,HYD-01,TID4101,Barkat Stationers Private Limited,Storage crate,4,CARD,"19,608.95","1,495.60",Counter bill Storage crate
+POS-304799,09/04/2026,PNQ-01,TID4319,Meghdoot Packaging LLP,Measuring tape 5m,3,WALLET,"40,034.00","3,053.44",Counter bill Measuring tape 5m
+POS-305066,09/04/2026,PNQ-01,TID4721,Girnar Pipes and Fittings Pvt Ltd,Ladder step 4ft,1,UPI,"36,549.00","2,787.64",Counter bill Ladder step 4ft
+POS-305251,09/04/2026,MYS-01,TID4040,Tarangini Prints LLP,Mop and bucket,2,WALLET,"12,882.00",982.53,Counter bill Mop and bucket
+POS-305335,09/04/2026,MYS-01,TID4747,Prithvi Seeds and Feeds Pvt Ltd,Grocery basket,4,CARD,"24,132.00","1,840.58",Counter bill Grocery basket
+POS-305537,09/04/2026,BLR-02,TID4146,Shubhankar Electricals LLP,Cleaning supplies,3,WALLET,"19,926.00","1,519.78",Counter bill Cleaning supplies
+POS-305993,09/04/2026,BLR-01,TID4729,Vaayu Organics Private Limited,Extension board,4,UPI,"24,005.31","1,830.91",Counter bill Extension board
+POS-300616,10/04/2026,MYS-01,TID4180,Sanchit Hardware Depot Pvt Ltd,Paint tin 4L,3,WALLET,"32,762.08","2,498.80",Counter bill Paint tin 4L
+POS-301041,10/04/2026,BLR-01,TID4165,Palashwood Interiors Pvt Ltd,Stationery pack,1,CARD,"38,960.00","2,971.53",Counter bill Stationery pack
+POS-301675,10/04/2026,HYD-01,TID4491,Vindhya Plastics Private Limited,Fastener assortment,2,NETBANKING,"16,043.00","1,223.62",Counter bill Fastener assortment
+POS-301872,10/04/2026,MYS-01,TID4448,Anokhi Kitchenware Pvt Ltd,Bedding roll,1,UPI,"47,237.59","3,602.87",Counter bill Bedding roll
+POS-302109,10/04/2026,MYS-01,TID4558,Bhavani Steel Trading Pvt Ltd,Crockery half set,4,CARD,"29,112.00","2,220.41",Counter bill Crockery half set
+POS-302211,10/04/2026,PNQ-01,TID4412,Sitara Packaging Solutions Pvt Ltd,Bulb pack of six,1,UPI,"28,089.00","2,142.38",Counter bill Bulb pack of six
+POS-302243,10/04/2026,BLR-01,TID4312,Chirag Battery House Pvt Ltd,Sponge pack,3,UPI,"27,385.56","2,088.73",Counter bill Sponge pack
+POS-302253,10/04/2026,BLR-01,TID4214,Tarangini Prints LLP,Garden tool set,2,CARD,"45,600.27","3,477.99",Counter bill Garden tool set
+POS-302471,10/04/2026,BLR-02,TID4543,Nirvaan Agro Mills Pvt Ltd,Cable tie pack,3,UPI,"3,801.03",289.91,Counter bill Cable tie pack
+POS-302491,10/04/2026,BLR-02,TID4275,Rukmini Provisions Private Limited,Plumbing fittings,4,WALLET,"27,126.74","2,068.99",Counter bill Plumbing fittings
+POS-303157,10/04/2026,BLR-02,TID4205,Tanmay Toolroom Private Limited,Mop and bucket,2,UPI,"39,241.60","2,993.00",Counter bill Mop and bucket
+POS-303265,10/04/2026,HYD-01,TID4484,Ambar Cold Rooms Pvt Ltd,Electrical wire roll,1,UPI,"3,393.66",258.84,Counter bill Electrical wire roll
+POS-303342,10/04/2026,BLR-02,TID4435,Jashan Sports Goods Pvt Ltd,Adhesive carton,1,NETBANKING,"21,951.32","1,674.25",Counter bill Adhesive carton
+POS-303462,10/04/2026,BLR-01,TID4529,Suvarna Weaves LLP,Tarpaulin sheet,2,UPI,"16,305.34","1,243.63",Counter bill Tarpaulin sheet
+POS-303610,10/04/2026,MYS-01,TID4704,Marudhar Furnishings LLP,Sports kit,2,CARD,"23,832.00","1,817.69",Counter bill Sports kit
+POS-303789,10/04/2026,PNQ-01,TID4849,Kalanjali Crafts Pvt Ltd,Measuring tape 5m,3,CARD,"24,844.97","1,894.96",Counter bill Measuring tape 5m
+POS-304876,10/04/2026,MYS-01,TID4893,Bhoomi Tiles and Sanitary LLP,Storage crate,4,CARD,"44,052.25","3,359.92",Counter bill Storage crate
+POS-305028,10/04/2026,HYD-01,TID4537,Ojas Lighting Private Limited,Battery pack AA,3,NETBANKING,"16,363.19","1,248.04",Counter bill Battery pack AA
+POS-305172,10/04/2026,BLR-01,TID4512,Chandravat Metals Private Limited,Grocery basket,4,WALLET,"22,490.78","1,715.40",Counter bill Grocery basket
+POS-303551,14/04/2026,BLR-01,TID4833,Utsav Bakers LLP,Crockery half set,1,NETBANKING,"18,435.00","1,406.06",Counter bill crockery half set

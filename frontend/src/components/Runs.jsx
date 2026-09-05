@@ -1,15 +1,15 @@
-import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { listRuns } from "../api.js";
-import { listIndexDelay, pageTransition, riseIn, useCountUp } from "../motion.js";
+import { pageTransition } from "../motion.js";
 import { Link, navigate } from "../router.jsx";
 import { count } from "./MoneyFlow.jsx";
 import "../workspace.css";
 
 const OUTCOME_COLOR = {
-  RECONCILED: "var(--pass)",
-  EXCEPTION: "var(--fail)",
-  HUMAN_REVIEW: "var(--warn)",
+  RECONCILED: "var(--pass, #046c43)",
+  EXCEPTION: "var(--fail, #d51b30)",
+  HUMAN_REVIEW: "var(--warn, #b3550a)",
 };
 
 /**
@@ -43,107 +43,113 @@ export default function Runs() {
     { processed: 0, reconciled: 0, exceptions: 0, review: 0 }
   );
 
+  const empty = runs !== null && runs.length === 0;
+
   return (
     <motion.div className="page" {...pageTransition}>
-      <div className="page-header">
-        <h1 className="page-title">Reconciliation workspaces</h1>
-        <p className="page-subtitle">
+      <header className="wk-hd">
+        <h1 className="wk-hd-title">Reconciliation workspaces</h1>
+        <p className="wk-hd-sub">
           Each workspace reconciles a set of uploaded sources against each other. Deterministic
           matching resolves what it can prove; genuinely ambiguous records go to the semantic
           classifier, and anything still unresolved goes to a person.
         </p>
-      </div>
+      </header>
 
-      <div className="stats-grid" style={{ marginBottom: 22 }}>
-        <Tile label="Records processed" value={totals.processed} />
-        <Tile label="Reconciled" value={totals.reconciled} tone="pass" />
-        <Tile label="Exceptions" value={totals.exceptions} tone="fail" />
-        <Tile label="Human review" value={totals.review} tone="warn" />
-      </div>
+      {!empty && (
+        <div className="wk-stats">
+          <Stat label="Records processed" value={totals.processed} />
+          <Stat label="Reconciled" value={totals.reconciled} tone="pass" />
+          <Stat label="Exceptions" value={totals.exceptions} tone="fail" />
+          <Stat label="Human review" value={totals.review} tone="warn" />
+        </div>
+      )}
 
-      <div className="card">
-        <div
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
-        >
-          <h2 className="card-title" style={{ marginBottom: 0 }}>
-            {runs === null ? "Loading…" : `${runs.length} workspace${runs.length === 1 ? "" : "s"}`}
-          </h2>
-          <Link to="/app/runs/new" className="btn-small">
-            New workspace
-          </Link>
+      <section className="wk-block" aria-labelledby="wk-runs-heading">
+        <div className="wk-block-head">
+          <div className="wk-block-titles">
+            <h2 className="wk-h2" id="wk-runs-heading">
+              {runs === null
+                ? "Loading…"
+                : `${count(runs.length)} workspace${runs.length === 1 ? "" : "s"}`}
+            </h2>
+          </div>
+          <div className="wk-block-actions">
+            <Link to="/app/runs/new" className="btn-primary btn-sm">
+              New workspace
+            </Link>
+          </div>
         </div>
 
-        {runs !== null && runs.length === 0 && (
-          <div className="wk-empty" style={{ marginTop: 16 }}>
+        {empty && (
+          <div className="wk-empty">
             No workspaces yet. Start one by dropping in the files you already have — orders, a
-            gateway payout export, a bank statement — and Accord will work out what they are.
+            gateway payout export, a bank statement — or load the sample workspace to see a
+            reconciliation end to end.
           </div>
         )}
 
-        <ul className="run-list">
-          <AnimatePresence initial={false}>
-            {(runs || []).map((run, i) => {
+        {runs !== null && runs.length > 0 && (
+          <ul className="wk-runs">
+            {runs.map((run) => {
               const counts = run.outcome_counts || {};
-              const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+              const decided = Object.values(counts).reduce((a, b) => a + b, 0);
+              const status = String(run.status || "DRAFT").toLowerCase();
               return (
-                <motion.li
-                  key={run.batch_id}
-                  {...riseIn}
-                  transition={{ ...riseIn.transition, delay: listIndexDelay(i) }}
-                >
+                <li key={run.batch_id}>
                   <button
                     type="button"
-                    className="run-row"
+                    className="wk-run"
                     onClick={() => navigate(`/app/runs/${encodeURIComponent(run.batch_id)}`)}
                   >
-                    <span className={`status-pill status-${(run.status || "draft").toLowerCase()}`}>
-                      {run.status}
+                    <span className={`wk-run-state wk-run-state-${status}`}>{run.status}</span>
+                    <span style={{ minWidth: 0 }}>
+                      <span className="wk-run-label">{run.label}</span>
+                      <span className="wk-run-id">{run.batch_id}</span>
                     </span>
-                    <span className="run-label">{run.label}</span>
-                    <span className="tiny muted mono">{run.batch_id}</span>
-                    <span className="run-meta">
-                      <span
-                        className="mini-bar"
-                        role="img"
-                        aria-label={`${counts.RECONCILED || 0} reconciled, ${
-                          counts.EXCEPTION || 0
-                        } exceptions, ${counts.HUMAN_REVIEW || 0} in review`}
-                      >
-                        {["RECONCILED", "EXCEPTION", "HUMAN_REVIEW"].map((k) => (
-                          <span
-                            key={k}
-                            className="mini-seg"
-                            style={{
-                              width: `${((counts[k] || 0) / total) * 100}%`,
-                              background: OUTCOME_COLOR[k],
-                            }}
-                          />
-                        ))}
-                      </span>
-                      <span className="tiny muted">
-                        {run.processed_records}/{run.total_records}
-                      </span>
+                    <span className="wk-run-split">
+                      {decided > 0 && (
+                        <span
+                          className="wk-run-bar"
+                          role="img"
+                          aria-label={`${counts.RECONCILED || 0} reconciled, ${
+                            counts.EXCEPTION || 0
+                          } exceptions, ${counts.HUMAN_REVIEW || 0} in review`}
+                        >
+                          {["RECONCILED", "EXCEPTION", "HUMAN_REVIEW"].map((k) => (
+                            <span
+                              key={k}
+                              className="wk-run-seg"
+                              style={{
+                                width: `${((counts[k] || 0) / decided) * 100}%`,
+                                background: OUTCOME_COLOR[k],
+                              }}
+                            />
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                    <span className="wk-run-count">
+                      {count(run.processed_records)} / {count(run.total_records)}
                     </span>
                   </button>
-                </motion.li>
+                </li>
               );
             })}
-          </AnimatePresence>
-        </ul>
-      </div>
+          </ul>
+        )}
+      </section>
     </motion.div>
   );
 }
 
-function Tile({ label, value, tone, note }) {
-  const shown = useCountUp(Number(value) || 0);
+/** Not animated, for the same reason as the run summary: a rolling digit
+ *  is a value nobody computed. */
+function Stat({ label, value, tone }) {
   return (
-    <motion.div className="stat-tile" {...riseIn}>
-      <div className="stat-label">{label}</div>
-      <div className={`stat-value${tone ? ` stat-value-${tone}` : ""}`}>
-        {count(Math.round(shown))}
-      </div>
-      {note && <div className="stat-note">{note}</div>}
-    </motion.div>
+    <div className="wk-stat">
+      <div className="wk-stat-label">{label}</div>
+      <div className={`wk-stat-value${tone ? ` wk-stat-value-${tone}` : ""}`}>{count(value)}</div>
+    </div>
   );
 }

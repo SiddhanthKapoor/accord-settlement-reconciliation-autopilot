@@ -36,7 +36,46 @@ def get_batch(batch_id: str) -> Optional[dict]:
     return dict(row) if row else None
 
 
-def list_batches(limit: int = 20) -> list[dict]:
+#: A run whose process died mid-execution keeps its RUNNING row forever.
+#: Past this many seconds without finishing, it is reported as INTERRUPTED.
+#: Sound here because a full 3,504-record run completes in about ten
+#: seconds — one still unfinished three minutes later has stopped, not
+#: slowed down.
+STALE_RUN_SECONDS = 180
+
+
+def derived_status(batch: dict) -> str:
+    """The status a run actually has, not the one its row was stamped with.
+
+    `create_batch` writes RUNNING at creation — before a single source has
+    been uploaded — so a workspace someone opened and abandoned reported
+    itself as running indefinitely. A list dominated by those reads as a
+    product that keeps failing, and it is a plain misstatement of state.
+
+      DRAFT        never executed (no total was ever set)
+      RUNNING      executing and progressing
+      INTERRUPTED  execution began, then stopped advancing
+      COMPLETED    finished
+    """
+    if batch.get("status") == "COMPLETED":
+        return "COMPLETED"
+    if not (batch.get("total_records") or 0):
+        # set_batch_total runs at execute time; no total means never started.
+        return "DRAFT"
+    stamp = batch.get("started_at")
+    if stamp:
+        try:
+            last = datetime.fromisoformat(str(stamp))
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=timezone.utc)
+            if (datetime.now(timezone.utc) - last).total_seconds() > STALE_RUN_SECONDS:
+                return "INTERRUPTED"
+        except ValueError:
+            pass
+    return "RUNNING"
+
+
+def list_batches(limit: int = 20, include_drafts: bool = True) -> list[dict]:
     conn = get_conn()
     rows = conn.execute(
         "SELECT * FROM batches ORDER BY started_at DESC LIMIT ?", (limit,)
@@ -44,6 +83,9 @@ def list_batches(limit: int = 20) -> list[dict]:
     out = []
     for r in rows:
         d = dict(r)
+        d["status"] = derived_status(d)
+        if not include_drafts and d["status"] == "DRAFT":
+            continue
         d["outcome_counts"] = batch_outcome_counts(d["batch_id"])
         out.append(d)
     return out
@@ -57,6 +99,122 @@ def set_batch_total(batch_id: str, total: int, label: str) -> None:
         "UPDATE batches SET total_records=?, label=?, status='RUNNING', processed_records=0 WHERE batch_id=?",
         (total, label, batch_id),
     )
+
+
+# ---------------------------------------------------------------------------
+# Execution progress
+#
+# Every number a progress view shows has to be a number this process
+# actually observed. Two halves, both real:
+#
+#   * the *phase* is written here by the executor when it genuinely
+#     crosses a boundary — a source finished mapping, the canonical
+#     records were built, the decision loop ended. Nothing writes a phase
+#     it is not currently in, and nothing writes one on a timer.
+#   * the *counts* are not stored at all. They are counted out of
+#     `records` and `batches` on read, so a count can never drift from
+#     the rows it claims to describe.
+#
+# Persisted rather than held in memory because a refresh mid-run, or a
+# reloaded server, must show where the run really is rather than losing
+# it and starting an animation over.
+# ---------------------------------------------------------------------------
+
+def save_run_progress(batch_id: str, progress: dict) -> None:
+    conn = get_conn()
+    conn.execute("UPDATE batches SET progress_json=? WHERE batch_id=?",
+                 (json.dumps(progress, default=str), batch_id))
+
+
+def update_run_progress(batch_id: str, **fields) -> dict:
+    """Merge fields into a run's recorded phase state and timestamp it."""
+    progress = get_run_progress(batch_id)
+    progress.update(fields)
+    progress["updated_at"] = datetime.now(timezone.utc).isoformat()
+    save_run_progress(batch_id, progress)
+    return progress
+
+
+def get_run_progress(batch_id: str) -> dict:
+    conn = get_conn()
+    row = conn.execute("SELECT progress_json FROM batches WHERE batch_id=?", (batch_id,)).fetchone()
+    if not row or not row["progress_json"]:
+        return {}
+    try:
+        return json.loads(row["progress_json"])
+    except (TypeError, ValueError):
+        return {}
+
+
+# `ai_invoked` means "the semantic tier was reached", not "a model was
+# called". When no provider is configured — or ACCORD_AI_DISABLED is set —
+# the offline heuristic verifier serves that tier and stamps itself into
+# `ai_backend`. Counting those as model consultations would tell a viewer
+# a model was used when none was, so the two are separated here, at the
+# only place that knows the difference.
+HEURISTIC_BACKEND_MARKER = "heuristic"
+
+
+def run_progress_counts(batch_id: str) -> dict[str, int]:
+    """Decided / semantic-tier / model / heuristic / unresolved.
+
+    One pass over the batch's rows rather than five, because this is
+    polled about once a second while a run is in flight.
+
+    The three semantic counters do not have to add up: a record can reach
+    the tier and get no answer at all, when every provider in the chain
+    failed. That record is `semantic_tier_invoked` and neither of the
+    other two, which is the honest description of what happened to it.
+    """
+    conn = get_conn()
+    row = conn.execute(
+        f"""SELECT COUNT(*) AS decided,
+                   COALESCE(SUM(CASE WHEN ai_invoked = 1 THEN 1 ELSE 0 END), 0)
+                       AS semantic_tier_invoked,
+                   COALESCE(SUM(CASE WHEN ai_invoked = 1
+                                      AND ai_backend IS NOT NULL AND ai_backend <> ''
+                                      AND LOWER(ai_backend) NOT LIKE '%{HEURISTIC_BACKEND_MARKER}%'
+                                     THEN 1 ELSE 0 END), 0) AS ai_consulted,
+                   COALESCE(SUM(CASE WHEN ai_invoked = 1
+                                      AND LOWER(ai_backend) LIKE '%{HEURISTIC_BACKEND_MARKER}%'
+                                     THEN 1 ELSE 0 END), 0) AS heuristic_consulted,
+                   COALESCE(SUM(CASE WHEN outcome = 'HUMAN_REVIEW' THEN 1 ELSE 0 END), 0)
+                       AS unresolved
+            FROM records WHERE batch_id=?""",
+        (batch_id,),
+    ).fetchone()
+    keys = ("decided", "semantic_tier_invoked", "ai_consulted", "heuristic_consulted", "unresolved")
+    if not row:
+        return dict.fromkeys(keys, 0)
+    return {key: int(row[key] or 0) for key in keys}
+
+
+def last_semantic_success_by_provider() -> dict[str, str]:
+    """When each provider last actually returned a verdict, from the ledger.
+
+    `ai_backend` is written only after a verdict came back, so the newest
+    `processed_at` per backend is an observed success rather than an
+    assertion. The backend string is "provider:model"; only the provider
+    half is returned — a model id is not something a status surface needs
+    to publish. The offline heuristic is excluded: it is not a provider,
+    and a run it served is not evidence that any provider is reachable.
+    """
+    conn = get_conn()
+    rows = conn.execute(
+        f"""SELECT ai_backend, MAX(processed_at) AS last_at FROM records
+            WHERE ai_invoked = 1 AND ai_backend IS NOT NULL AND ai_backend <> ''
+              AND LOWER(ai_backend) NOT LIKE '%{HEURISTIC_BACKEND_MARKER}%'
+            GROUP BY ai_backend"""
+    ).fetchall()
+    out: dict[str, str] = {}
+    for row in rows:
+        provider = str(row["ai_backend"]).split(":", 1)[0].strip().lower()
+        last_at = row["last_at"]
+        if not provider or not last_at:
+            continue
+        if provider not in out or last_at > out[provider]:
+            out[provider] = last_at
+    return out
 
 
 def get_latest_batch() -> Optional[dict]:

@@ -1,0 +1,894 @@
+/* ==========================================================================
+   Accord — panels layer: review queue, audit trail, evaluation.
+
+   These three screens are read under time pressure by someone deciding
+   whether money moved correctly, so the layer is built on space, rules and
+   typography rather than nested cards. Every class is `pn-` prefixed: the
+   panels stylesheet is imported from its own components and must never
+   depend on winning a cascade against styles.css or workspace.css.
+
+   Colour never carries meaning alone — every state marker pairs a tint with
+   a word or a shape, because a reconciliation UI read by a colour-blind
+   controller has to work exactly as well.
+   ========================================================================== */
+
+/* ---- planes ---------------------------------------------------------
+   Three planes, not two — the system workspace.css established, reused
+   here rather than reinvented. The shell paints the page #f8fafc and
+   cards #ffffff, a 1.4% luminance step that vanishes on a projector, so
+   any region of mine that HOLDS cards paints a deeper ground and every
+   card on that ground carries a real shadow.
+
+   Values are read from the workspace layer so the two surfaces cannot
+   drift, with the same literals as fallbacks in case this file is ever
+   loaded on its own.
+   ------------------------------------------------------------------ */
+:root {
+  --pn-ground: var(--wk-ground, #eaeff5);
+  --pn-surface: var(--wk-surface, #ffffff);
+  --pn-zebra: var(--wk-zebra, #fafbfd);
+  --pn-hover: var(--wk-hover, #eef3f8);
+  --pn-sunk: var(--wk-sunk, #f1f5fa);
+  --pn-wash: var(--wk-accord-wash, #e8f9f2);
+  --pn-rail: var(--wk-accord-d, #059669);
+
+  --pn-line: var(--wk-line, #dfe3e9);
+  --pn-line-soft: var(--wk-line-soft, #e9edf2);
+
+  --pn-text: var(--wk-text, #16202e);
+  --pn-muted: var(--wk-muted, #33506e);
+  /* One stop darker than --wk-faint. That token is calibrated for #ffffff
+     and #f8fafc; against the #eaeff5 ground it measures 4.18:1, under AA.
+     Same blue-grey ramp, one step down: 4.93:1 on the ground, 5.69:1 on
+     white, so secondary labels stay legible on every plane here. */
+  --pn-faint: #516981;
+
+  --pn-shadow-sm: var(--wk-shadow-sm, 0 1px 1px rgba(16, 32, 52, 0.04), 0 2px 6px rgba(16, 32, 52, 0.06));
+  --pn-shadow-md: var(--wk-shadow-md, 0 1px 2px rgba(16, 32, 52, 0.05), 0 10px 24px rgba(16, 32, 52, 0.09));
+  /* A sticky header is a floating element: it needs to cast, not just
+     sit on a rule, or rows scroll into it and the two merge. */
+  --pn-shadow-head: 0 1px 0 var(--pn-line), 0 4px 10px rgba(16, 32, 52, 0.06);
+
+  --pn-r: var(--wk-r, 12px);
+  --pn-r-sm: var(--wk-r-sm, 8px);
+}
+
+/* ---------------------------------------------------------------- headings */
+
+.pn-head { margin-bottom: 26px; }
+.pn-lede {
+  margin: 10px 0 0;
+  max-width: 66ch;
+  color: var(--pn-muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.pn-lede strong { color: var(--pn-text); font-weight: 600; }
+
+.pn-section { margin-top: 30px; }
+.pn-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--pn-line);
+}
+.pn-section-title {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pn-text);
+}
+.pn-section-note { margin: 0; font-size: 12.5px; color: var(--pn-faint); }
+.pn-section-body { padding-top: 16px; }
+
+.pn-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+}
+
+/* ------------------------------------------------------------ metric rail */
+
+/* The headline numbers are one object, so they are one card — not five
+   figures floating on the page ground with a hairline above them. */
+.pn-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  margin: 22px 0 0;
+  background: var(--pn-surface);
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r);
+  box-shadow: var(--pn-shadow-sm);
+  overflow: hidden;
+}
+.pn-metric {
+  padding: 15px 20px 17px;
+  border-left: 1px solid var(--pn-line-soft);
+  min-width: 0;
+}
+.pn-metric:first-child { border-left: 0; }
+.pn-metric-label {
+  display: block;
+  font-size: 11.5px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+  font-weight: 600;
+}
+.pn-metric-value {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--font-display, inherit);
+  font-size: 25px;
+  line-height: 1.05;
+  font-weight: 600;
+  color: var(--pn-text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+.pn-metric-value-quiet { color: var(--pn-muted); font-size: 19px; }
+.pn-metric-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--pn-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- filters */
+
+/* Controls sit on a recessed strip. It separates "what I can change"
+   from "what I am reading", and it gives the white chips a ground to
+   read against instead of white-on-white. */
+.pn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 20px 0 0;
+  padding: 12px 14px;
+  background: var(--pn-ground);
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r);
+}
+.pn-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.pn-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid var(--pn-line);
+  border-radius: var(--radius-pill);
+  background: var(--pn-surface);
+  color: var(--pn-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.pn-chip:hover { border-color: var(--pn-faint); color: var(--pn-text); }
+.pn-chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  font-weight: 500;
+}
+.pn-chip-count {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pn-faint);
+}
+.pn-chip[aria-pressed="true"] .pn-chip-count { color: rgba(255, 255, 255, 0.72); }
+.pn-chip:disabled { opacity: 0.45; cursor: default; }
+
+.pn-field { display: inline-flex; align-items: center; gap: 7px; }
+.pn-field-label { font-size: 12px; color: var(--pn-faint); white-space: nowrap; }
+.pn-select,
+.pn-input {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r-sm);
+  background: var(--pn-surface);
+  color: var(--pn-text);
+  max-width: 100%;
+}
+.pn-input { min-width: 0; width: 190px; }
+.pn-spacer { flex: 1 1 auto; }
+
+/* -------------------------------------------------------------- case list */
+
+/*
+ * Each escalated record is a discrete object a person acts on, so it is a
+ * raised card on a deeper ground rather than a band separated by a
+ * hairline. The gap does as much work as the shadow: "this entry, the
+ * next entry" has to be answerable at a glance from the back of a room.
+ */
+.pn-cases {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 14px;
+  background: var(--pn-ground);
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r);
+}
+.pn-cases:empty { display: none; }
+.pn-cases .pn-case {
+  padding: 18px 20px 20px;
+  background: var(--pn-surface);
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r);
+  box-shadow: var(--pn-shadow-sm);
+}
+.pn-case-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pn-case-title {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pn-text);
+  letter-spacing: -0.005em;
+}
+.pn-case-id {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--pn-muted);
+}
+.pn-case-amount {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pn-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pn-case-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 9px;
+  font-size: 12px;
+  color: var(--pn-muted);
+}
+.pn-tag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.pn-tag-key { color: var(--pn-faint); }
+.pn-tag-val { font-family: var(--mono); font-size: 11.5px; color: var(--pn-muted); }
+.pn-tag-open {
+  padding: 1px 8px;
+  border: 1px solid var(--accent-soft-border);
+  background: var(--accent-soft);
+  border-radius: var(--radius-pill);
+  color: var(--accent-dark);
+  font-weight: 600;
+  font-size: 11.5px;
+}
+.pn-case-explain {
+  margin: 11px 0 0;
+  max-width: 76ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--pn-text);
+}
+.pn-case-next {
+  margin: 7px 0 0;
+  max-width: 76ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pn-muted);
+}
+.pn-case-next .pn-eyebrow { margin-right: 8px; }
+
+/* severity: dot shape + word, never colour on its own */
+.pn-case-head .pn-sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pn-sev-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+.pn-sev-high { color: var(--fail); }
+.pn-sev-high .pn-sev-dot { background: currentColor; }
+.pn-sev-medium { color: var(--warn); }
+.pn-sev-low { color: var(--pn-muted); }
+
+/* --------------------------------------------------------------- controls */
+
+.pn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+}
+.pn-btn {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  padding: 7px 13px;
+  border-radius: var(--pn-r-sm);
+  border: 1px solid var(--pn-line);
+  background: var(--pn-surface);
+  color: var(--pn-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pn-btn:hover:not(:disabled) { border-color: var(--pn-faint); background: var(--pn-zebra); }
+.pn-btn:disabled { opacity: 0.5; cursor: default; }
+.pn-btn-strong {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  font-weight: 500;
+}
+.pn-btn-strong:hover:not(:disabled) { background: var(--ink-deep); border-color: var(--ink-deep); }
+.pn-btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent-dark);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.pn-btn-quiet:hover:not(:disabled) { background: var(--accent-soft); border-color: transparent; }
+.pn-actions-rule {
+  width: 1px;
+  align-self: stretch;
+  background: var(--pn-line);
+  margin: 2px 4px;
+}
+
+/* ---------------------------------------------------------------- notices */
+
+.pn-note {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--pn-line);
+  border-left: 3px solid var(--pn-faint);
+  border-radius: var(--pn-r-sm);
+  background: var(--pn-zebra);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pn-text);
+  max-width: 82ch;
+}
+.pn-note strong { font-weight: 600; }
+.pn-note-warn { border-left-color: var(--warn); background: var(--warn-bg); border-color: var(--warn-border); }
+.pn-note-bad { border-left-color: var(--fail); background: var(--fail-bg); border-color: var(--fail-border); }
+.pn-note-ok { border-left-color: var(--accord-ink); background: var(--accord-soft); border-color: var(--accord-border); }
+
+.pn-empty {
+  padding: 34px 4px;
+  color: var(--pn-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+/* ------------------------------------------------------------- comparison */
+
+/*
+ * The evidence belongs to the case above it, so it is a tray sunk INTO
+ * that card — the same ground the cases themselves sit on — with its own
+ * white tables floating on it. Rendered as a sibling band it read as the
+ * start of the next record.
+ */
+.pn-evidence {
+  margin-top: 16px;
+  padding: 14px 16px 16px;
+  background: var(--pn-ground);
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r-sm);
+}
+.pn-evidence .pn-scroll,
+.pn-evidence .pn-refused {
+  background: var(--pn-surface);
+  border: 1px solid var(--pn-line-soft);
+  border-radius: var(--pn-r-sm);
+}
+.pn-evidence .pn-scroll table th:first-child,
+.pn-evidence .pn-scroll table td:first-child { padding-left: 14px; }
+.pn-evidence .pn-scroll table th:last-child,
+.pn-evidence .pn-scroll table td:last-child { padding-right: 14px; }
+.pn-evidence .pn-scroll table tbody tr:last-child > * { border-bottom: 0; }
+.pn-compare tbody tr:nth-of-type(even) > *,
+.pn-checks tbody tr:nth-of-type(even) > * { background: var(--pn-zebra); }
+.pn-evidence-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+}
+.pn-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* A table that is the whole object gets to be the card. */
+.pn-cardscroll {
+  background: var(--pn-surface);
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r);
+  box-shadow: var(--pn-shadow-sm);
+}
+.pn-cardscroll table th:first-child,
+.pn-cardscroll table td:first-child { padding-left: 16px; }
+.pn-cardscroll table th:last-child,
+.pn-cardscroll table td:last-child { padding-right: 16px; }
+.pn-cardscroll table tbody tr:last-child > * { border-bottom: 0; }
+
+.pn-compare {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pn-compare th,
+.pn-compare td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 14px 8px 0;
+  border-bottom: 1px solid var(--pn-line-soft);
+}
+.pn-compare thead th {
+  border-bottom: 1px solid var(--pn-line);
+  padding-bottom: 9px;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pn-compare thead th span { display: block; text-transform: none; letter-spacing: 0; }
+.pn-col-who { color: var(--pn-text); font-size: 12.5px; font-weight: 600; }
+.pn-col-id {
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--pn-muted);
+  word-break: break-all;
+}
+.pn-compare tbody th {
+  font-weight: 500;
+  color: var(--pn-muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+  width: 1%;
+}
+.pn-cell-val {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pn-text);
+  word-break: break-word;
+}
+.pn-cell-prose { font-family: inherit; font-size: 12.5px; color: var(--pn-muted); line-height: 1.45; }
+.pn-row-only td, .pn-row-only th { color: var(--pn-faint); }
+
+.pn-flag {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pn-flag-same { color: var(--pass); }
+.pn-flag-diff { color: var(--fail); }
+.pn-flag::before { content: "· "; }
+
+.pn-signal { display: block; font-size: 12px; line-height: 1.45; }
+.pn-signal-for { color: var(--pass); }
+.pn-signal-against { color: var(--fail); }
+.pn-signal-none { color: var(--pn-faint); font-size: 12px; }
+
+.pn-admit { font-size: 12px; line-height: 1.45; }
+.pn-admit-yes { color: var(--pass); font-weight: 600; }
+.pn-admit-no { color: var(--fail); font-weight: 600; }
+.pn-admit-why { color: var(--pn-muted); display: block; margin-top: 2px; }
+
+/* checks table — expected and observed are compared by eye, so they must
+   never be hyphenated down a narrow column; the table scrolls instead. */
+.pn-checks { width: 100%; min-width: 660px; border-collapse: collapse; font-size: 12.5px; }
+.pn-checks .pn-cell-val { white-space: nowrap; }
+.pn-checks th, .pn-checks td {
+  text-align: left;
+  vertical-align: top;
+  padding: 7px 14px 7px 0;
+  border-bottom: 1px solid var(--pn-line-soft);
+}
+.pn-checks thead th {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+  border-bottom: 1px solid var(--pn-line);
+  white-space: nowrap;
+}
+.pn-checks tbody th { font-weight: 500; color: var(--pn-text); white-space: nowrap; }
+.pn-result {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  border: 1px solid;
+}
+.pn-result-pass { color: var(--pass); background: var(--pass-bg); border-color: var(--pass-border); }
+.pn-result-warn { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-border); }
+.pn-result-fail { color: var(--fail); background: var(--fail-bg); border-color: var(--fail-border); }
+
+.pn-refused { list-style: none; margin: 0; padding: 0 14px; }
+.pn-refused li:last-child { border-bottom: 0; }
+.pn-refused li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--pn-line-soft);
+  font-size: 12.5px;
+  color: var(--pn-muted);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.pn-refused-id { font-family: var(--mono); font-size: 12px; color: var(--pn-text); }
+
+.pn-sub { margin-top: 18px; }
+.pn-sub-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+}
+.pn-provenance {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--pn-faint);
+  line-height: 1.6;
+}
+.pn-provenance code { font-family: var(--mono); font-size: 11.5px; color: var(--pn-muted); }
+
+/* ============================================================ audit trail */
+
+/* The integrity banner is the one element on this screen that must never
+   overstate what it knows, so it has four visual states — verified, broken,
+   unverified and checking — and the unverified state deliberately looks
+   nothing like the verified one. */
+.pn-chain {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+  border: 1px solid var(--pn-line);
+  border-left: 4px solid var(--pn-faint);
+  border-radius: var(--pn-r-sm);
+  background: var(--pn-zebra);
+  border-radius: var(--pn-r);
+  box-shadow: var(--pn-shadow-sm);
+  margin-top: 22px;
+}
+.pn-chain-ok { border-color: var(--accord-border); border-left-color: var(--accord-ink); background: var(--accord-soft); }
+.pn-chain-bad { border-color: var(--fail-border); border-left-color: var(--fail); background: var(--fail-bg); }
+.pn-chain-unknown { border-color: var(--warn-border); border-left-color: var(--warn); background: var(--warn-bg); }
+.pn-chain-main { flex: 1 1 340px; min-width: 0; }
+.pn-chain-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pn-text);
+}
+.pn-chain-ok .pn-chain-status { color: var(--accord-ink); }
+.pn-chain-bad .pn-chain-status { color: var(--fail); }
+.pn-chain-unknown .pn-chain-status { color: var(--warn); }
+.pn-chain-mark { flex: 0 0 auto; }
+.pn-chain-line {
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pn-muted);
+  max-width: 74ch;
+}
+.pn-chain-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--pn-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pn-chain-facts code { font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
+.pn-chain-side { display: flex; align-items: center; gap: 10px; }
+
+.pn-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--pn-muted);
+  white-space: nowrap;
+}
+.pn-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accord-d);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pn-live-dot { animation: pn-pulse 2.4s ease-in-out infinite; }
+}
+@keyframes pn-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* The ledger is one card. Inside it, every row is separated three ways —
+   a rule, a zebra tint and a hover — because 500 rows of identical white
+   is the exact failure this screen cannot afford. */
+.pn-ledger {
+  margin-top: 18px;
+  background: var(--pn-surface);
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r);
+  box-shadow: var(--pn-shadow-sm);
+  overflow: hidden;
+}
+.pn-ledger-scroll { max-height: 560px; overflow-y: auto; overflow-x: auto; }
+.pn-events { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 13px; }
+.pn-events thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--pn-surface);
+  text-align: left;
+  padding: 11px 14px 10px 0;
+  border-bottom: 1px solid var(--pn-line);
+  box-shadow: var(--pn-shadow-head);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pn-events td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--pn-line-soft); vertical-align: top; }
+.pn-events th:first-child,
+.pn-events td:first-child { padding-left: 16px; }
+.pn-events th:last-child,
+.pn-events td:last-child { padding-right: 14px; }
+.pn-event-row { cursor: pointer; }
+.pn-event-row.pn-row-alt > td { background: var(--pn-zebra); }
+.pn-event-row:hover > td { background: var(--pn-hover); }
+/* Open row: tint AND a rail on the leading cell, so the state is never
+   carried by colour alone. */
+.pn-event-row[aria-expanded="true"] > td { background: var(--pn-wash); border-bottom-color: transparent; }
+.pn-event-row[aria-expanded="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--pn-rail); }
+.pn-event-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pn-seq { font-family: var(--mono); font-size: 11.5px; color: var(--pn-faint); font-variant-numeric: tabular-nums; }
+.pn-time { font-family: var(--mono); font-size: 11.5px; color: var(--pn-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pn-event-name { font-weight: 500; color: var(--pn-text); }
+.pn-event-tx { font-family: var(--mono); font-size: 11.5px; color: var(--pn-muted); word-break: break-all; }
+.pn-state { font-size: 11.5px; color: var(--pn-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pn-caret { color: var(--pn-faint); font-size: 12px; line-height: 1.2; width: 1%; text-align: right; }
+
+.pn-detail-cell {
+  background: var(--pn-sunk);
+  box-shadow: inset 3px 0 0 var(--pn-rail);
+  border-bottom: 1px solid var(--pn-line) !important;
+  padding: 6px 18px 18px !important;
+}
+.pn-kv {
+  display: grid;
+  grid-template-columns: minmax(120px, 190px) 1fr;
+  gap: 6px 18px;
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  max-width: 900px;
+}
+.pn-kv dt { color: var(--pn-faint); }
+.pn-kv dd { margin: 0; color: var(--pn-text); word-break: break-word; }
+.pn-kv dd.pn-hash { font-family: var(--mono); font-size: 11.5px; color: var(--pn-muted); word-break: break-all; }
+.pn-kv-group {
+  margin: 16px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+}
+.pn-count-line { margin: 10px 0 0; font-size: 12px; color: var(--pn-faint); font-variant-numeric: tabular-nums; }
+/* Inside the ledger card this line is the card's footer, not a caption
+   floating under it. */
+.pn-ledger .pn-count-line {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--pn-line);
+  background: var(--pn-surface);
+}
+
+/* ============================================================= evaluation */
+
+/* Methodology is context, not an object: it takes the recessed ground
+   rather than a card, so the numbers below it stay the raised thing. */
+.pn-method {
+  margin: 20px 0 0;
+  padding: 16px 20px;
+  border: 1px solid var(--pn-line);
+  border-radius: var(--pn-r);
+  background: var(--pn-ground);
+}
+.pn-method p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--pn-text); max-width: 78ch; }
+.pn-method-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 26px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pn-line-soft);
+  font-size: 12px;
+  color: var(--pn-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pn-method-facts b { font-weight: 500; color: var(--pn-faint); margin-right: 6px; }
+.pn-method-facts code { font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
+
+.pn-frozen { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 13px; }
+.pn-frozen th, .pn-frozen td {
+  text-align: right;
+  padding: 9px 0 9px 18px;
+  border-bottom: 1px solid var(--pn-line-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pn-frozen th:first-child, .pn-frozen td:first-child { text-align: left; padding-left: 0; white-space: normal; }
+.pn-frozen tbody tr:nth-of-type(even) > * { background: var(--pn-zebra); }
+.pn-frozen thead th {
+  border-bottom: 1px solid var(--pn-line);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+  font-weight: 600;
+}
+.pn-frozen tbody th { font-weight: 500; color: var(--pn-text); }
+.pn-frozen tbody th span { display: block; font-size: 11.5px; color: var(--pn-faint); font-weight: 400; margin-top: 2px; }
+
+.pn-provider { display: block; }
+.pn-provider-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  margin: 0;
+}
+.pn-provider-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pn-text);
+}
+.pn-provider-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid currentColor; }
+.pn-provider-ok { color: var(--accord-ink); }
+.pn-provider-ok .pn-provider-dot { background: currentColor; }
+.pn-provider-degraded { color: var(--warn); }
+.pn-provider-down { color: var(--fail); }
+.pn-provider-table { border-collapse: collapse; font-size: 12.5px; margin-top: 12px; min-width: 420px; }
+.pn-provider-table th, .pn-provider-table td {
+  text-align: left;
+  padding: 7px 20px 7px 0;
+  border-bottom: 1px solid var(--pn-line-soft);
+  vertical-align: top;
+}
+.pn-provider-table tbody tr:nth-of-type(even) > * { background: var(--pn-zebra); }
+.pn-provider-table thead th {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pn-faint);
+  border-bottom: 1px solid var(--pn-line);
+  white-space: nowrap;
+}
+.pn-provider-table tbody th { font-weight: 500; color: var(--pn-text); white-space: nowrap; }
+
+.pn-disclosure { margin-top: 14px; }
+.pn-disclosure > summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--accent-dark);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 2px;
+}
+.pn-disclosure > summary::-webkit-details-marker { display: none; }
+.pn-disclosure > summary::before { content: "▸"; font-size: 11px; line-height: 1; color: currentColor; }
+.pn-disclosure[open] > summary::before { content: "▾"; }
+.pn-disclosure > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.pn-replay { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+/* A replay of a thousand records must not turn the page into a mile of
+   table; the list keeps its own viewport. */
+.pn-records-scroll { max-height: 560px; overflow-y: auto; }
+/* Two secondary tones arrive from the shell's own classes (.records-table
+   headers, .live-outcome captions). They are calibrated for a lighter
+   ground than this layer paints and measure 3.2-3.4:1 here, under AA.
+   Corrected in place — panels.css does not own styles.css. */
+.pn-records-scroll .records-table thead th,
+.pn-section-body .live-outcome-label { color: var(--pn-faint); }
+
+.pn-records-scroll .records-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--pn-surface);
+  box-shadow: var(--pn-shadow-head);
+}
+.pn-records-scroll .records-table tbody tr:nth-of-type(even) > td { background: var(--pn-zebra); }
+.pn-records-scroll .records-table tbody tr.records-row:hover > td { background: var(--pn-hover); }
+.pn-records-scroll .records-table tbody tr.records-row.selected > td { background: var(--pn-wash); }
+.pn-records-scroll .records-table tbody tr.records-row.selected > td:first-child {
+  box-shadow: inset 3px 0 0 var(--pn-rail);
+}
+
+.pn-num { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* -------------------------------------------------------------- narrow */
+
+@media (max-width: 720px) {
+  /* The rail folds to two columns here, so the divider has to follow the
+     new first column rather than the first cell in the list. */
+  .pn-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pn-metric:nth-child(odd) { border-left: 0; }
+  .pn-metric:nth-child(n + 3) { border-top: 1px solid var(--pn-line-soft); }
+  .pn-metric { padding: 13px 15px 15px; }
+  .pn-cases { padding: 10px; gap: 10px; }
+  .pn-cases .pn-case { padding: 15px 15px 17px; }
+  .pn-evidence { padding: 11px 12px 13px; }
+  .pn-toolbar { padding: 11px 12px; }
+  .pn-metric-value { font-size: 21px; }
+  .pn-case-amount { margin-left: 0; }
+  .pn-kv { grid-template-columns: 1fr; gap: 2px; }
+  .pn-kv dt { margin-top: 8px; }
+  .pn-input { width: 100%; }
+  .pn-field { width: 100%; }
+  .pn-select { flex: 1 1 auto; min-width: 0; }
+  .pn-chain { padding: 15px 16px; }
+  .pn-chain-status { font-size: 16px; }
+}

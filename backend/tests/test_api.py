@@ -231,3 +231,62 @@ def test_admin_reset_clears_state(client):
     assert client.post("/admin/reset").json()["status"] == "reset"
     assert client.get("/batch/latest").json() == {"batch": None}
     assert client.get("/audit/verify").json()["total_events"] == 0
+
+
+# ---------------------------------------------------------------------------
+# A run's status must describe the run, not the moment its row was inserted.
+#
+# `create_batch` stamps RUNNING before a single source is uploaded, so every
+# abandoned workspace reported itself as running forever. Twenty such rows
+# made a working product look like it failed constantly — and it was simply
+# a false statement about state.
+# ---------------------------------------------------------------------------
+
+def test_a_workspace_that_never_ran_is_a_draft_not_a_running_run(client):
+    run_id = client.post("/runs", json={"label": "abandoned"}).json()["run_id"]
+
+    listed = client.get("/runs?include_drafts=true").json()["runs"]
+    mine = next(r for r in listed if r["batch_id"] == run_id)
+    assert mine["status"] == "DRAFT"
+    assert mine["status"] != "RUNNING"
+
+
+def test_drafts_are_hidden_by_default_but_not_destroyed(client):
+    run_id = client.post("/runs", json={"label": "abandoned"}).json()["run_id"]
+
+    default = client.get("/runs").json()["runs"]
+    assert all(r["batch_id"] != run_id for r in default), "a draft leaked into the default list"
+
+    with_drafts = client.get("/runs?include_drafts=true").json()["runs"]
+    assert any(r["batch_id"] == run_id for r in with_drafts), "the draft was hidden AND lost"
+
+
+def test_a_run_that_stopped_advancing_is_reported_interrupted(client):
+    """A killed process leaves its row RUNNING forever. Reporting that
+    honestly is the difference between 'still working' and 'this died'."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.ledger import store
+
+    store.create_batch("batch_stalled", "stalled", "upload", 0)
+    store.set_batch_total("batch_stalled", 100, "stalled")
+    old = (datetime.now(timezone.utc) - timedelta(seconds=store.STALE_RUN_SECONDS + 60)).isoformat()
+    store.get_conn().execute(
+        "UPDATE batches SET started_at=? WHERE batch_id=?", (old, "batch_stalled")
+    )
+
+    listed = client.get("/runs").json()["runs"]
+    stalled = next(r for r in listed if r["batch_id"] == "batch_stalled")
+    assert stalled["status"] == "INTERRUPTED"
+
+
+def test_a_run_in_flight_is_still_reported_running(client):
+    """The staleness rule must not slander a run that is genuinely working."""
+    from app.ledger import store
+
+    store.create_batch("batch_live", "live", "upload", 0)
+    store.set_batch_total("batch_live", 100, "live")
+
+    listed = client.get("/runs").json()["runs"]
+    live = next(r for r in listed if r["batch_id"] == "batch_live")
+    assert live["status"] == "RUNNING"
