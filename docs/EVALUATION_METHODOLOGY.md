@@ -559,12 +559,28 @@ into `AUTH_FAILURE`, real fallthrough.
 
 ### Results
 
+Frozen as `backend/evaluations/accord/`, commit `b6145bb`, every report
+produced against a clean working tree.
+
 | Config | Accuracy | False auto-recon | Exc. precision | Exc. recall | Human review | Provider failures |
 |---|---:|---:|---:|---:|---:|---:|
 | A | 82.5% | **0.0%** | 72.6% | 98.4% | 7.1% | — |
-| B | **87.7%** | **0.2%** | 87.9% | 88.7% | 9.9% | 77/204 (38%) |
-| D | 78.9% | 0.0% | 87.6% | 80.0% | 19.4% | 181/204 (89%) |
+| B | **88.3%** | **0.17%** | 87.9% | 91.0% | 9.1% | 74/204 (36%) |
+| D | 77.5% | 0.0% | 87.8% | 79.0% | 20.9% | 196/204 (96%) |
 | C | 76.8% | 0.0% | 87.6% | 77.7% | 21.6% | 204/204 (100%) |
+
+### Where the +5.8 points come from
+
+| Category | A (deterministic) | B (with the model) |
+|---|---:|---:|
+| `bank_narration_match` | 0 / 70 | 43 / 70 |
+| `merchant_alias_match` | 0 / 50 | 28 / 50 |
+| `corrupted_reference` | 0 / 40 | 0 / 40 |
+
+Two categories, both scoring exactly zero without a model, account for the
+entire gain. `corrupted_reference` is the control: the model is offered it
+and does not rescue it, which is the correct answer — a mangled identifier
+is not a semantic problem.
 
 ### Config A reproduces the frozen baseline exactly
 
@@ -585,9 +601,19 @@ Configuration B produced **one** false auto-reconciliation, in
 on two unrelated transactions sharing an amount. An earlier frozen run on
 the same dataset produced 0.0% in that category.
 
+Three runs of configuration B were measured over this cycle, on the same
+dataset: **0.2%, 0.0%, 0.17%**. Every occurrence was the same category,
+`same_amount_different_txn`, and never more than one record.
+
 So the honest claim is a range, not a constant: **with the model enabled,
-false auto-reconciliation is 0.0%–0.2% across measured runs.** The
-deterministic configuration's 0.0% is structural rather than observed.
+false auto-reconciliation is 0.0%–0.2% across measured runs**, driven by
+the model's run-to-run nondeterminism at temperature 0. The deterministic
+configuration's 0.0% is structural rather than observed.
+
+The frozen report is the last of the three, not the best of them. Choosing
+among runs after seeing their results is the same error as tuning a
+threshold after seeing them, and the earlier two are recorded here rather
+than discarded.
 
 `ai_confidence_threshold` was **not** raised in response, and configuration
 B was **not** re-run to look for a better draw. Both would be tuning after

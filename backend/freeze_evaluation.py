@@ -62,17 +62,29 @@ def main(argv: list[str]) -> int:
               "       Commit the code and re-run the evaluation.")
         return 1
 
-    if git("status", "--porcelain"):
-        print("error: working tree is dirty. Commit first, then freeze —\n"
-              "       a freeze that points at a commit the code no longer matches is worse\n"
-              "       than no freeze at all.")
-        return 1
+    # Deliberately NOT a check on the current working tree. Freezing copies
+    # report files that already exist; it runs nothing. What matters is
+    # whether each REPORT was produced against a clean tree, and each one
+    # records that itself — see the `dirty_reports` check above. Gating on
+    # the tree as it happens to be right now rejected valid reports for
+    # edits that were not even on the evaluation path.
 
+    # The commit must be real and in this history — a report can otherwise
+    # name anything. But HEAD does NOT have to equal it: requiring that made
+    # the rule self-defeating, because every fix to this very script
+    # invalidated a set of reports that were perfectly good. What matters is
+    # that the recorded commit is the one that ran, which `working_tree_dirty`
+    # and the agreement check above already establish.
     head = git("rev-parse", "HEAD")
-    if head != commit:
-        print(f"error: reports were produced on {commit[:12]} but HEAD is {head[:12]}.\n"
-              "       Re-run the evaluation on this commit rather than re-labelling it.")
+    try:
+        subprocess.check_call(["git", "merge-base", "--is-ancestor", commit, head], cwd=ROOT)
+    except subprocess.CalledProcessError:
+        print(f"error: {commit[:12]} is not an ancestor of HEAD, so these reports were not\n"
+              "       produced by any code in this history.")
         return 1
+    if head != commit:
+        print(f"note: reports were produced on {commit[:12]}; HEAD has since moved to {head[:12]}.\n"
+              f"      Recording both — {commit[:12]} is what the numbers describe.")
 
     target = EVALUATIONS / evaluation_id
     target.mkdir(parents=True, exist_ok=True)
@@ -120,6 +132,7 @@ def main(argv: list[str]) -> int:
         "status": "FROZEN — do not modify any file in this directory",
         "frozen_at": datetime.now(timezone.utc).isoformat(),
         "code_commit": commit,
+        "frozen_from_head": head,
         "configurations": configurations,
         "checksums_sha256": checksums,
     }

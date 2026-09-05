@@ -1,8 +1,15 @@
 {
   "evaluation_id": "accord",
+  "dataset": {
+    "version": "473394ea860fccc67bdd196914fc4c581939af2f7ca628c2ea5a88e71434131c",
+    "seed": 90210,
+    "split": "holdout",
+    "record_count": 1000
+  },
   "status": "FROZEN \u2014 do not modify any file in this directory",
-  "frozen_at": "2026-09-05T11:21:35.757404+00:00",
+  "frozen_at": "2026-09-05T11:22:47.492518+00:00",
   "code_commit": "b6145bbf1625e87c068f900f109bcbe34f256483",
+  "frozen_from_head": "24fc9d6f9a6895d80b7a0820c99320df2f99dd94",
   "configurations": {
     "latest_A_deterministic": {
       "report_file": "latest_A_deterministic.json",

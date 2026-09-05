@@ -214,12 +214,24 @@ stratified 75/25. Ground truth comes from each category's definition, never
 from what the engine produced. Run once per configuration on the shipped
 commit.
 
+Frozen at `backend/evaluations/accord/`, commit `b6145bb`, all four
+reports produced against a clean tree.
+
 | Configuration | Accuracy | **False auto-recon** | Exc. precision | Exc. recall | Human review | Provider failures |
 |---|---:|---:|---:|---:|---:|---:|
 | **A** — deterministic only | 82.5% | **0.0%** | 72.6% | 98.4% | 7.1% | — |
-| **B** — Gemini primary | **87.7%** | **0.2%** | 87.9% | 88.7% | 9.9% | 77/204 (38%) |
-| **D** — Groq only (Gemini down) | 78.9% | 0.0% | 87.6% | 80.0% | 19.4% | 181/204 (89%) |
+| **B** — Gemini primary | **88.3%** | **0.17%** | 87.9% | 91.0% | 9.1% | 74/204 (36%) |
+| **D** — Groq only (Gemini down) | 77.5% | 0.0% | 87.8% | 79.0% | 20.9% | 196/204 (96%) |
 | **C** — both providers dead | 76.8% | 0.0% | 87.6% | 77.7% | 21.6% | 204/204 (100%) |
+
+The model earns its +5.8 points in exactly two categories, both of which
+deterministic matching scores **zero** on:
+
+| Category | Deterministic | With the model |
+|---|---:|---:|
+| `bank_narration_match` | 0 / 70 | **43 / 70** |
+| `merchant_alias_match` | 0 / 50 | **28 / 50** |
+| `corrupted_reference` | 0 / 40 | 0 / 40 — the model does not rescue it, and should not |
 
 **Read the second column before the first.**
 
@@ -230,11 +242,12 @@ trap category was auto-reconciled: the model returned SAME above the 0.85
 gate on two unrelated transactions sharing an amount.
 
 That is one record in 1,000, and it is reported here rather than smoothed
-away. An earlier frozen run of the same dataset produced 0.0% on that
-category, so across measured runs the AI configuration's false
-auto-reconciliation rate is **0.0%–0.2%**, not a reliable zero. The
-deterministic configuration's 0.0% is *structural* — with no model, no
-model verdict can admit a match.
+away. Across three measured runs of this configuration the rate was
+**0.2%, 0.0% and 0.17%** — the same trap category each time it appeared.
+So the honest claim is a range, not a constant: with the model enabled,
+false auto-reconciliation is **0.0%–0.2%**, driven by the model's
+run-to-run nondeterminism. The deterministic configuration's 0.0% is
+*structural* — with no model, no model verdict can admit a match.
 
 The threshold that admitted it (`ai_confidence_threshold`) was **not**
 adjusted after seeing this result. Tuning a safety knob to make a holdout
