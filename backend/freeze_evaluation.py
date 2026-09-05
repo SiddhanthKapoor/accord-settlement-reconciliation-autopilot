@@ -96,8 +96,27 @@ def main(argv: list[str]) -> int:
             "provider_errors": metrics.get("provider_errors"),
         }
 
+    # The verifier reads this block, and it is what makes a frozen number
+    # attributable to a dataset rather than just to a commit. Reports must
+    # agree on it for the same reason they must agree on the commit.
+    versions = {r.get("dataset_version") for r in reports.values()}
+    seeds = {r.get("seed") for r in reports.values()}
+    splits = {r.get("dataset_split") for r in reports.values()}
+    if len(versions) != 1 or len(seeds) != 1 or len(splits) != 1:
+        print("error: reports disagree about the dataset they were run on:")
+        for path, r in reports.items():
+            print(f"    {path.name}: version={str(r.get('dataset_version'))[:12]} "
+                  f"seed={r.get('seed')} split={r.get('dataset_split')}")
+        return 1
+
     frozen = {
         "evaluation_id": evaluation_id,
+        "dataset": {
+            "version": versions.pop(),
+            "seed": seeds.pop(),
+            "split": splits.pop(),
+            "record_count": next(iter(reports.values())).get("record_count"),
+        },
         "status": "FROZEN — do not modify any file in this directory",
         "frozen_at": datetime.now(timezone.utc).isoformat(),
         "code_commit": commit,

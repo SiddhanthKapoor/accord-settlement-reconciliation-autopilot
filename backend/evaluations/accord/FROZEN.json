@@ -1,0 +1,58 @@
+{
+  "evaluation_id": "accord",
+  "status": "FROZEN \u2014 do not modify any file in this directory",
+  "frozen_at": "2026-09-05T11:21:35.757404+00:00",
+  "code_commit": "b6145bbf1625e87c068f900f109bcbe34f256483",
+  "configurations": {
+    "latest_A_deterministic": {
+      "report_file": "latest_A_deterministic.json",
+      "semantic_backend": "HeuristicSemanticVerifier",
+      "reconciliation_accuracy": 0.825,
+      "false_auto_reconciliation_rate": 0.0,
+      "exception_precision": 0.7261904761904762,
+      "exception_recall": 0.9838709677419355,
+      "pct_human_review": 0.071,
+      "ai_invocation_rate": 0.204,
+      "provider_errors": 0
+    },
+    "latest_B_gemini_primary": {
+      "report_file": "latest_B_gemini_primary.json",
+      "semantic_backend": "ChainSemanticVerifier",
+      "reconciliation_accuracy": 0.883,
+      "false_auto_reconciliation_rate": 0.0017006802721088435,
+      "exception_precision": 0.8785046728971962,
+      "exception_recall": 0.9096774193548387,
+      "pct_human_review": 0.091,
+      "ai_invocation_rate": 0.204,
+      "provider_errors": 74
+    },
+    "latest_D_groq_fallback": {
+      "report_file": "latest_D_groq_fallback.json",
+      "semantic_backend": "ChainSemanticVerifier",
+      "reconciliation_accuracy": 0.775,
+      "false_auto_reconciliation_rate": 0.0,
+      "exception_precision": 0.8781362007168458,
+      "exception_recall": 0.7903225806451613,
+      "pct_human_review": 0.209,
+      "ai_invocation_rate": 0.204,
+      "provider_errors": 196
+    },
+    "latest_C_total_outage": {
+      "report_file": "latest_C_total_outage.json",
+      "semantic_backend": "ChainSemanticVerifier",
+      "reconciliation_accuracy": 0.768,
+      "false_auto_reconciliation_rate": 0.0,
+      "exception_precision": 0.8763636363636363,
+      "exception_recall": 0.7774193548387097,
+      "pct_human_review": 0.216,
+      "ai_invocation_rate": 0.204,
+      "provider_errors": 204
+    }
+  },
+  "checksums_sha256": {
+    "latest_A_deterministic.json": "5f9c90c90952df6c59ea631bbe2c8bfdf1719f18cedf9a69d4a7f9c232559226",
+    "latest_B_gemini_primary.json": "9553e7552641b04028a15a8e7d36a21e3f567f411037c0b210349cb22bedf18d",
+    "latest_D_groq_fallback.json": "1473c5688093114c22d2bf9855effa758907eca011972455a7c1e2f8f784dea4",
+    "latest_C_total_outage.json": "92bea6976d2483e95bd7c19f32528c69a79db234bffb71d535eef7cfdcab7ba3"
+  }
+}
