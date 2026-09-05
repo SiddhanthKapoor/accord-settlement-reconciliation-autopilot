@@ -1,5 +1,5 @@
 """
-Domain model for the Settlement Reconciliation Autopilot.
+Domain model for Accord.
 
 Two sides, always: a merchant's own order record, and a Razorpay-style
 settlement record. Reconciliation asks one question — does the merchant

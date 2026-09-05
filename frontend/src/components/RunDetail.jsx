@@ -45,6 +45,21 @@ const OUTCOME_LABEL = {
 };
 
 /**
+ * What each outcome means, in the words an operator uses.
+ *
+ * A filter whose label only makes sense to whoever wrote the engine is a
+ * filter nobody presses. These say what the group IS, not what the enum
+ * is called.
+ */
+const OUTCOME_HINT = {
+  ALL: "Every record in this run, whatever it was decided as.",
+  RECONCILED: "Matched against a settlement and agreed on every check — nothing to do.",
+  EXCEPTION:
+    "A settlement was found, but the money disagrees — the amount, the currency, the fee or tax, or a refund.",
+  HUMAN_REVIEW: "Accord would not decide these on its own. They are waiting on a person.",
+};
+
+/**
  * Read the breakpoint summary.
  *
  * Returns `null` when the endpoint is absent, which the UI renders as "not
@@ -419,6 +434,12 @@ export default function RunDetail({ runId, recordId, onBack }) {
           <Stat label="Human review" value={counts.HUMAN_REVIEW || 0} tone="warn" />
           <Stat label={escalationLabel} value={aiConsulted} note={aiNote} />
         </div>
+        <ExportBar
+          runId={runId}
+          filter={filter}
+          scopeCount={availableForFilter}
+          aiOnly={aiOnly}
+        />
       </section>
 
       {inconsistent && (
@@ -519,17 +540,13 @@ export default function RunDetail({ runId, recordId, onBack }) {
               consulted.
             </p>
           </div>
-          <div className="wk-block-actions">
-            <a className="btn-ghost" href={exportRunUrl(runId, filter)} download>
-              Export CSV
-            </a>
-          </div>
         </div>
 
         <div className="wk-outcomes" style={{ marginBottom: 14 }}>
           <FilterPill
             label="All"
             value={total}
+            title={OUTCOME_HINT.ALL}
             active={filter === null && !aiOnly}
             onClick={() => {
               setFilter(null);
@@ -542,6 +559,7 @@ export default function RunDetail({ runId, recordId, onBack }) {
               key={o}
               label={OUTCOME_LABEL[o]}
               value={counts[o] || 0}
+              title={OUTCOME_HINT[o]}
               active={filter === o}
               onClick={() => {
                 setFilter(o);
@@ -554,8 +572,29 @@ export default function RunDetail({ runId, recordId, onBack }) {
             value={fromProgress && tierInvoked != null ? tierInvoked : aiConsulted}
             active={aiOnly}
             onClick={() => setAiOnly((v) => !v)}
+            title={
+              heuristicOnly
+                ? "Records ambiguous enough to reach the semantic tier, answered by the offline verifier."
+                : "Records whose evidence was ambiguous enough for a model to be consulted."
+            }
           />
         </div>
+
+        <p className="wk-outcome-help">
+          {aiOnly
+            ? heuristicOnly
+              ? "Records ambiguous enough to reach the semantic tier, answered by Accord's offline verifier — no model was called."
+              : "Records whose evidence was ambiguous enough for a model to be consulted."
+            : OUTCOME_HINT[filter || "ALL"]}
+        </p>
+
+        <ExportBar
+          runId={runId}
+          filter={filter}
+          scopeCount={availableForFilter}
+          aiOnly={aiOnly}
+          compact
+        />
 
         {aiOnly && escalatedTotal > aiInLoaded && hasMore && !loadingMore && (
           <p className="wk-note wk-note-warn" style={{ marginBottom: 14 }}>
@@ -721,6 +760,55 @@ export default function RunDetail({ runId, recordId, onBack }) {
 }
 
 /**
+ * Download this run's results.
+ *
+ * Placed where the results are read rather than at the end of a toolbar:
+ * an operator's next move after seeing 66 exceptions is to send those 66
+ * to somebody, and an export they cannot find is an export that does not
+ * exist. Both formats carry the same columns — the reason, the
+ * explanation and the source file and row behind every decision — because
+ * the evidence is the reason the file is worth having.
+ *
+ * The scope is stated, never implied: the download follows the outcome
+ * filter on screen, so the file and the table agree.
+ */
+function ExportBar({ runId, filter, scopeCount, aiOnly, compact }) {
+  const scope = filter ? OUTCOME_LABEL[filter] : "All records";
+  return (
+    <div className={"wk-export" + (compact ? " wk-export-compact" : "")}>
+      <div className="wk-export-text">
+        <span className="wk-export-title">Export {scope.toLowerCase()}</span>
+        <span className="wk-export-scope">
+          {count(scopeCount)} record{scopeCount === 1 ? "" : "s"} — with the reason, the explanation
+          and the source file and row behind each decision.
+          {aiOnly
+            ? " The AI-assisted filter narrows the table only; this file covers the outcome filter above."
+            : ""}
+        </span>
+      </div>
+      <div className="wk-export-actions">
+        <a
+          className="wk-export-btn"
+          href={exportRunUrl(runId, filter, "csv")}
+          download
+          title={`Download ${scope.toLowerCase()} as a CSV file`}
+        >
+          CSV
+        </a>
+        <a
+          className="wk-export-btn wk-export-btn-strong"
+          href={exportRunUrl(runId, filter, "xlsx")}
+          download
+          title={`Download ${scope.toLowerCase()} as an Excel workbook`}
+        >
+          Excel (XLSX)
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/**
  * What an empty table is allowed to say.
  *
  * "No records match the current filters" is only true if the filters were
@@ -783,13 +871,14 @@ function Stat({ label, value, tone, note }) {
   );
 }
 
-function FilterPill({ label, value, note, active, onClick }) {
+function FilterPill({ label, value, note, active, onClick, title }) {
   return (
     <button
       type="button"
       className="wk-outcome wk-outcome-pill"
       aria-pressed={!!active}
       onClick={onClick}
+      title={title}
     >
       <span className="wk-outcome-label">{label}</span>
       <span className="wk-outcome-value">{count(value)}</span>

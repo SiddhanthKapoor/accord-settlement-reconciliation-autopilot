@@ -44,10 +44,26 @@ export const getDataSources = () => req(`${API}/data-sources`);
 export const getAuditLog = (limit = 200, since = 0) =>
   req(`${API}/audit/log?limit=${limit}&since=${since}`);
 
-export const getReviewQueue = ({ batchId, state = "OPEN", limit = 50 } = {}) => {
-  const params = new URLSearchParams({ state, limit });
+/**
+ * The review queue.
+ *
+ * `limit` defaults high enough that a normal run's whole open queue comes
+ * back in one request. The summary counts every open record, so a page
+ * shorter than the summary is two true numbers that read as a
+ * contradiction; the response carries `total`, `returned` and `limit` so
+ * the screen can state its scope instead of leaving the reader to guess.
+ */
+export const getReviewQueue = ({ batchId, state = "OPEN", limit = 200, offset = 0 } = {}) => {
+  const params = new URLSearchParams({ state, limit, offset });
   if (batchId) params.set("batch_id", batchId);
   return req(`${API}/review/queue?${params}`);
+};
+
+/** The whole queue in that state as a downloadable spreadsheet. */
+export const reviewQueueExportUrl = ({ batchId, state = "OPEN", format = "csv" } = {}) => {
+  const params = new URLSearchParams({ state, format });
+  if (batchId) params.set("batch_id", batchId);
+  return `${API}/review/queue/export?${params}`;
 };
 
 export const submitReviewAction = (recordId, { batchId, action, note }) =>
@@ -89,8 +105,18 @@ export const removeSource = (runId, sourceId) =>
 export const executeRun = (runId, label) =>
   req(`${API}/runs/${runId}/execute`, { method: "POST", body: JSON.stringify({ label }) });
 
-export const exportRunUrl = (runId, outcome) =>
-  `${API}/runs/${runId}/export${outcome ? `?outcome=${outcome}` : ""}`;
+/**
+ * Download the run's results.
+ *
+ * `outcome` narrows the file to the filter on screen, so the download
+ * matches what the operator is looking at. `format` is "csv" or "xlsx";
+ * both carry identical columns, evidence included.
+ */
+export const exportRunUrl = (runId, outcome, format = "csv") => {
+  const params = new URLSearchParams({ format });
+  if (outcome) params.set("outcome", outcome);
+  return `${API}/runs/${runId}/export?${params}`;
+};
 
 export const verifyChain = () => req(`${API}/audit/verify`);
 
@@ -133,12 +159,43 @@ export async function uploadSources(runId, files) {
   if (res.ok) {
     const body = await res.json().catch(() => ({}));
     const sources = Array.isArray(body) ? body : body.sources;
-    // A single object back means the endpoint read only one of the files.
-    if (Array.isArray(sources) && sources.length === list.length) {
-      return { sources, errors: body.errors || [] };
+    const errors = normaliseUploadErrors(body.errors);
+    // Accepted + rejected has to account for every file that was sent.
+    // Previously this required `sources.length === list.length`, so a
+    // batch where one file was rejected fell through to the sequential
+    // path and re-uploaded the files that had ALREADY been stored — one
+    // junk file in a drop silently duplicated every good file beside it.
+    if (Array.isArray(sources) && sources.length + errors.length === list.length) {
+      return { sources, errors };
+    }
+  } else if (res.status === 400 && list.length === 1) {
+    // One file, refused, with the reason already in `detail`. Retrying it
+    // twice down the sequential path only produces the same refusal twice
+    // more in the network log.
+    const body = await res.json().catch(() => ({}));
+    if (body.detail) {
+      return { sources: [], errors: [{ filename: list[0].name, detail: body.detail, status: 400 }] };
     }
   }
   return uploadSourcesSequentially(runId, list);
+}
+
+/**
+ * One shape for a rejected file, whatever reported it.
+ *
+ * The multi-file endpoint reports a rejection as `error`; the
+ * single-file path throws a message. Both are carried as `detail` so the
+ * inventory can always say what was wrong with the file — an upload that
+ * failed for a reason the screen renders as "undefined" is worse than no
+ * message at all.
+ */
+function normaliseUploadErrors(errors) {
+  if (!Array.isArray(errors)) return [];
+  return errors.map((e) => ({
+    ...e,
+    filename: e.filename || "file",
+    detail: e.detail || e.error || e.message || "could not be read",
+  }));
 }
 
 async function uploadOne(runId, file, sourceType) {
@@ -176,7 +233,7 @@ async function uploadSourcesSequentially(runId, list) {
       const s = await uploadOne(runId, file, undefined);
       sources.push({ ...s, detected_source_type: null, detection_confidence: null, needs_confirmation: true });
     } catch (e) {
-      errors.push({ filename: file.name, detail: e.message });
+      errors.push({ filename: file.name, detail: e.message, status: e.status });
     }
   }
   return { sources, errors };

@@ -1062,32 +1062,61 @@ def execute_run(run_id: str, body: ExecuteRequest):
 
 
 @router.get("/runs/{run_id}/export")
-def export_run(run_id: str, outcome: str | None = None):
-    """Results as CSV, including the evidence behind each decision.
+def export_run(run_id: str, outcome: str | None = None, format: str = "csv"):
+    """Results as a spreadsheet, including the evidence behind each decision.
 
-    Exported for a spreadsheet, which is where reconciliation output
-    actually goes. The rejected-candidate reasoning travels with the row
-    so a reviewer working offline still has the evidence.
+    Two formats, because reconciliation output lands in a spreadsheet and
+    half of finance opens CSV in Excel while the other half wants a
+    workbook that already has its header frozen. Both carry exactly the
+    same columns — the evidence (reason, explanation, rejected candidates,
+    source provenance) is what makes the file worth having, so it is never
+    trimmed for the "convenient" format.
+
+    `outcome` narrows the export to one outcome so the file matches the
+    filter the operator is looking at on screen.
     """
-    import csv
-    import io
-
-    from fastapi.responses import StreamingResponse
-
+    fmt = (format or "csv").strip().lower()
+    if fmt not in ("csv", "xlsx"):
+        raise HTTPException(400, f"unknown export format '{format}' — use 'csv' or 'xlsx'")
     if not store.get_batch(run_id):
         raise HTTPException(404, "run not found")
-    rows = store.list_records(run_id, outcome=outcome, limit=100_000)
+    if outcome:
+        outcome = outcome.strip().upper()
 
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow([
+    rows = store.list_records(run_id, outcome=outcome, limit=100_000)
+    header, body = _run_export_table(rows)
+    scope = EXPORT_SCOPE.get(outcome or "", "all-records")
+    return table_response(header, body, filename=f"{run_id}-{scope}", sheet_title="Reconciliation",
+                          fmt=fmt)
+
+
+# What each outcome filter is called in the downloaded file's name, so a
+# folder of exports is readable without opening them.
+EXPORT_SCOPE = {
+    "": "all-records",
+    "RECONCILED": "reconciled",
+    "EXCEPTION": "exceptions",
+    "HUMAN_REVIEW": "human-review",
+}
+
+
+def _run_export_table(rows: list[dict]) -> tuple[list[str], list[list]]:
+    """The exported columns, in one place, for every format.
+
+    The reasoning columns are the point of the export: an operator working
+    offline has to be able to see *why* a record was decided the way it
+    was and *which row of which file* the evidence came from, or the file
+    is a list of verdicts with nothing behind them.
+    """
+    header = [
         "record_id", "outcome", "exception_type", "severity", "matched_payment_id",
-        "amount_minor", "currency", "reference", "description", "explanation",
+        "amount_minor", "currency", "reference", "description", "reason", "explanation",
         "recommended_action", "ai_invoked", "review_state", "rejected_candidates",
         # Appended, not inserted: existing consumers read by position.
         "ledger_source_file", "ledger_source_row",
         "settlement_source_file", "settlement_source_row",
-    ])
+    ]
+    body: list[list] = []
     for row in rows:
         merchant = json.loads(row["merchant_json"])
         considered = json.loads(row.get("considered_json") or "[]")
@@ -1098,20 +1127,86 @@ def export_run(run_id: str, outcome: str | None = None):
         provenance = json.loads(row.get("provenance_json") or "{}") or {}
         ledger_origin = provenance.get("ledger") or {}
         settlement_origin = provenance.get("settlement") or {}
-        writer.writerow([
+        body.append([
             row["record_id"], row["outcome"], row.get("exception_type") or "",
             row.get("severity") or "", row.get("matched_payment_id") or "",
             merchant.get("amount_minor"), merchant.get("currency"),
             merchant.get("reference_id") or "", merchant.get("description") or "",
+            row.get("reason") or "",
             row.get("explanation") or "", row.get("recommended_action") or "",
             "yes" if row.get("ai_invoked") else "no", row.get("review_state") or "OPEN",
             rejected,
             ledger_origin.get("filename") or "", ledger_origin.get("file_row") or "",
             settlement_origin.get("filename") or "", settlement_origin.get("file_row") or "",
         ])
+    return header, body
 
-    buffer.seek(0)
+
+# Column widths are computed from the content, then clamped. Unclamped,
+# one long explanation makes a column wider than the screen and the sheet
+# is unreadable at the exact moment it matters; too narrow and every
+# evidence column shows "###".
+_XLSX_MIN_WIDTH = 10
+_XLSX_MAX_WIDTH = 52
+_XLSX_WIDTH_SAMPLE = 400
+
+
+def table_response(header: list[str], rows: list[list], *, filename: str, sheet_title: str,
+                   fmt: str = "csv"):
+    """One table, downloaded as either CSV or a real XLSX workbook.
+
+    Shared by the run export and the review-queue export so the two can
+    never drift into carrying different evidence for the same decision.
+    """
+    import csv
+    import io
+
+    from fastapi.responses import StreamingResponse
+
+    if fmt == "xlsx":
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font
+        from openpyxl.utils import get_column_letter
+
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = sheet_title[:31]                  # Excel's hard limit
+        sheet.append(header)
+        for row in rows:
+            sheet.append(row)
+
+        for cell in sheet[1]:
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(vertical="center")
+        # The header stays put while an operator scrolls 3,000 records —
+        # without it the columns are unidentifiable past the first screen.
+        sheet.freeze_panes = "A2"
+        sheet.auto_filter.ref = sheet.dimensions
+
+        for index, name in enumerate(header, start=1):
+            widest = len(str(name))
+            for row in rows[:_XLSX_WIDTH_SAMPLE]:
+                value = row[index - 1] if index - 1 < len(row) else ""
+                widest = max(widest, len(str(value if value is not None else "")))
+            sheet.column_dimensions[get_column_letter(index)].width = min(
+                max(widest + 2, _XLSX_MIN_WIDTH), _XLSX_MAX_WIDTH
+            )
+
+        buffer = io.BytesIO()
+        workbook.save(buffer)
+        buffer.seek(0)
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}.xlsx"'},
+        )
+
+    text = io.StringIO()
+    writer = csv.writer(text)
+    writer.writerow(header)
+    for row in rows:
+        writer.writerow(row)
     return StreamingResponse(
-        iter([buffer.getvalue()]), media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{run_id}-reconciliation.csv"'},
+        iter([text.getvalue()]), media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.csv"'},
     )

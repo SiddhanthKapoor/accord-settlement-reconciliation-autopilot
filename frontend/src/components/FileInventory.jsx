@@ -49,11 +49,14 @@ export const CONFIDENCE_FLOOR = 0.75;
 export function blockersFor(source) {
   const out = [];
   const unmapped = source.detection?.unmapped_required || [];
+  if ((source.row_count ?? 0) === 0) {
+    out.push(`${source.filename}: no rows were read from this file — there is nothing to reconcile.`);
+  }
   if (unmapped.length > 0) {
     out.push(
-      `${source.filename}: ${unmapped.map((c) => CANONICAL_LABELS[c] || c).join(" and ")} ${
-        unmapped.length === 1 ? "column is" : "columns are"
-      } not mapped.`
+      `${source.filename}: no ${unmapped
+        .map((c) => (CANONICAL_LABELS[c] || c).toLowerCase())
+        .join(" and no ")} column — Accord cannot read this file as financial records.`
     );
   }
   if (source.needs_confirmation && !source.confirmed) {
@@ -75,11 +78,32 @@ export function blockersFor(source) {
   return out;
 }
 
-/** What is holding this one row back, in three words, for the table. */
+/**
+ * What is missing before this file can be reconciled, in operator words.
+ *
+ * The phrase used to be "Column unmapped", which describes Accord's
+ * internal state rather than the operator's problem. A random CSV pulled
+ * off the internet has no amount and no date, and the row has to say
+ * exactly that — every file in the inventory reads either "Ready" or the
+ * specific thing wrong with it.
+ */
+export function missingRequired(source) {
+  return source.detection?.unmapped_required || [];
+}
+
 function statusOf(source) {
-  const unmapped = source.detection?.unmapped_required || [];
+  const unmapped = missingRequired(source);
+  if ((source.row_count ?? 0) === 0) {
+    return { key: "block", glyph: "✕", word: "No rows read", tone: "wk-st-block" };
+  }
   if (unmapped.length > 0) {
-    return { key: "block", glyph: "✕", word: "Column unmapped", tone: "wk-st-block" };
+    const word =
+      unmapped.length > 1
+        ? "No amount or date"
+        : unmapped[0] === "amount"
+        ? "No amount column"
+        : "No date column";
+    return { key: "block", glyph: "✕", word, tone: "wk-st-block" };
   }
   if (source.duplicate_of && !source.duplicate_ack) {
     return { key: "dupe", glyph: "▲", word: "Possible duplicate", tone: "wk-st-ask" };
@@ -179,6 +203,10 @@ export default function FileInventory({ sources, onConfirm, onRemove, onRemap, b
             const status = statusOf(source);
             const askRole = source.needs_confirmation && !source.confirmed;
             const askDupe = !!source.duplicate_of && !source.duplicate_ack;
+            // An unreadable file is answered first: there is no point
+            // asking which side of the reconciliation a file belongs on
+            // when the engine cannot read a single figure out of it.
+            const unusable = unmapped.length > 0 || (source.row_count ?? 0) === 0;
             const dateRange = formatRange(source.date_range);
             const amountRange = source.amount_range;
             const typeLabel = TYPE_LABEL[source.source_type] || source.source_type || "Unclassified";
@@ -248,7 +276,21 @@ export default function FileInventory({ sources, onConfirm, onRemove, onRemap, b
                   </td>
                 </tr>
 
-                {(askRole || askDupe) && (
+                {unusable && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: "0 12px 12px" }}>
+                      <Unusable
+                        source={source}
+                        missing={unmapped}
+                        busy={busy}
+                        onRemove={onRemove}
+                        onOpenColumns={() => setOpen(source.source_id)}
+                      />
+                    </td>
+                  </tr>
+                )}
+
+                {!unusable && (askRole || askDupe) && (
                   <tr>
                     <td colSpan={7} style={{ padding: "0 12px 12px" }}>
                       <div className="wk-decide">
@@ -437,6 +479,79 @@ export default function FileInventory({ sources, onConfirm, onRemove, onRemap, b
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/**
+ * A file Accord cannot reconcile, and what to do about it.
+ *
+ * Reconciliation needs an amount and a date per row. A file with neither
+ * — a random CSV, a product list, an export of the wrong report — must
+ * not sit in the inventory looking accepted: it says what it is missing,
+ * what Accord *did* read out of it, and offers the two real answers,
+ * which are "the column is there under another name" and "remove it".
+ */
+function Unusable({ source, missing, busy, onRemove, onOpenColumns }) {
+  const columns = source.detection?.columns || [];
+  const noRows = (source.row_count ?? 0) === 0;
+  const names = missing.map((c) => (CANONICAL_LABELS[c] || c).toLowerCase());
+  // What it DID manage to map out of the required pair. A random export
+  // can have a column that scores as an amount without being one, and
+  // leaving that unstated is how a nonsense mapping reaches a run.
+  const mapped = REQUIRED.filter((c) => source.mapping?.[c]).map((c) => ({
+    column: source.mapping[c],
+    label: (CANONICAL_LABELS[c] || c).toLowerCase(),
+  }));
+  return (
+    <div className="wk-decide wk-decide-bad">
+      <p className="wk-decide-q">
+        {noRows ? (
+          <>
+            Accord read no rows from <em>{source.filename}</em>.
+          </>
+        ) : (
+          <>
+            Accord cannot reconcile <em>{source.filename}</em>: it has no{" "}
+            {names.join(" column and no ")} column.
+          </>
+        )}
+      </p>
+      <p className="wk-decide-why">
+        {noRows
+          ? "The file was read, but it contained no data rows below its header — there is nothing in it to reconcile."
+          : "Every reconciled row needs an amount and a date. "}
+        {columns.length > 0 && (
+          <>
+            Accord read {count(columns.length)} column{columns.length === 1 ? "" : "s"} from this
+            file: <strong>{columns.slice(0, 8).join(", ")}</strong>
+            {columns.length > 8 ? `, and ${columns.length - 8} more` : ""}.
+          </>
+        )}{" "}
+        {!noRows &&
+          "If the right column is there under a name Accord did not recognise, point at it below. Otherwise this file is not a financial export Accord can use — remove it."}
+      </p>
+      {mapped.length > 0 && !noRows && (
+        <p className="wk-decide-why" style={{ marginTop: 6 }}>
+          It did read {mapped.map((m) => `${m.column} as the ${m.label} column`).join(", and ")} —
+          check that is right before running.
+        </p>
+      )}
+      <div className="wk-decide-row">
+        {!noRows && columns.length > 0 && (
+          <button type="button" className="wk-decide-yes" onClick={onOpenColumns}>
+            Choose the columns
+          </button>
+        )}
+        <button
+          type="button"
+          className="btn-ghost"
+          disabled={busy}
+          onClick={() => onRemove(source.source_id)}
+        >
+          Remove {source.filename}
+        </button>
+      </div>
     </div>
   );
 }

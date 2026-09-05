@@ -290,3 +290,19 @@ def test_a_run_in_flight_is_still_reported_running(client):
     listed = client.get("/runs").json()["runs"]
     live = next(r for r in listed if r["batch_id"] == "batch_live")
     assert live["status"] == "RUNNING"
+
+
+def test_the_evaluation_page_serves_the_frozen_result_not_a_scratch_run(client):
+    """`data/eval_reports/` is a scratch pad — ad-hoc runs on arbitrary
+    datasets land there. Serving the newest of them let the Evaluation page
+    display 97.7% from a 999-record run on an unrelated seed while every
+    document, the frozen report and the commit said 88.3%. A product that
+    contradicts its own evidence in front of a reviewer is worse than one
+    that shows no number at all."""
+    body = client.get("/evaluation/latest").json()
+
+    assert body.get("source") == "frozen"
+    assert body.get("evaluation_id") == "ACCORD"
+    assert body["metrics"]["record_count"] == 1000
+    assert body.get("code_commit"), "a served evaluation must name the commit that produced it"
+    assert body.get("working_tree_dirty") is False, "a dirty-tree report describes no commit"

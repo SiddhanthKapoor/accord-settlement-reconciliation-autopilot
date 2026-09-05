@@ -1,9 +1,14 @@
 # Demo workspace and demo script
 
-`backend/data/demo_workspace/` is six weeks of one fictional business's
-paperwork: **20 sources, 3,504 ledger records and 3,553 settlement
+`backend/data/demo_workspace/` is the month-end folder of one fictional
+business: **Sahyadri Coffee Works Private Limited**, a Bengaluru
+specialty coffee-equipment retailer and distributor that sells through
+its own storefront, a retail counter, a marketplace channel and a B2B
+distributor book. This is its **March 2026 close** (settlements running
+into mid-April): **20 sources, 3,504 ledger records and 3,553 settlement
 records — 7,057 in all** — plus one file that is a byte-identical
-re-upload of another. It is written by
+re-upload of another. Every filename, every account and every
+counterparty in it belongs to that one company's one month. It is written by
 `backend/data/generate_demo_workspace.py`, which is deterministic: two
 runs produce byte-identical output, XLSX included, and the observation
 point is a pinned constant (`AS_OF = 2026-04-15`) rather than
@@ -49,37 +54,37 @@ or any scenario stops landing where §3 says it does.
 
 | File | Rows | Shape | Amounts | Dates |
 |---|---:|---|---|---|
-| `webstore_orders_master.csv` | 1600 | storefront order book: `Order Reference`, `Placed On`, `Customer Name`, `Total Amount`, `GST`, `Sales Channel` | plain decimals | ISO-8601 instants, `2026-03-19T17:09:20Z` |
-| `erp_gl_export_fy2026.csv` | 1050 | ERP general ledger: `Posting Date`, `Journal`, `GL Account Code`, `Cost Centre`, `External Ref`, `Narrative`, split `Debit`/`Credit` | plain decimals, credit column | `24-Mar-2026` |
-| `pos_counter_sales_register.csv` | 800 | retail counter register: `Bill No`, `Store Code`, `Terminal Id`, `Payment Mode`, `Bill Amount` | Indian grouping, `27,460.00` | `23/03/2026` |
-| `invoices_internal_export.csv` | 30 | internal invoice book, `INV-3xxx` / `ORD-7xxx` | plain decimals | ISO dates |
-| `orders_shopify_export.csv` | 12 | Shopify export: `Name`, `Financial Status`, `Total`, `Lineitem name` | plain decimals | `2026-03-06 09:14:22` |
-| `tally_sales_register.csv` | 7 | Tally sales register: `Voucher No`, `Bill Ref No`, `Particulars`, split `Debit`/`Credit` | plain decimals | `18-03-2026` |
-| `zoho_books_invoices.csv` | 5 | Zoho Books invoice export | plain decimals | ISO dates |
+| `sahyadri_webstore_orders_mar2026.csv` | 1600 | storefront order book: `Order Reference`, `Placed On`, `Customer Name`, `Total Amount`, `GST`, `Sales Channel` | plain decimals | ISO-8601 instants, `2026-03-19T17:09:20Z` |
+| `sahyadri_erp_gl_export_fy2026.csv` | 1050 | ERP general ledger: `Posting Date`, `Journal`, `GL Account Code`, `Cost Centre`, `External Ref`, `Narrative`, split `Debit`/`Credit` | plain decimals, credit column | `24-Mar-2026` |
+| `sahyadri_pos_counter_sales_mar2026.csv` | 800 | retail counter register: `Bill No`, `Store Code`, `Terminal Id`, `Payment Mode`, `Bill Amount` | Indian grouping, `27,460.00` | `23/03/2026` |
+| `sahyadri_invoices_receivable_mar2026.csv` | 30 | internal invoice book, `INV-3xxx` / `ORD-7xxx` | plain decimals | ISO dates |
+| `sahyadri_shopify_orders_mar2026.csv` | 12 | Shopify export: `Name`, `Financial Status`, `Total`, `Lineitem name` | plain decimals | `2026-03-06 09:14:22` |
+| `sahyadri_tally_sales_register_mar2026.csv` | 7 | Tally sales register: `Voucher No`, `Bill Ref No`, `Particulars`, split `Debit`/`Credit` | plain decimals | `18-03-2026` |
+| `sahyadri_zoho_books_invoices_mar2026.csv` | 5 | Zoho Books invoice export | plain decimals | ISO dates |
 
 ### Settlement side — 3,553 records across thirteen sources
 
 | File | Rows | Shape | Amounts | Dates |
 |---|---:|---|---|---|
-| `razorpay_payments_export.csv` | 1595 | a **payments** export, not a settlement export: `id`, `order_id`, `method`, `captured`, `fee`, `tax`, no net column at all | integer **paise** | unix epoch seconds |
-| `upi_collections_settlement_report.csv` | 1050 | UPI collections: `Txn Id`, `Merchant Ref No`, `Payer VPA`, `Settlement Utr`, `MDR`, `Net Amount`, `Refund Amount` | `₹19,430.00` | `27/03/2026 16:01` |
-| `paytm_pos_settlements.xlsx` | 796 | acquirer report, `BANKTXNID` / `TXNID` / `ORDERID` / `TXNAMOUNT` / `NETAMOUNT` / `REFUNDAMT` — **XLSX whose real header is on row 5** under a three-line title block | plain decimals | `2026-03-23 19:26:33` / `25-03-2026` |
+| `razorpay_payments_mar2026.csv` | 1595 | a **payments** export, not a settlement export: `id`, `order_id`, `method`, `captured`, `fee`, `tax`, no net column at all | integer **paise** | unix epoch seconds |
+| `upi_collections_settlement_mar2026.csv` | 1050 | UPI collections: `Txn Id`, `Merchant Ref No`, `Payer VPA`, `Settlement Utr`, `MDR`, `Net Amount`, `Refund Amount` | `₹19,430.00` | `27/03/2026 16:01` |
+| `card_acquirer_settlement_mar2026.xlsx` | 796 | the card acquirer's POS settlement report, `ACQUIRERREF` / `TXNID` / `ORDERID` / `TXNAMOUNT` / `COMMISSION` / `NETAMOUNT` / `REFUNDAMT` — **XLSX whose real header is on row 5** under a three-line title block. **No vendor identity anywhere in it** — see §1a | plain decimals | `2026-03-23 19:26:33` / `25-03-2026` |
 | `gateway_fee_adjustments_mar2026.csv` | 24 | the gateway's fee and adjustment register: MDR, GST on MDR, chargeback fees, rolling reserve, reversals; `Entry Id`, `Merchant Ref`, split `Debit`/`Credit` | plain decimals | `2026/03/06` |
-| `razorpay_settlements_mar_apr.csv` | 22 | `pay_XXXXXXXXXXXXXX`, `settlement_id`, `fee`, `tax`, `net_amount` | integer **paise** | unix epoch seconds |
+| `razorpay_settlements_mar_apr2026.csv` | 22 | `pay_XXXXXXXXXXXXXX`, `settlement_id`, `fee`, `tax`, `net_amount` | integer **paise** | unix epoch seconds |
 | `collections_settlement_advice_mar2026.csv` | 19 | the collection account's **sweep advice**, not a gateway export: `Advice No`, `Sweep Credit Date`, `Collection Mode`, `Invoice Ref`, `Payout Id`, `Gross Amount` / `Collection Charges` / `Tax` / `Payout Amount`. **No provider branding anywhere in it** — see §1a | Indian grouping with the direction **inside the cell**, `21,600.00 Cr` / `432.00 Dr` | ISO-8601 instants with a real **+05:30 offset**, `2026-03-10T11:42:08+05:30` |
-| `bank_axis_current_marapr2026.csv` | 16 | third bank account: money in **and out in one signed column**, accounting-style parenthesised negatives, `Dr/Cr` indicator, running `Balance` | `(1,18,450.00)` / `27,310.00` | `05-Mar-2026` |
-| `bank_hdfc_current_mar2026.csv` | 9 | Indian bank statement: `Narration` / `Ref No` / `Withdrawal` / `Deposit` / `Closing Balance` | `4,20,450.00` | `04-03-2026` |
-| `bank_hdfc_current_apr2026.xlsx` | 6 | same account, next month, **XLSX with a two-row title block** — header on row 4 | as above | as above |
-| `bank_icici_escrow_mar2026.xlsx` | 6 | second account (escrow), XLSX, header on row 1 | as above | as above |
-| `payu_settlements_mar.csv` | 4 | `Mihpayid`, `Txnid`, `Merchant Ref No`, `Service Charge` | `₹7,700.00` | `21/03/2026 09:15` |
-| `kartway_marketplace_payout.csv` | 3 | marketplace payout, hyphenated headers, weekly window | plain decimals, negative fee column | `16-Mar-2026` |
+| `bank_axis_current_1104_marapr2026.csv` | 16 | third bank account: money in **and out in one signed column**, accounting-style parenthesised negatives, `Dr/Cr` indicator, running `Balance` | `(1,18,450.00)` / `27,310.00` | `05-Mar-2026` |
+| `bank_hdfc_current_5521_mar2026.csv` | 9 | Indian bank statement: `Narration` / `Ref No` / `Withdrawal` / `Deposit` / `Closing Balance` | `4,20,450.00` | `04-03-2026` |
+| `bank_hdfc_current_5521_apr2026.xlsx` | 6 | same account, next month, **XLSX with a two-row title block** — header on row 4 | as above | as above |
+| `bank_icici_escrow_8347_mar2026.xlsx` | 6 | second account (escrow), XLSX, header on row 1 | as above | as above |
+| `nodal_payout_advice_mar2026.csv` | 4 | the aggregator's **nodal-account payout advice** for the distributor collections: `Advice Serial No`, `Payout Id`, `Merchant Ref No`, `Gross Amount` / `Nodal Charges` / `GST` / `Payout Amount`. **No vendor identity anywhere in it** — see §1a | `₹7,700.00` | `21/03/2026 09:15` |
+| `kartway_marketplace_payout_mar2026.csv` | 3 | marketplace payout, hyphenated headers, weekly window | plain decimals, negative fee column | `16-Mar-2026` |
 | `refunds_chargebacks_mar2026.csv` | 3 | refund / chargeback report | **negative in parentheses**, `(2,500.00)` | `Mar 22, 2026` |
 
 ### Not data
 
 | File | Purpose |
 |---|---|
-| `bank_icici_escrow_mar2026 (1).xlsx` | byte-identical copy of `bank_icici_escrow_mar2026.xlsx` — the accidental second upload, for the duplicate-file check |
+| `bank_icici_escrow_8347_mar2026 (1).xlsx` | byte-identical copy of `bank_icici_escrow_8347_mar2026.xlsx` — the accidental second upload, for the duplicate-file check |
 | `_manifest.json` | generator metadata: both seeds, `as_of`, per-file SHA256, the aggregation groups, the unresolved population, the scenario index with its expected offline outcome. Not an upload. |
 
 Nine money conventions and eleven date formats across the set. Running
@@ -87,22 +92,38 @@ balances are consistent within each bank account, and the April HDFC
 statement opens where the March one closed. Total on disk: 1.03 MB
 across all 22 files.
 
-### 1a. The unbranded source
+### 1a. The unbranded sources
 
-`collections_settlement_advice_mar2026.csv` is the one settlement source
-in the workspace with **no provider identity anywhere in it** — no
-vendor-prefixed column, no vendor-shaped identifier, no vendor token in
-the filename. It is the advice the business's collection account
-operator issues when it sweeps the day's net-banking, payment-link and
-card collections into the current account: one line per collection, with
-its own charge and tax breakdown, batched under a per-day `Advice No` at
-a fixed 18:30 IST cut-off.
+Four settlement sources carry **no provider identity anywhere in them** —
+no vendor-prefixed column, no vendor-shaped identifier, no vendor token
+in the filename:
 
-It is in the set on purpose. `classify.py`'s provider table is a *label*,
-not a gate, and this file is what proves it: on column semantics alone it
-lands at **PAYMENT_GATEWAY 0.97, stage SETTLEMENT, `provider = None`** —
-a more confident classification than any of the branded settlement files
-— and `--verify` fails if that ever stops holding. It is also where two
+| File | Classified | Provider |
+|---|---|---|
+| `collections_settlement_advice_mar2026.csv` | `PAYMENT_GATEWAY` **0.97**, stage SETTLEMENT | *none* |
+| `nodal_payout_advice_mar2026.csv` | `PAYMENT_GATEWAY` **0.97**, stage SETTLEMENT | *none* |
+| `card_acquirer_settlement_mar2026.xlsx` | `PAYMENT_GATEWAY` **0.88**, stage SETTLEMENT | *none* |
+| `upi_collections_settlement_mar2026.csv` | `PAYMENT_GATEWAY` **0.83**, stage SETTLEMENT | *none* |
+
+`collections_settlement_advice_mar2026.csv` is the advice the business's
+collection account operator issues when it sweeps the day's net-banking,
+payment-link and card collections into the current account: one line per
+collection, with its own charge and tax breakdown, batched under a
+per-day `Advice No` at a fixed 18:30 IST cut-off.
+`nodal_payout_advice_mar2026.csv` is the aggregator's payout out of the
+nodal account for the four March distributor invoices, and
+`card_acquirer_settlement_mar2026.xlsx` is the acquirer's own POS
+settlement report for the counter.
+
+They are in the set on purpose. `classify.py`'s provider table is a
+*label*, not a gate, and these files are what prove it: on column
+semantics alone the two advices land at **PAYMENT_GATEWAY 0.97, stage
+SETTLEMENT, `provider = None`** — a more confident classification than
+any of the *named* settlement files in the workspace manages — and
+`--verify` fails if that ever stops holding. The acquirer XLSX lands at
+0.88 with `provider = None` on `ACQUIRERREF`, `COMMISSION`,
+`SETTLEMENTDATE` and `NETAMOUNT` alone, through a three-row title block,
+with its header on row 5. `collections_settlement_advice_mar2026.csv` is also where two
 of the set's conventions live alone: money as Indian-grouped rupees with
 the direction marked inside the cell (`21,600.00 Cr`, `432.00 Dr`)
 rather than by a sign, a bracket or a second column, and dates as
@@ -244,8 +265,8 @@ HUMAN_REVIEW otherwise.**
 
 | | | Count in the run |
 |---|---|---:|
-| **E1 `POS-300412`** — amount mismatch nothing explains | books ₹27,460.00; the Paytm report settles `POS-300412` at **₹27,046.00**, ₹414.00 short. Transposed digits, not a fee. The generator asserts no ledger record in the workspace equals the difference, so a missing line item does not explain it. **EXCEPTION / `AMOUNT_MISMATCH`, HIGH.** | 24 |
-| **E2 `BR-4481`** — fee/tax arithmetic | PayU states gross ₹7,700.00, service charge ₹154.00, GST ₹27.72 and **net ₹6,800.00**, while gross − fee − tax is ₹7,518.28. **EXCEPTION / `FEE_TAX_INCONSISTENT`, HIGH.** The match itself is fine; the payout file does not add up. | 13 |
+| **E1 `POS-300412`** — amount mismatch nothing explains | books ₹27,460.00; the acquirer's POS report settles `POS-300412` at **₹27,046.00**, ₹414.00 short. Transposed digits, not a fee. The generator asserts no ledger record in the workspace equals the difference, so a missing line item does not explain it. **EXCEPTION / `AMOUNT_MISMATCH`, HIGH.** | 24 |
+| **E2 `BR-4481`** — fee/tax arithmetic | the nodal payout advice states gross ₹7,700.00, nodal charges ₹154.00, GST ₹27.72 and **payout ₹6,800.00**, while gross − fee − tax is ₹7,518.28. **EXCEPTION / `FEE_TAX_INCONSISTENT`, HIGH.** The match itself is fine; the payout file does not add up. | 13 |
 | **E3 `ORD-7037`** — chargeback the books never recorded | ₹16,800.00 booked as fully paid; the gateway recorded a ₹4,200.00 chargeback and the refund report carries it as `(4,200.00)`. **EXCEPTION / `REFUND_MISMATCH`, MEDIUM.** | 9 |
 | **E4 `ORD-7038`** — currency mismatch | booked as **USD** 1,200.00; the gateway settled **INR** 1,200.00. Minor units carry no currency, so every other check passes on this pair. **EXCEPTION / `CURRENCY_MISMATCH`, HIGH.** | 5 |
 | **E5 settlement delayed** | generated: a settlement that arrived 24–28 days after capture, past `max_settlement_delay_days` (21). **EXCEPTION / `SETTLEMENT_DELAYED`, MEDIUM.** | 6 |
@@ -259,8 +280,8 @@ singletons.
 
 | | |
 |---|---|
-| **F1 `ORD-7104`** — one payment, two sources | ₹24,999.00 (`INV-3050`). It appears once in `razorpay_settlements_mar_apr.csv` and once in `bank_hdfc_current_mar2026.csv` as `NEFT INWARD RAZORPAY SETL NORTHWND RTL`, where the bank's `Ref No` carries the remitter's reference. Two candidates, both matching on amount. |
-| **F2 `WB-105633`** — the gateway reported one payment twice | ₹27,180.00, two rows in `razorpay_payments_export.csv` with the same `order_id` and the same amount, different `pay_` ids. |
+| **F1 `ORD-7104`** — one payment, two sources | ₹24,999.00 (`INV-3050`). It appears once in `razorpay_settlements_mar_apr2026.csv` and once in `bank_hdfc_current_5521_mar2026.csv` as `NEFT INWARD RAZORPAY SETL NORTHWND RTL`, where the bank's `Ref No` carries the remitter's reference. Two candidates, both matching on amount. |
+| **F2 `WB-105633`** — the gateway reported one payment twice | ₹27,180.00, two rows in `razorpay_payments_mar2026.csv` with the same `order_id` and the same amount, different `pay_` ids. |
 | **F3 `GLX-207209`** — the same, in the UPI report | ₹36,415.00, two `UPI…` rows carrying `GLX-207209`. |
 | **F4 `GLX-204880`** — two equally plausible bank credits | ₹33,750.00, "Consignment despatch schedule 14 — Meghdoot Packaging LLP". The Axis statement shows **two** credits from that counterparty at exactly ₹33,750.00, on 2026-03-31 and 2026-04-01, with different narrations and different UTRs. Neither leads the other by the deterministic margin. |
 | **F5 `SH-88211`** — ambiguous for the model too | ₹4,120.00 on 2026-03-25, notes "Counter sale payment received". One HDFC credit on 2026-03-26 for exactly ₹4,120.00: `UPI/COLLECT/9911/PAYMENT RECEIVED`. Both sides are vague and the identifier namespaces are not comparable, so there is nothing to confirm and nothing to contradict. |
@@ -318,11 +339,11 @@ silent low-confidence reconcile is not.
 
 | | |
 |---|---|
-| **J1 duplicate file** | `bank_icici_escrow_mar2026 (1).xlsx` is a byte-for-byte copy of `bank_icici_escrow_mar2026.xlsx` (same SHA256, recorded in `_manifest.json`). **The duplicate is detected and reported before reconciliation.** |
-| **J2 a source Accord will not run on without asking** | `zoho_books_invoices.csv` classifies as `ORDERS` at **0.54**, below `classify.CONFIDENCE_THRESHOLD` (0.65). Its required fields are all mapped, so nothing is broken — but the *role* was inferred weakly, and putting a ledger on the settlement side would reconcile the books against themselves and return a page of clean matches. `POST /runs/{id}/execute` refuses until a person confirms it. This is the single most important ingestion beat: **the system asks instead of guessing.** |
+| **J1 duplicate file** | `bank_icici_escrow_8347_mar2026 (1).xlsx` is a byte-for-byte copy of `bank_icici_escrow_8347_mar2026.xlsx` (same SHA256, recorded in `_manifest.json`). **The duplicate is detected and reported before reconciliation.** |
+| **J2 a source Accord will not run on without asking** | `sahyadri_zoho_books_invoices_mar2026.csv` classifies as `ORDERS` at **0.54**, below `classify.CONFIDENCE_THRESHOLD` (0.65). Its required fields are all mapped, so nothing is broken — but the *role* was inferred weakly, and putting a ledger on the settlement side would reconcile the books against themselves and return a page of clean matches. `POST /runs/{id}/execute` refuses until a person confirms it. This is the single most important ingestion beat: **the system asks instead of guessing.** |
 
 One more mapping is deliberately left for the operator:
-`orders_shopify_export.csv` has a bare `Name` column, which the detector
+`sahyadri_shopify_orders_mar2026.csv` has a bare `Name` column, which the detector
 reads as a counterparty — the more common reading, and wrong for a
 Shopify export where it is the order number. Required fields (`Total`,
 `Created at`) both resolve so the run is not blocked, but until `Name` is
@@ -341,8 +362,8 @@ verifier and no network call. Exit code 0.
 
 ```
   20 sources, 3504 ledger records, 3553 settlement records, 0 rejected rows
-  1 source(s) need confirmation before a run: zoho_books_invoices.csv
-  ingestion (read + detect + classify + map): 0.53s
+  1 source(s) need confirmation before a run: sahyadri_zoho_books_invoices_mar2026.csv
+  ingestion (read + detect + classify + map): 0.51s
   reconciliation (process_batch, 3504 records): 0.16s
   derived as_of = 2026-04-15T00:00:00+00:00  (expected 2026-04-15T00:00:00+00:00)
 
@@ -438,7 +459,7 @@ observations, not guarantees.
 |---|---|
 | `POST /runs/sample` — read, detect, classify and store all 21 files | **0.47 s** |
 | `POST /runs/{id}/execute` — map every source and reconcile 3,504 records against 3,559 settlements | **0.35 s** |
-| `--verify` ingestion, in-process (read + detect + classify + map, 20 sources) | **0.52 s** |
+| `--verify` ingestion, in-process (read + detect + classify + map, 20 sources) | **0.51 s** |
 | `--verify` reconciliation, in-process (`process_batch`, 3,504 records) | **0.16 s** |
 
 Both API calls are comfortably inside a live demo; neither needs a
@@ -475,17 +496,19 @@ a bank export with a title block, a bank statement that writes money out
 as `(1,18,450.00)`, and a collections advice that writes it as
 `21,600.00 Cr`. Nothing was pre-configured: each file's schema is
 inferred, and each guess carries a confidence and a reason. Point at the
-inventory: the duplicate ICICI upload is already flagged, and
-`collections_settlement_advice_mar2026.csv` — which carries no vendor
-name anywhere — still classifies as a settlement source at 0.97 with
-`provider` blank. Naming the vendor is a label Accord adds when the
+inventory: it reads as one company's one month — `sahyadri_*` for what
+Sahyadri's own systems exported, the bank and account number on each
+statement, the period on every file. The duplicate ICICI upload is
+already flagged, and `collections_settlement_advice_mar2026.csv` and
+`nodal_payout_advice_mar2026.csv` — which carry no vendor name anywhere —
+still classify as settlement sources at 0.97 with `provider` blank. Naming the vendor is a label Accord adds when the
 evidence supports it, never the thing that decides how a file is read.
 
 **Step 2 — the question it refuses to skip.**
-The run is **Blocked**. `zoho_books_invoices.csv` classified at 0.54,
+The run is **Blocked**. `sahyadri_zoho_books_invoices_mar2026.csv` classified at 0.54,
 below the 0.65 threshold — Accord worked out it is a ledger but is not
 confident enough to reconcile money on that guess. Confirm it. Then open
-`orders_shopify_export.csv` and map `Name` to the reference column. This
+`sahyadri_shopify_orders_mar2026.csv` and map `Name` to the reference column. This
 is the argument for the whole ingestion design: a reconciliation tool
 that mis-reads a column is worse than one that asks.
 
@@ -548,4 +571,6 @@ reconciliation are not AI problems.
   `ACCORD_AI_DISABLED=1` and asserts only the offline result. The live
   numbers in §5 are one observed run, reported as such.
 - **Every business name in it is fictional**, on both the hand-written
-  and the generated side.
+  and the generated side — Sahyadri Coffee Works itself, every customer,
+  every distributor, and the marketplace channel. Razorpay is the only
+  real company named anywhere in the workspace.

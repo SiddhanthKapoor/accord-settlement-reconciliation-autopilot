@@ -60,6 +60,10 @@ export default function NewRun({ onCreated, onRunStarted }) {
   const [sampling, setSampling] = useState(false);
   const [sampleError, setSampleError] = useState(null);
   const [error, setError] = useState(null);
+  // Files the backend refused. They are not sources — nothing was stored —
+  // so they cannot appear in the inventory, and a joined-up error string
+  // buried them. Held per file, with the reason, until dismissed.
+  const [rejected, setRejected] = useState([]);
   const [notice, setNotice] = useState("");
   const [dragging, setDragging] = useState(false);
   const [plan, setPlan] = useState(null);
@@ -143,6 +147,7 @@ export default function NewRun({ onCreated, onRunStarted }) {
       if (files.length === 0) return;
       setBusy(true);
       setError(null);
+      setRejected((prev) => prev.filter((r) => !files.some((f) => f.name === r.filename)));
       try {
         const run = await ensureRun();
         const { sources: uploaded, errors } = await uploadSources(run.run_id, files);
@@ -155,7 +160,16 @@ export default function NewRun({ onCreated, onRunStarted }) {
             (needing > 0 ? `. ${needing} need${needing === 1 ? "s" : ""} confirmation.` : ".")
         );
         if (errors.length > 0) {
-          setError(errors.map((e) => `${e.filename}: ${e.detail}`).join(" · "));
+          setRejected((prev) => [
+            ...prev.filter((r) => !errors.some((e) => e.filename === r.filename)),
+            ...errors.map((e) => ({
+              filename: e.filename,
+              // `detail` is normalised in api.js from every shape the
+              // upload path can report. It is never allowed to be blank:
+              // a rejection with no stated reason is the defect.
+              detail: e.detail || "could not be read",
+            })),
+          ]);
         }
         await refreshPlan();
       } catch (e) {
@@ -352,6 +366,27 @@ export default function NewRun({ onCreated, onRunStarted }) {
     else if (!hasSettlement) blockers.push("No settlement-side source yet — add a gateway payout file or a bank statement.");
   }
 
+  // Which side of the reconciliation is missing, preferring the backend's
+  // own answer. This is the single most likely first-minute failure — one
+  // bank statement, nothing to compare it to — and it has to be explained
+  // before the run button, not raised as an HTTP 400 after it.
+  const planKinds = Array.isArray(plan?.blocking) ? plan.blocking.map((b) => b.kind) : null;
+  const hasLedgerSide = sources.some((s) => s.role === "LEDGER");
+  const hasSettlementSide = sources.some((s) => s.role === "SETTLEMENT");
+  const missingSide = sources.length === 0
+    ? null
+    : planKinds
+    ? planKinds.includes("NO_LEDGER_SIDE")
+      ? "LEDGER"
+      : planKinds.includes("NO_SETTLEMENT_SIDE")
+      ? "SETTLEMENT"
+      : null
+    : !hasLedgerSide
+    ? "LEDGER"
+    : !hasSettlementSide
+    ? "SETTLEMENT"
+    : null;
+
   const canRun = blockers.length === 0 && !busy && (planState !== "ok" || plan?.can_execute !== false);
   const totalRows = plan?.total_records ?? sources.reduce((a, s) => a + (s.row_count || 0), 0);
   const categories = plan?.source_type_counts
@@ -466,6 +501,31 @@ export default function NewRun({ onCreated, onRunStarted }) {
         </p>
       )}
 
+      {rejected.length > 0 && (
+        <div className="wk-onesided wk-rejected" role="alert" style={{ marginTop: 20 }}>
+          <p className="wk-onesided-title">
+            {rejected.length === 1
+              ? "One file was not added to this workspace"
+              : `${rejected.length} files were not added to this workspace`}
+          </p>
+          <ul className="wk-onesided-list">
+            {rejected.map((r) => (
+              <li key={r.filename}>
+                <strong>{r.filename}</strong> — {r.detail}
+              </li>
+            ))}
+          </ul>
+          <p className="wk-onesided-have">
+            Nothing from {rejected.length === 1 ? "this file" : "these files"} was stored, so
+            {rejected.length === 1 ? " it is" : " they are"} not in the inventory below. Accord reads
+            CSV and XLSX exports with a header row and at least one row of data.{" "}
+            <button type="button" className="wk-inv-rowlink" onClick={() => setRejected([])}>
+              Dismiss
+            </button>
+          </p>
+        </div>
+      )}
+
       <AnimatePresence initial={false}>
         {hasFiles && (
           <motion.div {...expand} style={{ overflow: "hidden" }}>
@@ -545,6 +605,8 @@ export default function NewRun({ onCreated, onRunStarted }) {
               )}
             </section>
 
+            {missingSide && <OneSided side={missingSide} sources={sources} />}
+
             <div className="wk-runbar">
               <div style={{ minWidth: 0 }}>
                 {blockers.length > 0 ? (
@@ -594,6 +656,84 @@ export default function NewRun({ onCreated, onRunStarted }) {
   );
 }
 
+
+/**
+ * The two sides of a reconciliation, in the words a finance person uses.
+ *
+ * Named examples matter more than the abstraction: "add a ledger-side
+ * source" tells someone holding one bank statement nothing, and "an
+ * orders export, an invoice ledger or an accounting export" tells them
+ * exactly what to go and find.
+ */
+const SIDE_GUIDANCE = {
+  LEDGER: {
+    missingLabel: "ledger side",
+    presentLabel: "settlement side",
+    missingMeans: "what your books say should have happened",
+    presentMeans: "what actually settled",
+    examples: [
+      "an orders export — Shopify, Amazon, your own storefront",
+      "an invoice ledger",
+      "an accounting or ERP export — Tally, Zoho Books, QuickBooks",
+    ],
+  },
+  SETTLEMENT: {
+    missingLabel: "settlement side",
+    presentLabel: "ledger side",
+    missingMeans: "what actually settled",
+    presentMeans: "what your books say should have happened",
+    examples: [
+      "a payment gateway settlement or payout report",
+      "a bank statement",
+      "a UPI or card settlement report",
+    ],
+  },
+};
+
+/**
+ * A workspace with only one side.
+ *
+ * Reconciliation is a comparison, so one side is not a small version of a
+ * run — it is not a run at all. The backend refuses it with a 400, which
+ * reaches an operator as a raw error after they have already clicked. So
+ * the refusal is explained here, before the button: what reconciliation
+ * needs, what is actually in the workspace, and the kind of file to add.
+ */
+function OneSided({ side, sources }) {
+  const guide = SIDE_GUIDANCE[side];
+  const present = sources.filter((s) => s.role !== side);
+  return (
+    <div className="wk-onesided" role="status">
+      <p className="wk-onesided-title">
+        Reconciliation needs two sides — this workspace has only one.
+      </p>
+      <p className="wk-onesided-body">
+        Accord reconciles <strong>{guide.presentMeans}</strong> against{" "}
+        <strong>{guide.missingMeans}</strong>. Everything here is on the{" "}
+        <strong>{guide.presentLabel}</strong>, so there is nothing to compare it against and no
+        record can be decided either way.
+      </p>
+      <p className="wk-onesided-body" style={{ marginTop: 10 }}>
+        Add at least one file for the {guide.missingLabel}:
+      </p>
+      <ul className="wk-onesided-list">
+        {guide.examples.map((e) => (
+          <li key={e}>{e}</li>
+        ))}
+      </ul>
+      {present.length > 0 && (
+        <p className="wk-onesided-have">
+          In this workspace now:{" "}
+          {present
+            .slice(0, 6)
+            .map((s) => `${s.filename} (${TYPE_LABEL[s.source_type] || s.source_type || "unclassified"}, ${count(s.row_count || 0)} rows)`)
+            .join(" · ")}
+          {present.length > 6 ? ` and ${present.length - 6} more` : ""}.
+        </p>
+      )}
+    </div>
+  );
+}
 
 /**
  * Proposed links between files.
@@ -691,8 +831,14 @@ function blockedLabel(blockers) {
     if (only.includes("not mapped") || only.includes("unmapped")) return "Blocked · map required columns";
     if (only.includes("confirm")) return "Blocked · confirm the source type";
     if (only.includes("duplicate")) return "Blocked · resolve the duplicate";
-    if (only.includes("ledger-side")) return "Blocked · add a ledger source";
-    if (only.includes("settlement-side")) return "Blocked · add a settlement source";
+    // The plan endpoint says "ledger side" and the local fallback says
+    // "ledger-side". Matching only the hyphenated form meant the single
+    // most common refusal — a one-sided workspace — fell through to the
+    // useless "Blocked · 1 thing to resolve".
+    if (/ledger.side/.test(only)) return "Blocked · add a ledger source";
+    if (/settlement.side/.test(only)) return "Blocked · add a settlement source";
+    if (/no rows/.test(only)) return "Blocked · a file has no rows";
+    if (/no amount|no date/.test(only)) return "Blocked · a file has no amount or date";
     if (only.includes("at least one file")) return "Upload a file to begin";
     return "Blocked · 1 thing to resolve";
   }

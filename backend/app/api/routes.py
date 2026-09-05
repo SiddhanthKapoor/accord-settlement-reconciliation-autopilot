@@ -183,12 +183,35 @@ def get_record(record_id: str, batch_id: str | None = None):
 # Evaluation report — read only what evaluate.py actually wrote
 # ---------------------------------------------------------------------------
 
+#: The frozen, commit-pinned, checksummed evaluation. This is what the
+#: product reports, not whatever `evaluate.py` last happened to write into
+#: data/eval_reports/. That directory is a scratch pad — it accumulates
+#: ad-hoc runs on arbitrary datasets, and serving the newest of them meant
+#: the Evaluation page could confidently display a number that no frozen
+#: report, no document and no commit backed. A 999-record run on an
+#: unrelated seed was sitting there reading 97.7% against the frozen 88.3%.
+FROZEN_EVALUATION_DIR = Path(__file__).resolve().parent.parent.parent / "evaluations" / "accord"
+FROZEN_PRIMARY_REPORT = "latest_B_gemini_primary.json"
+
+
 @router.get("/evaluation/latest")
 def latest_evaluation(dataset: str = "holdout"):
+    frozen = FROZEN_EVALUATION_DIR / FROZEN_PRIMARY_REPORT
+    if frozen.exists():
+        report = json.loads(frozen.read_text())
+        report["source"] = "frozen"
+        report["evaluation_id"] = "ACCORD"
+        return report
+
+    # No frozen evaluation in this checkout: fall back to a scratch report,
+    # and say plainly that it is one, so nothing on screen is mistaken for
+    # a reproducible result.
     path = EVAL_REPORTS_DIR / f"latest_{dataset}.json"
     if not path.exists():
-        raise HTTPException(404, f"no evaluation report found for '{dataset}' — run `python evaluate.py --dataset {dataset}` first")
-    return json.loads(path.read_text())
+        raise HTTPException(404, f"no evaluation report found for '{dataset}'")
+    report = json.loads(path.read_text())
+    report["source"] = "scratch"
+    return report
 
 
 # ---------------------------------------------------------------------------
@@ -218,22 +241,121 @@ def _hydrate(record: dict) -> dict:
     return record
 
 
+def _default_review_batch() -> dict | None:
+    """Which run the queue answers for when none was named.
+
+    The newest batch row is not the right answer: a draft workspace
+    someone created by dropping a file on the upload screen is newer than
+    the run they actually executed, and pointing the queue at it reports
+    "nothing waiting on a person" about a run that has never run. Prefer
+    the most recent executed batch that has records, and fall back to the
+    newest row only when there is nothing better.
+    """
+    for batch in store.list_batches(limit=25, include_drafts=False):
+        if (batch.get("total_records") or 0) > 0:
+            return batch
+    return store.get_latest_batch()
+
+
 @router.get("/review/queue")
-def review_queue(batch_id: str | None = None, state: str = "OPEN", limit: int = 50, offset: int = 0):
+def review_queue(batch_id: str | None = None, state: str = "OPEN", limit: int = 200, offset: int = 0):
     """Work waiting on a person, worst first.
 
     These are real pipeline decisions, not a separate workflow store: the
     queue is a view over the same records the engine produced, so it can
     never drift from what the engine actually decided.
+
+    The page is described alongside the items. A summary that counts every
+    open record while the list below it holds fifty is two true numbers
+    that read as a contradiction, and the reader has no way to resolve it
+    — so `total` (how many records are in this state at all), `returned`,
+    `limit` and `offset` travel with the page and the UI states the scope.
+    `total` is only sent for the state the summary actually counts.
     """
     if batch_id is None:
-        batch = store.get_latest_batch()
+        batch = _default_review_batch()
         if not batch:
-            return {"batch_id": None, "items": [], "summary": {"open_count": 0, "open_amount_minor": 0,
-                                                               "by_exception_type": {}}}
+            return {"batch_id": None, "items": [], "returned": 0, "total": 0,
+                    "limit": limit, "offset": offset,
+                    "summary": {"open_count": 0, "open_amount_minor": 0, "by_exception_type": {}}}
         batch_id = batch["batch_id"]
     items = [_hydrate(r) for r in store.list_review_queue(batch_id, state=state, limit=limit, offset=offset)]
-    return {"batch_id": batch_id, "items": items, "summary": store.review_queue_summary(batch_id)}
+    summary = store.review_queue_summary(batch_id)
+    return {
+        "batch_id": batch_id,
+        "items": items,
+        "summary": summary,
+        "state": state,
+        "returned": len(items),
+        "limit": limit,
+        "offset": offset,
+        # `review_queue_summary` counts the OPEN population. For any other
+        # state the honest answer is that this endpoint does not know the
+        # total, and null renders as "not stated" rather than as a number.
+        "total": summary["open_count"] if state == "OPEN" else None,
+    }
+
+
+@router.get("/review/queue/export")
+def export_review_queue(batch_id: str | None = None, state: str = "OPEN", format: str = "csv"):
+    """The whole review queue as a spreadsheet — an operator's actual worklist.
+
+    Deliberately not paged: the export is the thing someone works through
+    offline, and a file that silently held the first fifty of seventy-six
+    would be worse than no file. Carries the same evidence columns as the
+    run export, plus the actions the backend says are available, so the
+    decisions made in a spreadsheet are the ones the queue would allow.
+    """
+    from app.api.runs import table_response
+
+    fmt = (format or "csv").strip().lower()
+    if fmt not in ("csv", "xlsx"):
+        raise HTTPException(400, f"unknown export format '{format}' — use 'csv' or 'xlsx'")
+
+    if batch_id is None:
+        batch = _default_review_batch()
+        if not batch:
+            raise HTTPException(404, "no run to export a review queue for")
+        batch_id = batch["batch_id"]
+
+    rows = store.list_review_queue(batch_id, state=state, limit=100_000)
+    header = [
+        "record_id", "severity", "exception_type", "outcome", "review_state",
+        "amount_minor", "currency", "reference", "matched_payment_id",
+        "reason", "explanation", "recommended_action", "ai_invoked",
+        "candidates_considered", "candidates_refused",
+        "ledger_source_file", "ledger_source_row",
+        "settlement_source_file", "settlement_source_row",
+        "available_actions",
+    ]
+    body: list[list] = []
+    for raw in rows:
+        record = _hydrate(dict(raw))
+        merchant = record.get("merchant") or {}
+        considered = record.get("considered_candidates") or []
+        refused = "; ".join(
+            f"{c['payment_id']} ({c.get('admissibility_reason', '')})"
+            for c in considered if not c.get("admissible")
+        )
+        provenance = json.loads(record.get("provenance_json") or "{}") or {}
+        ledger_origin = provenance.get("ledger") or {}
+        settlement_origin = provenance.get("settlement") or {}
+        body.append([
+            record["record_id"], record.get("severity") or "", record.get("exception_type") or "",
+            record.get("outcome") or "", record.get("review_state") or "OPEN",
+            merchant.get("amount_minor"), merchant.get("currency"),
+            merchant.get("reference_id") or "", record.get("matched_payment_id") or "",
+            record.get("reason") or "", record.get("explanation") or "",
+            record.get("recommended_action") or "",
+            "yes" if record.get("ai_invoked") else "no",
+            len(considered), refused,
+            ledger_origin.get("filename") or "", ledger_origin.get("file_row") or "",
+            settlement_origin.get("filename") or "", settlement_origin.get("file_row") or "",
+            "; ".join(a["label"] for a in record.get("available_actions") or []),
+        ])
+
+    return table_response(header, body, filename=f"{batch_id}-review-queue-{state.lower()}",
+                          sheet_title="Review queue", fmt=fmt)
 
 
 @router.post("/review/{record_id}/action")

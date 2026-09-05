@@ -3,15 +3,25 @@ The demo workspace: twenty sources, one story, no randomness in the story.
 
 `generate_demo_data.py` writes three files in three shapes and is fine for
 a unit-sized demo. This writes the thing a finance team actually hands
-over: seven ledger sources (an internal invoice book, a storefront order
+over, and it is deliberately one month of one company: March 2026 at
+Sahyadri Coffee Works Private Limited, a Bengaluru specialty coffee
+equipment retailer and distributor that sells through its own storefront,
+a retail counter, a marketplace channel and a B2B distributor book.
+
+Seven ledger sources (an internal invoice book, a storefront order
 export, a retail counter register, a Shopify export, a Tally sales
 register, an ERP general ledger, a Zoho Books export) and thirteen
 settlement sources (two Razorpay exports at different points in the money
-flow, PayU, Paytm, a UPI collections report, a collections-account sweep
-advice carrying no provider branding at all, a marketplace payout, a
-gateway fee-and-adjustment register, a refund/chargeback report, and four
-bank statements across three accounts) — plus one file that is a
-byte-identical re-upload of another.
+flow, a card acquirer's POS settlement report, a nodal-account payout
+advice, a UPI collections report, a collections-account sweep advice, a
+marketplace payout, a gateway fee-and-adjustment register, a
+refund/chargeback report, and four bank statements across three accounts)
+— plus one file that is a byte-identical re-upload of another.
+
+Only some of the settlement sources name a provider at all. Four of them
+carry no vendor identity anywhere in the bytes — no branded column, no
+branded filename — and are classified purely on what their columns mean.
+That is deliberate: the detector reads semantics, not logos.
 
 Roughly seven thousand records, in two halves that are built very
 differently on purpose:
@@ -365,10 +375,12 @@ COLLECTION_SWEEP_ROWS = [
     ("ZB-6106", "4990.00", "2026-03-31 09:48:15", "2026-04-02", "NET BANKING", "Harbourline Foods Pvt Ltd", "Payment for ZB-6106 cold storage compliance audit"),
 ]
 
-# PayU-style: rupee symbol, thousands separators, dd/mm/yyyy timestamps.
-# (merchant_ref, gross, added_on_day, added_on_time, settled_day,
+# The payment aggregator's nodal-account payout advice: rupee symbol,
+# thousands separators, dd/mm/yyyy timestamps, and no vendor identity
+# anywhere in it — the file is classified on its columns alone.
+# (merchant_ref, gross, paid_day, paid_time, payout_day,
 #  net_override_or_None, mode)
-PAYU_ROWS = [
+NODAL_ROWS = [
     ("BR-4481", "7700.00", "2026-03-21", "09:15", "2026-03-23", "6800.00", "CC"),
     ("BR-4482", "5240.00", "2026-03-21", "14:02", "2026-03-23", None, "NB"),
     ("BR-4483", "3960.00", "2026-03-24", "10:31", "2026-03-26", None, "UPI"),
@@ -556,7 +568,7 @@ POS_ITEMS = (
 WEB_CHANNELS = ("Web", "Mobile app", "Phone order", "Marketplace")
 POS_STORES = ("BLR-01", "BLR-02", "MYS-01", "HYD-01", "PNQ-01")
 POS_MODES = ("CARD", "UPI", "WALLET", "NETBANKING")
-UPI_BANKS = ("okhdfcbank", "okicici", "okaxis", "okkotak", "ybl", "paytm")
+UPI_BANKS = ("okhdfcbank", "okicici", "okaxis", "okkotak", "ybl", "oksbi")
 
 
 # ---- the hand-written records inside the large sources -------------------
@@ -669,7 +681,7 @@ class BulkPlan:
     pos: tuple[BulkLedger, ...]
     razorpay_payments: tuple[BulkSettlement, ...]
     upi: tuple[BulkSettlement, ...]
-    paytm: tuple[BulkSettlement, ...]
+    acquirer: tuple[BulkSettlement, ...]
 
     @property
     def ledger(self) -> tuple[BulkLedger, ...]:
@@ -677,7 +689,7 @@ class BulkPlan:
 
     @property
     def settlements(self) -> tuple[BulkSettlement, ...]:
-        return self.razorpay_payments + self.upi + self.paytm
+        return self.razorpay_payments + self.upi + self.acquirer
 
 
 def day_range(start: str, end: str) -> list[str]:
@@ -709,7 +721,7 @@ def handwritten_amounts() -> set[int]:
         used.add(minor(gross))
     for _ref, gross, *_rest in COLLECTION_SWEEP_ROWS:
         used.add(minor(gross))
-    for _ref, gross, *_rest in PAYU_ROWS:
+    for _ref, gross, *_rest in NODAL_ROWS:
         used.add(minor(gross))
     for _oid, _ws, _we, _p, sales, fees, total, _d in MARKETPLACE_ROWS:
         used.update({minor(sales), minor(abs(float(fees))), minor(total)})
@@ -890,7 +902,7 @@ def _build_bulk() -> BulkPlan:
             stream=stream,
             txn_id=mint.payment() if stream == "RZP" else (
                 f"UPI{mint.rng.randrange(10 ** 11, 10 ** 12)}" if stream == "UPI"
-                else f"PYTM{mint.rng.randrange(10 ** 13, 10 ** 14)}"),
+                else f"ACQ{mint.rng.randrange(10 ** 13, 10 ** 14)}"),
             reference=row.record_id, day=row.day, settled_day=settled_day,
             gross_minor=gross, fee_minor=fee, tax_minor=tax, net_minor=net,
             refund_minor=refund, currency="INR", party=row.party,
@@ -900,7 +912,7 @@ def _build_bulk() -> BulkPlan:
 
     razorpay_payments = [settle(r, "RZP", 0) for r in web if r.kind != "scenario"]
     upi = [settle(r, "UPI", 1 + (r.amount_minor % 2)) for r in erp if r.kind != "scenario"]
-    paytm = [settle(r, "PYTM", 1 + (r.amount_minor % 3)) for r in pos if r.kind != "scenario"]
+    acquirer = [settle(r, "ACQ", 1 + (r.amount_minor % 3)) for r in pos if r.kind != "scenario"]
 
     # ---- the hand-written settlement rows inside the large sources -----
     by_id = {r.record_id: r for r in web + erp + pos}
@@ -914,7 +926,7 @@ def _build_bulk() -> BulkPlan:
             stream=stream,
             txn_id=mint.payment() if stream == "RZP" else (
                 f"UPI{mint.rng.randrange(10 ** 11, 10 ** 12)}" if stream == "UPI"
-                else f"PYTM{mint.rng.randrange(10 ** 13, 10 ** 14)}"),
+                else f"ACQ{mint.rng.randrange(10 ** 13, 10 ** 14)}"),
             reference=reference, day=day, settled_day=shift(day, lag),
             gross_minor=gross, fee_minor=fee, tax_minor=tax,
             net_minor=gross - fee - tax, refund_minor=0, currency="INR",
@@ -933,15 +945,15 @@ def _build_bulk() -> BulkPlan:
     upi.append(hand("UPI", "GLX-207209", "GLX-207209", "2026-04-01", 2))
     upi.append(hand("UPI", "GLX-207209", "GLX-207209", "2026-04-01", 2))
     # N4 — the settlement is ~Rs 414 short and nothing in the file says why.
-    paytm.append(hand("PYTM", "POS-300412", "POS-300412", "2026-03-23", 2,
-                      gross_minor=minor("27046.00")))
+    acquirer.append(hand("ACQ", "POS-300412", "POS-300412", "2026-03-23", 2,
+                         gross_minor=minor("27046.00")))
 
-    for group in (razorpay_payments, upi, paytm):
+    for group in (razorpay_payments, upi, acquirer):
         group.sort(key=lambda s: (s.day, s.reference, s.txn_id))
 
     return BulkPlan(
         web=tuple(web), erp=tuple(erp), pos=tuple(pos),
-        razorpay_payments=tuple(razorpay_payments), upi=tuple(upi), paytm=tuple(paytm),
+        razorpay_payments=tuple(razorpay_payments), upi=tuple(upi), acquirer=tuple(acquirer),
     )
 
 
@@ -958,7 +970,7 @@ NOTE_TEMPLATES = {
 SETTLEMENT_NOTES = {
     "RZP": "Payment for {ref} {item}",
     "UPI": "UPI collect for {ref} {item}",
-    "PYTM": "Settlement for {ref} {item}",
+    "ACQ": "Settlement for {ref} {item}",
 }
 
 
@@ -1133,13 +1145,13 @@ class IdMint:
     def sweep_payout(self) -> str:
         return f"SWP-{self.rng.randint(100000000, 999999999)}"
 
-    def payu_txn(self) -> str:
-        return f"PU{self.rng.randint(10**11, 10**12 - 1)}"
+    def nodal_payout(self) -> str:
+        return f"NDL{self.rng.randint(10**11, 10**12 - 1)}"
 
-    def payu_mihpay(self) -> str:
+    def advice_serial(self) -> str:
         return str(self.rng.randint(10**17, 10**18 - 1))
 
-    def payu_bankref(self) -> str:
+    def nodal_bankref(self) -> str:
         return str(self.rng.randint(10**11, 10**12 - 1))
 
 
@@ -1275,7 +1287,7 @@ def build_files(out_dir: Path) -> dict:
 
     # ---- ledger: internal invoice export ------------------------------
     write_csv(
-        out_dir / "invoices_internal_export.csv",
+        out_dir / "sahyadri_invoices_receivable_mar2026.csv",
         ["Invoice No", "Order Id", "Customer Name", "Invoice Date", "Due Date",
          "Amount", "Currency", "Status", "Description", "Refund Amount"],
         [[inv, oid, customer, iso(day), iso(due), plain(amount), currency, status, description,
@@ -1285,7 +1297,7 @@ def build_files(out_dir: Path) -> dict:
 
     # ---- ledger: Shopify-style export ---------------------------------
     write_csv(
-        out_dir / "orders_shopify_export.csv",
+        out_dir / "sahyadri_shopify_orders_mar2026.csv",
         ["Name", "Email", "Financial Status", "Paid at", "Fulfillment Status", "Currency",
          "Subtotal", "Shipping", "Taxes", "Total", "Created at",
          "Lineitem quantity", "Lineitem name", "Payment Method", "Notes"],
@@ -1297,7 +1309,7 @@ def build_files(out_dir: Path) -> dict:
 
     # ---- ledger: Tally-style sales register ---------------------------
     write_csv(
-        out_dir / "tally_sales_register.csv",
+        out_dir / "sahyadri_tally_sales_register_mar2026.csv",
         ["Date", "Voucher No", "Voucher Type", "Bill Ref No", "Particulars", "Debit", "Credit"],
         [[dmy(day), voucher, kind, ref, particulars, "", plain(credit)]
          for day, voucher, kind, ref, particulars, credit in TALLY_ROWS],
@@ -1305,7 +1317,7 @@ def build_files(out_dir: Path) -> dict:
 
     # ---- ledger: Zoho Books-style invoice export ----------------------
     write_csv(
-        out_dir / "zoho_books_invoices.csv",
+        out_dir / "sahyadri_zoho_books_invoices_mar2026.csv",
         ["Invoice Date", "Invoice Number", "Status", "Customer Name", "Currency",
          "Total", "Balance", "Item Name", "Notes"],
         [[iso(day), number, status, customer, currency, plain(total), plain(balance), item, notes]
@@ -1335,7 +1347,7 @@ def build_files(out_dir: Path) -> dict:
             f"auto settlement {settlement_id}",
         ])
     write_csv(
-        out_dir / "razorpay_settlements_mar_apr.csv",
+        out_dir / "razorpay_settlements_mar_apr2026.csv",
         ["payment_id", "order_id", "settlement_id", "amount", "currency", "fee", "tax",
          "net_amount", "refund_amount", "status", "method", "created_at", "settlement_date",
          "description", "notes"],
@@ -1366,27 +1378,33 @@ def build_files(out_dir: Path) -> dict:
         sweep_out,
     )
 
-    # ---- settlement: PayU-style ---------------------------------------
-    payu_out: list[list[str]] = []
-    for ref, gross, day, hhmm, settled, net_override, mode in PAYU_ROWS:
+    # ---- settlement: the nodal-account payout advice -------------------
+    # Second unbranded settlement source. Nothing in the bytes says who
+    # produced it: no vendor column, no vendor filename. It classifies on
+    # `Payout Id` / `Payout Amount` / `Payout Date` / `Gross Amount` and
+    # the fee-and-net breakdown alongside them, which is what a payout
+    # file *is* rather than who wrote it.
+    nodal_out: list[list[str]] = []
+    for ref, gross, day, hhmm, settled, net_override, mode in NODAL_ROWS:
         gross_minor = minor(gross)
         fee_minor, tax_minor = fee_tax(gross_minor)
         net_minor = minor(net_override) if net_override else gross_minor - fee_minor - tax_minor
-        payu_out.append([
-            mint.payu_mihpay(), mint.payu_txn(), ref, rupee(gross), rupee(fee_minor / 100),
-            rupee(tax_minor / 100), rupee(net_minor / 100), "INR", mode, mint.payu_bankref(),
+        nodal_out.append([
+            mint.advice_serial(), mint.nodal_payout(), ref, rupee(gross), rupee(fee_minor / 100),
+            rupee(tax_minor / 100), rupee(net_minor / 100), "INR", mode, mint.nodal_bankref(),
             dmy_slash(day, hhmm), dmy_slash(settled, "18:00"), "success",
         ])
     write_csv(
-        out_dir / "payu_settlements_mar.csv",
-        ["Mihpayid", "Txnid", "Merchant Ref No", "Amount", "Service Charge", "GST",
-         "Net Amount", "Currency", "Mode", "Bank Ref Num", "Added On", "Settlement Date", "Status"],
-        payu_out,
+        out_dir / "nodal_payout_advice_mar2026.csv",
+        ["Advice Serial No", "Payout Id", "Merchant Ref No", "Gross Amount", "Nodal Charges",
+         "GST", "Payout Amount", "Currency", "Payment Mode", "Bank Ref Num", "Payment Date",
+         "Payout Date", "Status"],
+        nodal_out,
     )
 
     # ---- settlement: marketplace payout -------------------------------
     write_csv(
-        out_dir / "kartway_marketplace_payout.csv",
+        out_dir / "kartway_marketplace_payout_mar2026.csv",
         ["settlement-id", "settlement-start-date", "settlement-end-date", "payout-date",
          "transaction-type", "order-id", "product-sales", "selling-fees", "total",
          "currency", "description"],
@@ -1403,13 +1421,13 @@ def build_files(out_dir: Path) -> dict:
     bank_header = ["Txn Date", "Value Date", "Narration", "Ref No", "Withdrawal", "Deposit", "Closing Balance"]
 
     hdfc_march = bank_rows(HDFC_MARCH, 412650.00, resolved)
-    write_csv(out_dir / "bank_hdfc_current_mar2026.csv", bank_header, hdfc_march)
+    write_csv(out_dir / "bank_hdfc_current_5521_mar2026.csv", bank_header, hdfc_march)
 
     # April opens where March closed, so the two statements read as one
     # account rather than two files that happen to share a name.
     march_closing = float(hdfc_march[-1][-1].replace(",", ""))
     write_xlsx(
-        out_dir / "bank_hdfc_current_apr2026.xlsx", "Statement",
+        out_dir / "bank_hdfc_current_5521_apr2026.xlsx", "Statement",
         # Two lines of title block above the header, exactly as a bank
         # export renders it. The header lands on row 4.
         ["HDFC BANK LTD - STATEMENT OF ACCOUNT",
@@ -1417,7 +1435,7 @@ def build_files(out_dir: Path) -> dict:
         bank_header, bank_rows(HDFC_APRIL, march_closing, resolved),
     )
 
-    write_xlsx(out_dir / "bank_icici_escrow_mar2026.xlsx", "Account Statement", [],
+    write_xlsx(out_dir / "bank_icici_escrow_8347_mar2026.xlsx", "Account Statement", [],
                bank_header, bank_rows(ICICI_MARCH, 128400.00, resolved))
 
     # ---- settlement: refunds and chargebacks --------------------------
@@ -1435,7 +1453,7 @@ def build_files(out_dir: Path) -> dict:
 
     # ledger: storefront order book. ISO-8601 instants, plain decimals.
     write_csv(
-        out_dir / "webstore_orders_master.csv",
+        out_dir / "sahyadri_webstore_orders_mar2026.csv",
         ["Order Reference", "Placed On", "Customer Name", "Status", "Currency", "Item Name",
          "Qty", "Total Amount", "GST", "Sales Channel", "Notes"],
         [[r.record_id, iso_stamp(r.day, clock(r.amount_minor)[0], clock(r.amount_minor)[1]),
@@ -1447,7 +1465,7 @@ def build_files(out_dir: Path) -> dict:
 
     # ledger: ERP general-ledger extract. Split Debit/Credit, dd-Mon-yyyy.
     write_csv(
-        out_dir / "erp_gl_export_fy2026.csv",
+        out_dir / "sahyadri_erp_gl_export_fy2026.csv",
         ["Posting Date", "Document No", "Journal", "GL Account Code", "Cost Centre",
          "External Ref", "Customer", "Narrative", "Debit", "Credit", "Currency"],
         [[dmonY(r.day), f"DOC/2026/{r.record_id.split('-')[1]}", "SALES",
@@ -1459,7 +1477,7 @@ def build_files(out_dir: Path) -> dict:
 
     # ledger: retail counter register. dd/mm/yyyy, Indian digit grouping.
     write_csv(
-        out_dir / "pos_counter_sales_register.csv",
+        out_dir / "sahyadri_pos_counter_sales_mar2026.csv",
         ["Bill No", "Bill Date", "Store Code", "Terminal Id", "Customer Name", "Item Name",
          "Qty", "Payment Mode", "Bill Amount", "Tax", "Remarks"],
         [[r.record_id, dmy_slash_date(r.day), POS_STORES[(r.amount_minor // 100) % len(POS_STORES)],
@@ -1473,7 +1491,7 @@ def build_files(out_dir: Path) -> dict:
     # provider, a different point in the money flow. Paise as integers,
     # epoch-second timestamps, no net column at all.
     write_csv(
-        out_dir / "razorpay_payments_export.csv",
+        out_dir / "razorpay_payments_mar2026.csv",
         ["id", "entity", "order_id", "amount", "currency", "status", "method", "captured",
          "description", "card_id", "bank", "vpa", "fee", "tax", "created_at", "notes"],
         [[s.txn_id, "payment", s.reference, str(s.gross_minor), s.currency, "captured",
@@ -1486,7 +1504,7 @@ def build_files(out_dir: Path) -> dict:
     # settlement: UPI collections. Rupee symbol, Indian grouping,
     # dd/mm/yyyy HH:MM, a stated net and a refund column.
     write_csv(
-        out_dir / "upi_collections_settlement_report.csv",
+        out_dir / "upi_collections_settlement_mar2026.csv",
         ["Txn Id", "Merchant Ref No", "Payer VPA", "Payer Name", "Txn Date", "Credit Date",
          "Settlement Utr", "Txn Amount", "MDR", "GST", "Net Amount", "Refund Amount",
          "Status", "Remarks"],
@@ -1499,21 +1517,23 @@ def build_files(out_dir: Path) -> dict:
          for s in plan.upi],
     )
 
-    # settlement: the acquirer's own report, as an XLSX whose real header
-    # is on row 5 under a three-line title block.
+    # settlement: the card acquirer's own POS report, as an XLSX whose
+    # real header is on row 5 under a three-line title block. Third
+    # unbranded settlement source: an acquirer reference, a commission
+    # and a settlement date, and no vendor name in any column.
     write_xlsx(
-        out_dir / "paytm_pos_settlements.xlsx", "Settlement Report",
-        ["PAYTM PAYMENTS - MERCHANT SETTLEMENT REPORT",
-         "Merchant: KARTWAY RETAIL VENTURES    MID: PYTM9924100033",
+        out_dir / "card_acquirer_settlement_mar2026.xlsx", "Settlement Report",
+        ["CARD ACQUIRING SERVICES - MERCHANT SETTLEMENT REPORT",
+         "Merchant: SAHYADRI COFFEE WORKS PVT LTD    MID: 4029130044710",
          "Period: 01-03-2026 to 13-04-2026    Generated: 15-04-2026"],
-        ["BANKTXNID", "TXNID", "ORDERID", "TXNAMOUNT", "TXNDATE", "PAYMENTMODE", "COMMISSION",
+        ["ACQUIRERREF", "TXNID", "ORDERID", "TXNAMOUNT", "TXNDATE", "PAYMENTMODE", "COMMISSION",
          "GST", "NETAMOUNT", "REFUNDAMT", "SETTLEMENTDATE", "STATUS", "REMARKS"],
         [[f"BTX{7100000000 + (s.gross_minor % 89999999)}", s.txn_id, s.reference,
           plain(s.gross_minor / 100), stamp(s.day, f"{clock(s.gross_minor)[0]}:{clock(s.gross_minor)[1]:02d}"),
           s.method, plain(s.fee_minor / 100), plain(s.tax_minor / 100), plain(s.net_minor / 100),
           plain(s.refund_minor / 100) if s.refund_minor else "",
           dmy(s.settled_day), "TXN_SUCCESS", s.note]
-         for s in plan.paytm],
+         for s in plan.acquirer],
     )
 
     # settlement: a third bank account, money in and out in ONE signed
@@ -1529,7 +1549,7 @@ def build_files(out_dir: Path) -> dict:
             direction, grouped(axis_balance),
         ])
     write_csv(
-        out_dir / "bank_axis_current_marapr2026.csv",
+        out_dir / "bank_axis_current_1104_marapr2026.csv",
         ["Transaction Date", "Value Date", "Description", "UTR", "Amount", "Dr/Cr", "Balance"],
         axis_out,
     )
@@ -1549,8 +1569,8 @@ def build_files(out_dir: Path) -> dict:
     # ---- the duplicate upload -----------------------------------------
     # Copied byte-for-byte rather than regenerated, so it is a genuine
     # duplicate no matter what the XLSX writer does.
-    shutil.copyfile(out_dir / "bank_icici_escrow_mar2026.xlsx",
-                    out_dir / "bank_icici_escrow_mar2026 (1).xlsx")
+    shutil.copyfile(out_dir / "bank_icici_escrow_8347_mar2026.xlsx",
+                    out_dir / "bank_icici_escrow_8347_mar2026 (1).xlsx")
 
     return {
         "agg_a_total_minor": agg_a_total,
@@ -1598,8 +1618,8 @@ def settlement_population(built: dict) -> list[tuple[str, str, int, str, str]]:
     for ref, gross, paid_stamp, _s, _mode, counterparty, detail in COLLECTION_SWEEP_ROWS:
         out.append((f"sweep::{ref}", ref, minor(gross), paid_stamp.split(" ")[0],
                     f"{detail} {counterparty}"))
-    for ref, gross, day, _t, _s, _n, _m in PAYU_ROWS:
-        out.append((f"payu::{ref}", ref, minor(gross), day, ""))
+    for ref, gross, day, _t, _s, _n, _m in NODAL_ROWS:
+        out.append((f"nodal::{ref}", ref, minor(gross), day, ""))
     for order_id, week_start, _we, _payout, _ps, _f, total, description in MARKETPLACE_ROWS:
         # `settlement-start-date` is what the detector rescues as the
         # transaction date; `payout-date` becomes the settlement date.
@@ -1617,7 +1637,7 @@ def settlement_population(built: dict) -> list[tuple[str, str, int, str, str]]:
         out.append((row.txn_id, row.reference, row.gross_minor, row.day, row.note))
     for row in plan.upi:
         out.append((row.txn_id, row.reference, row.gross_minor, row.day, f"{row.note} {row.party}"))
-    for row in plan.paytm:
+    for row in plan.acquirer:
         out.append((row.txn_id, row.reference, row.gross_minor, row.day, row.note))
     for txn_day, _value_day, description, utr, amount, _direction in AXIS_ROWS:
         out.append((utr, utr, minor(amount), txn_day, description))
@@ -1766,7 +1786,7 @@ def check_invariants(built: dict) -> list[str]:
                  f"missing {', '.join(MISSING_RECORDS)}")
 
     # -- 5. the fee/tax exceptions genuinely do not add up --------------
-    broken = next(r for r in PAYU_ROWS if r[5] is not None)
+    broken = next(r for r in NODAL_ROWS if r[5] is not None)
     gross = minor(broken[1])
     fee, tax = fee_tax(gross)
     if minor(broken[5]) == gross - fee - tax:
@@ -1872,29 +1892,29 @@ def check_invariants(built: dict) -> list[str]:
 
 # What each file is, and the one mapping a human is expected to confirm.
 FILE_PLAN: list[tuple[str, str, dict[str, str]]] = [
-    ("webstore_orders_master.csv", "ORDERS", {}),
-    ("erp_gl_export_fy2026.csv", "ACCOUNTING", {}),
-    ("pos_counter_sales_register.csv", "ORDERS", {}),
-    ("razorpay_payments_export.csv", "PAYMENT_GATEWAY", {}),
-    ("upi_collections_settlement_report.csv", "PAYMENT_GATEWAY", {}),
-    ("paytm_pos_settlements.xlsx", "PAYMENT_GATEWAY", {}),
-    ("bank_axis_current_marapr2026.csv", "BANK_STATEMENT", {}),
+    ("sahyadri_webstore_orders_mar2026.csv", "ORDERS", {}),
+    ("sahyadri_erp_gl_export_fy2026.csv", "ACCOUNTING", {}),
+    ("sahyadri_pos_counter_sales_mar2026.csv", "ORDERS", {}),
+    ("razorpay_payments_mar2026.csv", "PAYMENT_GATEWAY", {}),
+    ("upi_collections_settlement_mar2026.csv", "PAYMENT_GATEWAY", {}),
+    ("card_acquirer_settlement_mar2026.xlsx", "PAYMENT_GATEWAY", {}),
+    ("bank_axis_current_1104_marapr2026.csv", "BANK_STATEMENT", {}),
     ("gateway_fee_adjustments_mar2026.csv", "PAYMENT_GATEWAY", {}),
-    ("invoices_internal_export.csv", "ORDERS", {}),
+    ("sahyadri_invoices_receivable_mar2026.csv", "ORDERS", {}),
     # `Name` is Shopify's order number, but the detector reads a bare
     # "Name" column as a counterparty, which is the more common reading.
     # This is the one confirmation the demo asks for, on purpose.
-    ("orders_shopify_export.csv", "ORDERS", {"reference": "Name"}),
-    ("tally_sales_register.csv", "ACCOUNTING", {}),
-    ("zoho_books_invoices.csv", "ACCOUNTING", {}),
-    ("razorpay_settlements_mar_apr.csv", "PAYMENT_GATEWAY", {}),
+    ("sahyadri_shopify_orders_mar2026.csv", "ORDERS", {"reference": "Name"}),
+    ("sahyadri_tally_sales_register_mar2026.csv", "ACCOUNTING", {}),
+    ("sahyadri_zoho_books_invoices_mar2026.csv", "ACCOUNTING", {}),
+    ("razorpay_settlements_mar_apr2026.csv", "PAYMENT_GATEWAY", {}),
     ("collections_settlement_advice_mar2026.csv", "PAYMENT_GATEWAY", {}),
-    ("payu_settlements_mar.csv", "PAYMENT_GATEWAY", {}),
-    ("kartway_marketplace_payout.csv", "PAYMENT_GATEWAY", {}),
+    ("nodal_payout_advice_mar2026.csv", "PAYMENT_GATEWAY", {}),
+    ("kartway_marketplace_payout_mar2026.csv", "PAYMENT_GATEWAY", {}),
     ("refunds_chargebacks_mar2026.csv", "PAYMENT_GATEWAY", {}),
-    ("bank_hdfc_current_mar2026.csv", "BANK_STATEMENT", {}),
-    ("bank_hdfc_current_apr2026.xlsx", "BANK_STATEMENT", {}),
-    ("bank_icici_escrow_mar2026.xlsx", "BANK_STATEMENT", {}),
+    ("bank_hdfc_current_5521_mar2026.csv", "BANK_STATEMENT", {}),
+    ("bank_hdfc_current_5521_apr2026.xlsx", "BANK_STATEMENT", {}),
+    ("bank_icici_escrow_8347_mar2026.xlsx", "BANK_STATEMENT", {}),
 ]
 
 # record_id -> (scenario tag, what the demo script claims should happen,
@@ -2036,7 +2056,7 @@ def verify(out_dir: Path, built: dict) -> int:
         # A confident classification that disagrees with the plan is a
         # real regression. A low-confidence one that disagrees is the
         # system doing its job: it says so and asks, which is why
-        # zoho_books_invoices.csv is in this set at all.
+        # sahyadri_zoho_books_invoices_mar2026.csv is in this set at all.
         if classified.source_type.value != source_type and not classified.needs_confirmation:
             failures.append(f"{filename}: classified {classified.source_type.value} at "
                             f"{classified.confidence:.2f} without asking, the plan says {source_type}")

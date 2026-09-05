@@ -32,3 +32,8 @@ frontend/dist/
 .idea/
 .vscode/
 *.log
+
+# Recording notes and scripts. Useful to me, noise to anyone reading the
+# repository — a reviewer opening this should find the product and its
+# evidence, not a shot list. Kept on disk, out of the history.
+docs/video/

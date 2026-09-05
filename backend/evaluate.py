@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Held-out evaluation for the Settlement Reconciliation Autopilot.
+Held-out evaluation for Accord.
 
     python evaluate.py                  # evaluate backend/data/datasets/holdout.jsonl
     python evaluate.py --dataset dev    # evaluate the dev set instead (for iteration, not scoring)
@@ -154,7 +154,7 @@ def main() -> int:
     pool = load_pool()
     records = load_split(args.dataset)
 
-    print(f"Settlement Reconciliation Autopilot — evaluation ({args.dataset} set)")
+    print(f"Accord — held-out evaluation ({args.dataset} set)")
     print(f"dataset_version={manifest['dataset_version']}  seed={manifest['seed']}  records={len(records)}")
 
     policy = PolicyConfig()

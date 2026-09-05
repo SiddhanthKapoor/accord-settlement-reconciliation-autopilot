@@ -1,5 +1,5 @@
 """
-Synthetic dataset generator for the Settlement Reconciliation Autopilot.
+Synthetic dataset generator for Accord.
 
 Fully deterministic given a seed: rerunning this script with the same
 --seed reproduces byte-identical output. That reproducibility is the

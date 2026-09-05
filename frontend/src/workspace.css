@@ -415,6 +415,69 @@ button.wk-flow-stage:focus-visible { outline: 2px solid var(--wk-accord-d); outl
 .wk-stat-value-warn { color: var(--warn, #b3550a); }
 .wk-stat-note { font-size: 10.5px; color: var(--wk-faint); margin-top: 4px; line-height: 1.4; }
 
+/* ------------------------------------------------------------ export bar */
+/*
+ * Export lives with the results, not at the end of a toolbar.
+ *
+ * The first thing an operator does with 66 exceptions is send those 66 to
+ * somebody. An export they cannot find is an export that does not exist,
+ * so this sits directly under the figures it downloads and states its own
+ * scope — the file and the table have to agree.
+ */
+.wk-export {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px 20px; flex-wrap: wrap;
+  margin-top: 12px; padding: 12px 16px;
+  border: 1px solid var(--wk-line);
+  border-left: 3px solid var(--wk-accord-d);
+  border-radius: 0 var(--wk-r-sm) var(--wk-r-sm) 0;
+  background: var(--wk-surface); box-shadow: var(--wk-shadow-sm);
+}
+.wk-export-compact {
+  margin-top: 0; margin-bottom: 16px;
+  background: var(--wk-alt); box-shadow: none;
+}
+.wk-export-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 320px; }
+.wk-export-title { font-size: 13px; font-weight: 700; color: var(--wk-ink); }
+.wk-export-scope { font-size: 11.5px; color: var(--wk-muted); line-height: 1.5; max-width: 78ch; }
+.wk-export-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.wk-export-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--wk-line); border-radius: 999px;
+  padding: 8px 17px; font-size: 12.5px; font-weight: 600;
+  color: var(--wk-ink); background: var(--wk-surface);
+  text-decoration: none; font-family: inherit; cursor: pointer; white-space: nowrap;
+}
+.wk-export-btn:hover { border-color: var(--wk-ink); background: var(--wk-hover); }
+.wk-export-btn:focus-visible { outline: 2px solid var(--wk-accord-d); outline-offset: 2px; }
+.wk-export-btn-strong { background: var(--wk-ink); border-color: var(--wk-ink); color: #fff; }
+.wk-export-btn-strong:hover { background: var(--wk-ink-deep); border-color: var(--wk-ink-deep); color: #fff; }
+
+/* ------------------------------------------------- unreadable / one-sided */
+/*
+ * A file Accord cannot reconcile, and a workspace with only one side, are
+ * refusals — not warnings. They are drawn in the failure colour so they
+ * read as "this will not run" rather than "you may want to look at this".
+ */
+.wk-decide-bad {
+  border-color: var(--fail-border, #f7c6cc);
+  border-left-color: var(--fail, #d51b30);
+  background: var(--fail-bg, #fdf1f2);
+}
+.wk-onesided {
+  margin-top: var(--wk-gap-section);
+  border: 1px solid var(--warn-border, #ffd6ab);
+  border-left: 3px solid var(--warn, #b3550a);
+  background: var(--warn-bg, #fff4e8);
+  border-radius: 0 var(--wk-r-sm) var(--wk-r-sm) 0;
+  padding: 16px 18px;
+}
+.wk-onesided-title { font-size: 14px; font-weight: 700; color: var(--wk-ink); }
+.wk-onesided-body { font-size: 12.5px; color: var(--wk-muted); line-height: 1.6; margin-top: 6px; max-width: 82ch; }
+.wk-onesided-body strong { color: var(--wk-ink); font-weight: 700; }
+.wk-onesided-list { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--wk-muted); line-height: 1.6; }
+.wk-onesided-have { font-size: 11.5px; color: var(--wk-faint); margin-top: 10px; line-height: 1.5; }
+
 /* --------------------------------------------------------- outcome filters */
 
 /*
@@ -459,6 +522,19 @@ button.wk-flow-stage:focus-visible { outline: 2px solid var(--wk-accord-d); outl
 .wk-outcome-pill[aria-pressed="true"] .wk-outcome-label,
 .wk-outcome-pill[aria-pressed="true"] .wk-outcome-value,
 .wk-outcome-pill[aria-pressed="true"] .wk-outcome-note { color: #fff; }
+
+/*
+ * The filter's meaning, one line under the row.
+ *
+ * It does not go inside the pill: a pill carrying a sentence is 391px
+ * wide on a 375px screen and takes the whole page sideways with it. Each
+ * pill keeps the sentence as its tooltip; this line shows the selected
+ * one.
+ */
+.wk-outcome-help {
+  margin: 10px 2px 0; font-size: 12px; line-height: 1.55;
+  color: var(--wk-muted); max-width: 88ch;
+}
 
 /* --------------------------------------------------------- run progress */
 
@@ -1047,5 +1123,7 @@ button.wk-flow-stage:focus-visible { outline: 2px solid var(--wk-accord-d); outl
   .wk-search { min-width: 0; width: 100%; }
   .wk-toolbar-right { width: 100%; }
   .wk-runbar { gap: 12px; }
+  .wk-export { flex-direction: column; align-items: stretch; }
+  .wk-export-actions .wk-export-btn { flex: 1 1 0; }
   .wk-btn-run { width: 100%; }
 }

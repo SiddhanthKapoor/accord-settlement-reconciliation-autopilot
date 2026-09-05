@@ -1,7 +1,7 @@
 <div align="center">
   <img src="frontend/public/brand/accord-logo-512.png" alt="" width="88" height="80">
   <h1>Accord</h1>
-  <p><strong>AI that explains why the books don't close.</strong></p>
+  <p><strong>When the numbers don&rsquo;t agree, Accord finds where the trail breaks.</strong></p>
 </div>
 
 Accord reconciles payments, settlements, bank statements and your ledger,
@@ -73,18 +73,30 @@ never produce a confident answer on its own.**
 
 Measured on the bundled 13-file demo workspace:
 
+The bundled sample is one month of close for **Sahyadri Coffee Works**, a
+fictional Bengaluru coffee-equipment retailer: 21 sources, 7,063 records,
+ingested in about two seconds.
+
 | File | Detected | Provider | Confidence |
 |---|---|---|---:|
-| `bank_hdfc_current_mar2026.csv` | Bank statement | HDFC Bank | 0.97 |
-| `bank_icici_escrow_mar2026.xlsx` | Bank statement | ICICI Bank | 0.97 |
-| `razorpay_settlements_mar_apr.csv` | Gateway settlement | Razorpay | 0.97 |
-| `orders_shopify_export.csv` | Order ledger | Shopify | 0.95 |
-| `tally_sales_register.csv` | Accounting | Tally | 0.93 |
-| `payu_settlements_mar.csv` | Gateway settlement | PayU | 0.91 |
-| `zoho_books_invoices.csv` | Order ledger | Zoho Books | **0.54** |
+| `bank_hdfc_current_5521_mar2026.csv` | Bank statement | HDFC Bank | 0.97 |
+| `bank_icici_escrow_8347_mar2026.xlsx` | Bank statement | ICICI Bank | 0.97 |
+| `razorpay_settlements_mar_apr2026.csv` | Gateway settlement | Razorpay | 0.97 |
+| `nodal_payout_advice_mar2026.csv` | Gateway settlement | — | 0.97 |
+| `collections_settlement_advice_mar2026.csv` | Gateway settlement | — | 0.97 |
+| `sahyadri_shopify_orders_mar2026.csv` | Order ledger | Shopify | 0.95 |
+| `card_acquirer_settlement_mar2026.xlsx` | Gateway settlement | — | 0.88 |
+| `sahyadri_zoho_books_invoices_mar2026.csv` | Order ledger | Zoho Books | **0.54** |
 
-That last row is the point. At 0.54 Accord **refuses to run** until you
-confirm the role. Handles `₹7,700.00`, `(2,500.00)`, unix epochs,
+Two rows carry the argument.
+
+The **0.54** is where Accord **refuses to run** until you confirm the role.
+
+The three files with **no provider at all** matter more. They classify at
+0.88–0.97 with `provider = None`, higher than several files whose vendor is
+recognised — because the classifier reads column semantics, not brand
+names. A settlement export from a system nobody has heard of still lands on
+the right side of the reconciliation. Handles `₹7,700.00`, `(2,500.00)`, unix epochs,
 `16-Mar-2026`, integer paise, split debit/credit columns, and an XLSX with
 a two-row title block above the header.
 
@@ -295,7 +307,38 @@ evidence that this cycle's work changed no engine behaviour.
   the engine reconciles real Razorpay data — a test account returns zero
   settlements. See `docs/RAZORPAY_INTEGRATION.md`.
 
-## 13. Running it
+## 13. The sample workspace
+
+One month of close for **Sahyadri Coffee Works**, a fictional Bengaluru
+coffee-equipment retailer. 21 sources, 7,063 records: four bank accounts,
+a gateway payments export and its settlement report, a card acquirer
+settlement, a nodal payout advice, a collections advice, a marketplace
+payout, a POS register, a webstore order book, invoices, an ERP general
+ledger and a Tally sales register.
+
+A full run, measured:
+
+```
+7,063 records ingested          ~2s
+3,504 ledger records reconciled ~10s
+3,428 reconciled · 66 exceptions · 10 human review
+7 model calls
+```
+
+Five records carry the argument:
+
+| Record | Outcome | What it shows |
+|---|---|---|
+| `ORD-7032` | Reconciled | Exact reference. No model. The ordinary 98%. |
+| `ORD-7021` | Reconciled, AI-assisted | Bank narration with no shared identifier. 0.93 against the 0.85 gate. |
+| `ORD-7031` | **Exception** | Same ₹8,650 as `ORD-7032`, one day apart — **refused**. |
+| `ZB-6107` | Exception | No settlement, but **pending**, not missing. |
+| `ORD-7104` | Human review | Two plausible candidates. Neither proven. |
+
+`ORD-7031` and `ORD-7032` share an amount to the paisa. One matched, one
+was refused. That pair is the product in miniature.
+
+## 14. Running it
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r backend/requirements.txt
@@ -305,17 +348,25 @@ cd backend && ../.venv/bin/python -m uvicorn app.main:app --port 8000
 cd frontend && npm install && npm run dev  # http://localhost:5173
 ```
 
-Generate the demo workspace, then upload all 13 files at once:
+Then open http://localhost:5173, go to **New run**, and click **Load
+sample workspace** — 21 sources and 7,063 records, ingested through exactly
+the path an upload takes. A full run takes about ten seconds.
+
+To regenerate those files from the seed instead:
 
 ```bash
-cd backend && ../.venv/bin/python data/generate_demo_workspace.py
+cd backend && ../.venv/bin/python data/generate_demo_workspace.py --verify
 ```
 
-## 14. Tests
+`--verify` re-reads every generated file through the real reader, detector,
+classifier and engine, and fails loudly if any scenario stops landing where
+it was designed to.
+
+## 15. Tests
 
 ```bash
 cd backend && ACCORD_AI_DISABLED=1 ../.venv/bin/python -m pytest -q
-# 311 passed, 1 skipped
+# 351 passed, 1 skipped
 
 ../.venv/bin/python health_check.py            # live provider probe
 ../.venv/bin/python verify_evaluation_v1.py    # frozen evaluation integrity
@@ -327,7 +378,7 @@ node e2e/verify-ui.mjs                         # evaluation + accessibility
 `ACCORD_AI_DISABLED=1` forces the offline heuristic so outcomes are a
 property of the code rather than of a live model.
 
-## 15. Reproducing the evaluation
+## 16. Reproducing the evaluation
 
 ```bash
 cd backend
@@ -343,7 +394,7 @@ refuses to freeze a set of reports whose commits disagree or whose working
 tree is dirty — a freeze that points at a commit the code no longer matches
 is worse than no freeze at all.
 
-## 16. Repository layout
+## 17. Repository layout
 
 ```
 backend/
@@ -351,9 +402,9 @@ backend/
   app/engine/      matching · policy · batch · semantic · providers · investigate · explain
   app/ledger/      hash-chained audit ledger, SQLite store
   app/api/         routes · runs · ai · investigate
-  data/            generators, demo_workspace/, eval reports
+  data/            generators, demo_workspace/ (the sample month), eval reports
   evaluations/     frozen, checksummed, commit-pinned
-  tests/           311 tests
+  tests/           351 tests
 frontend/
   src/             router · Landing · workspace components · motion
   e2e/             browser verification driving real Chromium

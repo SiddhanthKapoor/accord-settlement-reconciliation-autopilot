@@ -262,25 +262,37 @@ def build_plan(
         type_counts[view["source_type"]] = type_counts.get(view["source_type"], 0) + 1
         role_counts[view["role"]] = role_counts.get(view["role"], 0) + 1
 
+    # Blocker text is read verbatim by the run bar, so it is written for
+    # the person reading it. "required column(s) not mapped: date" states
+    # Accord's internal problem; "no date column" states theirs. The
+    # `kind` is what code keys on, and it is unchanged.
     blocking: list[dict] = []
     for view in views:
         if view["unmapped_required"]:
+            missing = " and no ".join(sorted(view["unmapped_required"]))
             blocking.append({
                 "source_id": view["source_id"], "filename": view["filename"], "kind": "UNMAPPED_REQUIRED",
-                "detail": f"required column(s) not mapped: {', '.join(view['unmapped_required'])}",
+                "detail": (f"no {missing} column — every reconciled row needs an amount and a date, "
+                           f"so this file cannot be read as financial records"),
             })
         if view["needs_confirmation"]:
+            confidence = view["confidence"]
+            strength = (f"{round(confidence * 100)}% confident"
+                        if isinstance(confidence, (int, float)) else "not confident")
             blocking.append({
                 "source_id": view["source_id"], "filename": view["filename"], "kind": "UNCONFIRMED_ROLE",
-                "detail": (f"detected as {view['source_type']} with confidence "
-                           f"{view['confidence']} — confirm the role before running"),
+                "detail": (f"Accord is only {strength} this is a {view['source_type'].lower().replace('_', ' ')} "
+                           f"file — confirm the role before running, or reconciliation would compare "
+                           f"the wrong two sides"),
             })
     if views and not role_counts.get("LEDGER"):
         blocking.append({"source_id": None, "filename": None, "kind": "NO_LEDGER_SIDE",
-                         "detail": "nothing on the ledger side — add an orders or accounting source"})
+                         "detail": ("nothing on the ledger side — add an orders export, an invoice "
+                                    "ledger or an accounting export")})
     if views and not role_counts.get("SETTLEMENT"):
         blocking.append({"source_id": None, "filename": None, "kind": "NO_SETTLEMENT_SIDE",
-                         "detail": "nothing on the settlement side — add a gateway or bank source"})
+                         "detail": ("nothing on the settlement side — add a gateway payout report "
+                                    "or a bank statement")})
 
     duplicates = [
         {"source_id": v["source_id"], "filename": v["filename"], "duplicate_of": v["duplicate_of"]}
